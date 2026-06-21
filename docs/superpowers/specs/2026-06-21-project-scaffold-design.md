@@ -29,8 +29,10 @@ exists.
 
 ## Decisions
 
-1. **App generation**: `mix phx.new . --app shunt --live` run directly in
-   this directory (already empty, already named `Shunt`). Produces OTP
+1. **App generation**: `mix phx.new . --app shunt --install` run directly in
+   this directory (already empty, already named `Shunt`). LiveView is the
+   Phoenix 1.8 default (no `--live` flag exists; `--no-live` is the
+   opt-out), so no flag is needed for it. Produces OTP
    app `shunt`, module prefix `Shunt`.
 2. **Generator defaults kept as-is**: Ecto + Postgres, Swoosh mailer,
    gettext, LiveDashboard, esbuild/Tailwind asset pipeline. No flags
