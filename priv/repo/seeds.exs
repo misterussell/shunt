@@ -10,4 +10,6 @@
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
 
-Shunt.Players.create_player!()
+unless Shunt.Repo.exists?(Shunt.Players.Player) do
+  Shunt.Players.create_player!()
+end
