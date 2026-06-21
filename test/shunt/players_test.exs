@@ -30,4 +30,17 @@ defmodule Shunt.PlayersTest do
       assert updated.heat == player.heat + 10
     end
   end
+
+  describe "lay_low/1" do
+    test "decreases cred and heat" do
+      player = Players.get_or_create_player()
+      {:ok, player} = Players.do_job(player)
+      {:ok, player} = Players.do_job(player)
+
+      assert {:ok, updated} = Players.lay_low(player)
+
+      assert updated.cred == player.cred - 10
+      assert updated.heat == player.heat - 20
+    end
+  end
 end
