@@ -1,10 +1,8 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 @AGENTS.md
 
-Claude should write tests for everything it creates. Multi-step DB writes should be wrapped in Ecto.Multi transactions.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Code Rules
 
