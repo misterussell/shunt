@@ -38,4 +38,21 @@ defmodule Shunt.Fencing do
     |> Ecto.Changeset.change(%{current_offer_key: nil})
     |> Repo.update()
   end
+
+  def sell_held_item(%Player{held_item_key: nil}), do: {:error, :no_held_item}
+
+  def sell_held_item(%Player{held_item_key: key} = player) do
+    item = Catalog.fetch!(key)
+
+    player
+    |> Ecto.Changeset.change(%{
+      scrip: player.scrip + item.sell_value,
+      cred: player.cred + item.cred_gain,
+      heat: clamp_heat(player.heat + item.heat_cost),
+      held_item_key: nil
+    })
+    |> Repo.update()
+  end
+
+  defp clamp_heat(heat), do: heat |> max(0) |> min(100)
 end

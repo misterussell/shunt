@@ -76,4 +76,43 @@ defmodule Shunt.FencingTest do
       assert Fencing.pass_offer(player) == {:error, :no_offer}
     end
   end
+
+  describe "sell_held_item/1" do
+    test "adds sell_value, cred_gain, and heat_cost, then clears held_item_key" do
+      player = Players.create_player!()
+      item = Catalog.fetch!("cracked_latticework_relay_key")
+
+      {:ok, player} =
+        player
+        |> Ecto.Changeset.change(%{held_item_key: item.key})
+        |> Repo.update()
+
+      assert {:ok, updated} = Fencing.sell_held_item(player)
+
+      assert updated.scrip == player.scrip + item.sell_value
+      assert updated.cred == player.cred + item.cred_gain
+      assert updated.heat == player.heat + item.heat_cost
+      assert updated.held_item_key == nil
+    end
+
+    test "clamps heat at 100" do
+      player = Players.create_player!()
+      item = Catalog.fetch!("burned_netrunners_memory_core")
+
+      {:ok, player} =
+        player
+        |> Ecto.Changeset.change(%{held_item_key: item.key, heat: 90})
+        |> Repo.update()
+
+      assert {:ok, updated} = Fencing.sell_held_item(player)
+
+      assert updated.heat == 100
+    end
+
+    test "returns an error when there is no held item" do
+      player = Players.create_player!()
+
+      assert Fencing.sell_held_item(player) == {:error, :no_held_item}
+    end
+  end
 end
