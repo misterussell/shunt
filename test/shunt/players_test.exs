@@ -11,6 +11,13 @@ defmodule Shunt.PlayersTest do
       assert player.scrip == 0
       assert player.heat == 0
     end
+
+    test "creates a player with no offer or held item" do
+      player = Players.create_player!()
+
+      assert player.current_offer_key == nil
+      assert player.held_item_key == nil
+    end
   end
 
   describe "get_player!/0" do
