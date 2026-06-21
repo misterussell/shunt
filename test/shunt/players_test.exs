@@ -18,4 +18,16 @@ defmodule Shunt.PlayersTest do
       assert Players.get_or_create_player().id == player.id
     end
   end
+
+  describe "do_job/1" do
+    test "increases cred, scrip, and heat" do
+      player = Players.get_or_create_player()
+
+      assert {:ok, updated} = Players.do_job(player)
+
+      assert updated.scrip == player.scrip + 15
+      assert updated.cred == player.cred + 5
+      assert updated.heat == player.heat + 10
+    end
+  end
 end
