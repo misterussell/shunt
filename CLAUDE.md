@@ -4,6 +4,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Singleton is an anti-pattern in Elixir. Functional always.
+
 ## Code Rules
 
 ### 1. Think Before Coding
