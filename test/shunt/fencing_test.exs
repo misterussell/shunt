@@ -59,4 +59,21 @@ defmodule Shunt.FencingTest do
       assert Fencing.take_offer(player) == {:error, :insufficient_scrip}
     end
   end
+
+  describe "pass_offer/1" do
+    test "clears the pending offer" do
+      player = Players.create_player!()
+      {:ok, player} = Fencing.find_lead(player)
+
+      assert {:ok, updated} = Fencing.pass_offer(player)
+
+      assert updated.current_offer_key == nil
+    end
+
+    test "returns an error when there is no pending offer" do
+      player = Players.create_player!()
+
+      assert Fencing.pass_offer(player) == {:error, :no_offer}
+    end
+  end
 end

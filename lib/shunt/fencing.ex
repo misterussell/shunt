@@ -30,4 +30,12 @@ defmodule Shunt.Fencing do
       |> Repo.update()
     end
   end
+
+  def pass_offer(%Player{current_offer_key: nil}), do: {:error, :no_offer}
+
+  def pass_offer(%Player{} = player) do
+    player
+    |> Ecto.Changeset.change(%{current_offer_key: nil})
+    |> Repo.update()
+  end
 end
