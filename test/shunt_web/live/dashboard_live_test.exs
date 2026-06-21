@@ -3,6 +3,11 @@ defmodule ShuntWeb.DashboardLiveTest do
 
   import Phoenix.LiveViewTest
 
+  setup do
+    Shunt.Players.create_player!()
+    :ok
+  end
+
   test "renders initial resource values", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 

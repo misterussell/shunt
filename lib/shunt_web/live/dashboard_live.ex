@@ -4,7 +4,7 @@ defmodule ShuntWeb.DashboardLive do
   alias Shunt.Players
 
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, player: Players.get_or_create_player())}
+    {:ok, assign(socket, player: Players.get_player!())}
   end
 
   def handle_event("do_job", _params, socket) do

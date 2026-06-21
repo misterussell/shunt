@@ -1,6 +1,4 @@
 defmodule Shunt.Players do
-  import Ecto.Query
-
   alias Shunt.Repo
   alias Shunt.Players.Player
 
@@ -11,11 +9,12 @@ defmodule Shunt.Players do
   @lay_low_cred_cost 10
   @lay_low_heat_reduction 20
 
-  def get_or_create_player do
-    case Repo.one(from p in Player, limit: 1) do
-      nil -> Repo.insert!(%Player{})
-      player -> player
-    end
+  def create_player! do
+    Repo.insert!(%Player{})
+  end
+
+  def get_player! do
+    Repo.one!(Player)
   end
 
   def do_job(%Player{} = player) do
