@@ -30,7 +30,10 @@ Mechanic (priority #2) which will replace it.
 ## Non-goals
 
 - Real authentication or multi-player support. There is exactly one
-  player row in the database, fetched as a singleton.
+  player row in the database, created explicitly via seeding rather
+  than lazily ensured at request time (see Data model — singleton
+  patterns, including lazy ensure-one-exists logic, are an anti-pattern
+  in this codebase).
 - The real Fencing Mechanic (buy-low/sell-high), Skill Trees, NPCs, or
   Crafting. "Do a Job" is an explicit placeholder for Fencing.
 - Heat Events (threshold-triggered consequences) — explicitly priority
@@ -56,19 +59,24 @@ actually needs to display it.
 `Shunt.Players` is the only module that touches `Shunt.Repo` or the
 `Player` schema. The LiveView calls context functions exclusively.
 
-**Singleton player pattern:** `Shunt.Players.get_or_create_player/0`
-returns the one existing row, or inserts a default one if the table is
-empty (covers first boot without a separate seed step). This is the
-seam for future auth — when accounts exist, this function is replaced by
+**No lazy singleton:** the one player row is created explicitly by
+`priv/repo/seeds.exs` calling `Shunt.Players.create_player!/0` once, not
+by request-time "ensure it exists" logic. Lazily fetch-or-insert
+("singleton") patterns are explicitly avoided — they reintroduce
+process-singleton-style implicit global state and a check-then-insert
+race even when backed by a plain DB row. `Shunt.Players.get_player!/0`
+assumes the seeded row exists and simply fetches it; this is the seam
+for future auth — when accounts exist, this function is replaced by
 something keyed on `current_scope`, and `do_job/1` / `lay_low/1` are
 unaffected since they already take a `%Player{}` struct as input.
 
 ## Context API
 
 ```elixir
-Shunt.Players.get_or_create_player/0  # -> %Player{}
-Shunt.Players.do_job(%Player{})       # -> {:ok, %Player{}}
-Shunt.Players.lay_low(%Player{})      # -> {:ok, %Player{}} | {:error, :insufficient_cred}
+Shunt.Players.create_player!/0  # -> %Player{} (called once, from seeds.exs)
+Shunt.Players.get_player!/0     # -> %Player{}
+Shunt.Players.do_job(%Player{}) # -> {:ok, %Player{}}
+Shunt.Players.lay_low(%Player{}) # -> {:ok, %Player{}} | {:error, :insufficient_cred}
 ```
 
 Placeholder balance (easy to retune later, not load-bearing design):
@@ -105,7 +113,7 @@ DOM ids (for both visual targeting and test selectors):
 `#resource-cred`, `#resource-scrip`, `#resource-heat`, `#do-job-button`,
 `#lay-low-button`.
 
-`mount/3` calls `get_or_create_player/0` and assigns the struct.
+`mount/3` calls `get_player!/0` and assigns the struct.
 `handle_event("do_job", _, socket)` and `handle_event("lay_low", _,
 socket)` call the matching context function and re-assign the updated
 player (or, for `lay_low`'s error case, no-op since the button is
@@ -118,9 +126,9 @@ Kept intentionally light for this sprint — happy-path coverage proving
 the loop works, not exhaustive edge cases (those can be added once real
 balance/Heat-event work begins):
 
-- `Shunt.PlayersTest`: `get_or_create_player/0` creates a default player
-  when none exists; `do_job/1` increases cred/scrip/heat; `lay_low/1`
-  decreases cred/heat.
+- `Shunt.PlayersTest`: `create_player!/0` creates a default player;
+  `get_player!/0` returns the existing player; `do_job/1` increases
+  cred/scrip/heat; `lay_low/1` decreases cred/heat.
 - `ShuntWeb.DashboardLiveTest`: mount renders initial resource values;
   clicking `#do-job-button` updates the displayed values; clicking
   `#lay-low-button` updates the displayed values.
@@ -130,6 +138,6 @@ balance/Heat-event work begins):
 - Fencing Mechanic replaces "Do a Job" with the real buy-low/sell-high
   loop (priority #2).
 - Heat Event table fires real consequences at thresholds (priority #6).
-- Auth/`phx.gen.auth` replaces the singleton-player seam once the
+- Auth/`phx.gen.auth` replaces the seeded-player seam once the
   player/save-state model is designed.
 - Visual theming once a design system exists.
