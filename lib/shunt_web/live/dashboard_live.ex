@@ -134,19 +134,22 @@ defmodule ShuntWeb.DashboardLive do
           </div>
         </div>
 
-        <%!--
-          TODO: add an NPC roster section here, mirroring the skill-tree card's div/border
-          styling above. For each npc in @npcs (assigned below), render a
-          `id={"npc-#{npc.key}"}` container showing: npc.name (bold), a humanized faction label
-          (e.g. "Syndicate of Closed Hands" from :syndicate_of_closed_hands — write a small
-          private `humanize_faction/1` helper that does
-          `npc.faction |> Atom.to_string() |> String.replace("_", " ") |> String.split() |>
-          Enum.map(&String.capitalize/1) |> Enum.join(" ")`), a loyalty number+bar reusing the
-          same `w-full h-2 bg-gray-200 rounded` / inner `bg-blue-600` treatment as the Heat bar
-          above (loyalty is 0-100, same scale), and each of npc.trade_actions rendered as plain
-          text (bold name + description paragraph) — no button, since trade actions have no
-          handler yet.
-        --%>
+        <div class="border border-gray-300 rounded-lg p-4 space-y-4">
+          <div :for={npc <- @npcs} id={"npc-#{npc.key}"} class="space-y-1">
+            <p class="font-semibold">{npc.name}</p>
+            <p class="text-sm text-gray-500">{humanize_faction(npc.faction)}</p>
+            <div>
+              <p class="text-sm">Loyalty: {npc.loyalty}/100</p>
+              <div class="w-full h-2 bg-gray-200 rounded">
+                <div class="h-2 bg-blue-600 rounded" style={"width: #{npc.loyalty}%"}></div>
+              </div>
+            </div>
+            <div :for={action <- npc.trade_actions}>
+              <p class="text-sm"><span class="font-semibold">{action.name}</span> — {action.description}</p>
+            </div>
+          </div>
+        </div>
+
         <div class="flex gap-4">
           <button
             id="lay-low-button"
@@ -168,11 +171,20 @@ defmodule ShuntWeb.DashboardLive do
     |> assign(:offer, catalog_item(player.current_offer_key))
     |> assign(:held, catalog_item(player.held_item_key))
     |> assign(:skill_trees, SkillsCatalog.trees())
-    # TODO: assign(:npcs, Npcs.list())
+    |> assign(:npcs, Npcs.list())
   end
 
   defp catalog_item(nil), do: nil
   defp catalog_item(key), do: Catalog.fetch!(key)
+
+  defp humanize_faction(faction) do
+    faction
+    |> Atom.to_string()
+    |> String.replace("_", " ")
+    |> String.split()
+    |> Enum.map(&String.capitalize/1)
+    |> Enum.join(" ")
+  end
 
   defp skill_tree_status(player, tree) do
     case SkillsCatalog.current_tier(player, tree) do
