@@ -1,5 +1,6 @@
 defmodule Shunt.Crafting do
   @moduledoc false
+  alias Shunt.Heat
   alias Shunt.Players.Player
   alias Shunt.Crafting.RawCatalog
   alias Shunt.Crafting.RecipeCatalog
@@ -7,19 +8,17 @@ defmodule Shunt.Crafting do
 
   def scavenge(%Player{} = player) do
     raw = Enum.random(RawCatalog.items())
+    {final_heat, event} = Heat.resolve(player.heat, Heat.clamp(player.heat + 4))
 
-    # TODO: route the heat change through Shunt.Heat (same pattern as the TODO in
-    # Shunt.Fencing.sell_held_item/1):
-    #   new_heat = Shunt.Heat.clamp(player.heat + 4)
-    #   {final_heat, event} = Shunt.Heat.resolve(player.heat, new_heat)
-    # Apply event scrip/cred penalties (clamped at 0) alongside the inventory change,
-    # set heat: final_heat, and change the return to {:ok, player, event}.
     player
     |> Ecto.Changeset.change(%{
       inventory: Map.update(player.inventory, raw.key, 1, &(&1 + 1)),
-      heat: clamp_heat(player.heat + 4)
+      scrip: max(player.scrip - event_loss(event, :scrip_loss), 0),
+      cred: max(player.cred - event_loss(event, :cred_loss), 0),
+      heat: final_heat
     })
     |> Repo.update()
+    |> with_event(event)
   end
 
   def assemble(%Player{} = player, recipe_key) do
@@ -54,24 +53,23 @@ defmodule Shunt.Crafting do
     if Map.get(player.inventory, item_key, 0) < 1 do
       {:error, :no_item}
     else
-      # TODO: route the heat change through Shunt.Heat (same pattern as the TODO in
-      # Shunt.Fencing.sell_held_item/1):
-      #   new_heat = Shunt.Heat.clamp(player.heat + recipe.heat_cost)
-      #   {final_heat, event} = Shunt.Heat.resolve(player.heat, new_heat)
-      # Apply event scrip/cred penalties on top of the existing scrip/cred gains
-      # (clamped at 0), set heat: final_heat instead of clamp_heat(...), delete the
-      # private clamp_heat/1 function below, and change this function's return to
-      # {:ok, player, event} so DashboardLive can flash the fired event.
+      {final_heat, event} = Heat.resolve(player.heat, Heat.clamp(player.heat + recipe.heat_cost))
+
       player
       |> Ecto.Changeset.change(%{
         inventory: Map.update!(player.inventory, item_key, &(&1 - 1)),
-        scrip: player.scrip + recipe.sell_value,
-        cred: player.cred + recipe.cred_gain,
-        heat: clamp_heat(player.heat + recipe.heat_cost)
+        scrip: max(player.scrip + recipe.sell_value - event_loss(event, :scrip_loss), 0),
+        cred: max(player.cred + recipe.cred_gain - event_loss(event, :cred_loss), 0),
+        heat: final_heat
       })
       |> Repo.update()
+      |> with_event(event)
     end
   end
 
-  defp clamp_heat(heat), do: heat |> max(0) |> min(100)
+  defp with_event({:ok, player}, event), do: {:ok, player, event}
+  defp with_event({:error, reason}, _event), do: {:error, reason}
+
+  defp event_loss(nil, _field), do: 0
+  defp event_loss(event, field), do: Map.fetch!(event, field)
 end

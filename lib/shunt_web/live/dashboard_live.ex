@@ -41,19 +41,15 @@ defmodule ShuntWeb.DashboardLive do
   end
 
   def handle_event("sell_item", _params, socket) do
-    # TODO: once Shunt.Fencing.sell_held_item/1 returns {:ok, player, event}, match it
-    # here and, when event is non-nil, pipe socket through
-    # put_flash(:error, "#{event.name} — #{event.flavor_text} (-#{event.scrip_loss} Scrip, -#{event.cred_loss} Cred)")
-    # before assign_player/2 (mirror this in the "scavenge" and "sell_assembled" clauses below).
-    {:ok, player} = Fencing.sell_held_item(socket.assigns.player)
-    {:noreply, assign_player(socket, player)}
+    case Fencing.sell_held_item(socket.assigns.player) do
+      {:ok, player, event} -> {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
+      {:error, _reason} -> {:noreply, socket}
+    end
   end
 
   def handle_event("scavenge", _params, socket) do
-    # TODO: once Shunt.Crafting.scavenge/1 returns {:ok, player, event}, flash the event
-    # the same way as described in the "sell_item" clause's TODO above.
-    {:ok, player} = Crafting.scavenge(socket.assigns.player)
-    {:noreply, assign_player(socket, player)}
+    {:ok, player, event} = Crafting.scavenge(socket.assigns.player)
+    {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
   end
 
   def handle_event("assemble", %{"key" => recipe_key}, socket) do
@@ -64,10 +60,8 @@ defmodule ShuntWeb.DashboardLive do
   end
 
   def handle_event("sell_assembled", %{"key" => item_key}, socket) do
-    # TODO: once Shunt.Crafting.sell_assembled/2 returns {:ok, player, event} on success,
-    # flash the event the same way as described in the "sell_item" clause's TODO above.
     case Crafting.sell_assembled(socket.assigns.player, item_key) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+      {:ok, player, event} -> {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
@@ -291,6 +285,16 @@ defmodule ShuntWeb.DashboardLive do
 
   defp catalog_item(nil), do: nil
   defp catalog_item(key), do: Catalog.fetch!(key)
+
+  defp flash_heat_event(socket, nil), do: socket
+
+  defp flash_heat_event(socket, event) do
+    put_flash(
+      socket,
+      :error,
+      "#{event.name} — #{event.flavor_text} (-#{event.scrip_loss} Scrip, -#{event.cred_loss} Cred)"
+    )
+  end
 
   defp humanize_faction(faction) do
     faction
