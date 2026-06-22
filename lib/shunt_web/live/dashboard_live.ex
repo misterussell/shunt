@@ -12,6 +12,22 @@ defmodule ShuntWeb.DashboardLive do
   alias Shunt.Players
   alias Shunt.Skills.Catalog, as: SkillsCatalog
 
+  # TODO: per priv/docs/architecture.md Section 5, once Shunt.Players.lookup_or_start/1,
+  # Shunt.Players.dispatch/2, and Shunt.Players.current/1 are implemented, change mount/3
+  # below to:
+  #   player_id = Players.get_player!().id
+  #   if connected?(socket), do: Signals.subscribe()
+  #   {:ok, player} = Players.lookup_or_start(player_id) |> Players.current()
+  #   {:ok, assign(socket, player_id: player_id) |> assign_player(player)}
+  # and change every handle_event/3 clause below that currently calls a Shunt.Fencing,
+  # Shunt.Crafting, or Shunt.Npcs function directly (e.g.
+  # `Fencing.take_offer(socket.assigns.player)`) to instead call
+  # `Players.dispatch(socket.assigns.player_id, &Fencing.take_offer/1)` (or the equivalent
+  # &Module.function/1 capture for that action), matching the new {:ok, player, meta} /
+  # {:error, reason} return shape. flash_heat_event/2 calls should read the fired heat event
+  # off `meta.heat_event` returned by dispatch/2 instead of a resolver's own third tuple
+  # element. Calls passing extra params (e.g. handle_event("assemble", %{"key" => recipe_key}))
+  # need a closure: &Crafting.assemble(&1, recipe_key).
   def mount(_params, _session, socket) do
     if connected?(socket), do: Signals.subscribe()
     {:ok, assign_player(socket, Players.get_player!())}

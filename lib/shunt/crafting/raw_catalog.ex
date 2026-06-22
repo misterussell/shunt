@@ -1,6 +1,12 @@
 defmodule Shunt.Crafting.RawCatalog do
   @moduledoc false
 
+  # TODO: per priv/docs/architecture.md Section 4, move each map in @raws below into its own
+  # file under priv/content/raws/<key>.exs, delete @raws, and reimplement items/0 and fetch!/1
+  # below as delegates to Shunt.Content.all(:raws) and Shunt.Content.fetch!(:raws, key)
+  # respectively. Requires Shunt.Content.Store (lib/shunt/content/store.ex) to be implemented
+  # and wired into lib/shunt/application.ex first, with :raws in its @sources.
+
   @raws [
     %{
       key: "stripped_copper_coil",

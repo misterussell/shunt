@@ -1,5 +1,13 @@
 defmodule Shunt.Fencing.Catalog do
   @moduledoc false
+
+  # TODO: per priv/docs/architecture.md Section 4, move each map in @items below into its
+  # own file under priv/content/fencing/<key>.exs (mirroring priv/npcs/*.exs), delete @items,
+  # and reimplement items/0 and fetch!/1 below as delegates to
+  # Shunt.Content.all(:fencing_items) and Shunt.Content.fetch!(:fencing_items, key)
+  # respectively. Requires Shunt.Content.Store (lib/shunt/content/store.ex) to be implemented
+  # and wired into lib/shunt/application.ex first, with :fencing_items in its @sources.
+
   @items [
     %{
       key: "scrap_dermal_plating",

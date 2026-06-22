@@ -7,8 +7,16 @@ defmodule Shunt.Crafting do
   alias Shunt.Repo
   alias Shunt.Skills.Catalog, as: SkillsCatalog
 
+  # TODO: per priv/docs/architecture.md Section 3, rewrite scavenge/1, assemble/2, and
+  # sell_assembled/2 below to return effect lists instead of calling
+  # Ecto.Changeset.change/Repo.update directly, same pattern as Shunt.Fencing. Remove the
+  # `alias Shunt.Repo` and `alias Shunt.Heat` lines once every function below is converted.
+
   def scavenge(%Player{} = player) do
     raw = Enum.random(RawCatalog.items())
+    # TODO: return {:ok, [{:inventory, raw.key, 1}, {:heat, 4}]} - the {:heat, _} effect now
+    # owns the Shunt.Heat.resolve/2 + event-loss logic that the lines below currently
+    # duplicate; delete that usage here once Shunt.Effects handles it.
     {final_heat, event} = Heat.resolve(player.heat, Heat.clamp(player.heat + 4))
 
     player
@@ -36,6 +44,8 @@ defmodule Shunt.Crafting do
         {:error, :insufficient_materials}
 
       true ->
+        # TODO: return {:ok, effects} where effects is one {:inventory, raw_key, -qty} per
+        # {raw_key, qty} in recipe.inputs, plus a trailing {:inventory, recipe.key, 1}
         inventory =
           recipe.inputs
           |> Enum.reduce(player.inventory, fn {raw_key, qty}, inventory ->
@@ -55,6 +65,9 @@ defmodule Shunt.Crafting do
     if Map.get(player.inventory, item_key, 0) < 1 do
       {:error, :no_item}
     else
+      # TODO: return {:ok, [{:inventory, item_key, -1}, {:heat, recipe.heat_cost},
+      # {:scrip, recipe.sell_value}, {:cred, recipe.cred_gain}]} - same {:heat, _}
+      # consolidation as scavenge/1 above and Shunt.Fencing.sell_held_item/1.
       {final_heat, event} = Heat.resolve(player.heat, Heat.clamp(player.heat + recipe.heat_cost))
 
       player

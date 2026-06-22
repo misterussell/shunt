@@ -20,6 +20,15 @@ defmodule Shunt.Npcs do
     Store.fetch!(key)
   end
 
+  # TODO: per priv/docs/architecture.md Section 2 & 3, rewrite flesh_tithe/1, move_goods/1,
+  # look_the_other_way/1, data_drop/1, and settle_the_books/1 below to return effect lists
+  # ({:ok, effects} / {:error, reason}) instead of calling Ecto.Changeset.change/Repo.update
+  # and emitting Signals directly. Loyalty band-transition detection and Signals emission move
+  # into Shunt.Effects' {:npc_loyalty, npc_key, delta} handling (see lib/shunt/effects.ex) -
+  # delete with_event/2, emit_loyalty_signals/2, and tap_loyalty_signals/3 below once every
+  # function that used them is converted, along with the `alias Shunt.Repo` and
+  # `alias Shunt.Npcs.Signals` lines.
+
   def flesh_tithe(%Player{} = player) do
     cond do
       not Loyalty.roll_reliable?(player, @flesh_tithe_npc_key) ->
@@ -29,6 +38,11 @@ defmodule Shunt.Npcs do
         {:error, :insufficient_materials}
 
       true ->
+        # TODO: return {:ok, [{:inventory, @flesh_tithe_input_raw_key, -1},
+        # {:heat, @flesh_tithe_heat_cost},
+        # {:scrip, floor(@flesh_tithe_gain_scrip * Loyalty.price_multiplier(player, @flesh_tithe_npc_key))},
+        # {:npc_loyalty, @flesh_tithe_npc_key, 5}]} (5 is Loyalty's gain amount - see the TODO
+        # on Loyalty.record_interaction/2 in lib/shunt/npcs/loyalty.ex)
         {final_heat, event} =
           Heat.resolve(player.heat, Heat.clamp(player.heat + @flesh_tithe_heat_cost))
 
@@ -85,6 +99,9 @@ defmodule Shunt.Npcs do
     if Loyalty.roll_reliable?(player, @move_goods_npc_key) do
       item = Shunt.Fencing.Catalog.fetch!(key)
 
+      # TODO: return {:ok, [{:scrip, floor(item.sell_value * 0.5 *
+      # Loyalty.price_multiplier(player, @move_goods_npc_key))}, {:set, :held_item_key, nil},
+      # {:npc_loyalty, @move_goods_npc_key, 5}]}
       payout =
         floor(item.sell_value * 0.5 * Loyalty.price_multiplier(player, @move_goods_npc_key))
 
@@ -122,6 +139,10 @@ defmodule Shunt.Npcs do
         {:error, :npc_unreliable}
 
       true ->
+        # TODO: return {:ok, [{:scrip, -cost}, {:heat, -@look_the_other_way_heat_reduction},
+        # {:npc_loyalty, @look_the_other_way_npc_key, 5}]} - note the heat delta is negative
+        # (a reduction); Shunt.Effects' {:heat, delta} handling must clamp at 0 the same way
+        # Shunt.Heat.clamp/1 does today.
         interaction = Loyalty.record_interaction(player, @look_the_other_way_npc_key)
 
         player
@@ -151,6 +172,8 @@ defmodule Shunt.Npcs do
         {:error, :npc_unreliable}
 
       true ->
+        # TODO: return {:ok, [{:scrip, -cost}, {:cred, gain},
+        # {:npc_loyalty, @data_drop_npc_key, 5}]}
         interaction = Loyalty.record_interaction(player, @data_drop_npc_key)
 
         player
@@ -187,6 +210,8 @@ defmodule Shunt.Npcs do
         {:error, :npc_unreliable}
 
       true ->
+        # TODO: return {:ok, [{:cred, -cost}, {:scrip, gain},
+        # {:npc_loyalty, @settle_the_books_npc_key, 5}]}
         interaction = Loyalty.record_interaction(player, @settle_the_books_npc_key)
 
         player

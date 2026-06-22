@@ -37,6 +37,12 @@ defmodule Shunt.PlayersTest do
     end
   end
 
+  # TODO: per priv/docs/architecture.md Section 3, once Players.lay_low/1 returns an effect
+  # list instead of an updated %Player{}, rewrite the test below to assert
+  # Players.lay_low(player) == {:ok, [{:cred, -10}, {:heat, -20}]} given a player with
+  # cred: 30, heat: 40 (no Repo/Ecto.Changeset needed - this becomes a pure assertion on a
+  # plain %Player{} struct, same as the Shunt.Fencing/Shunt.Crafting/Shunt.Npcs resolver
+  # test rewrites).
   describe "lay_low/1" do
     test "decreases cred and heat" do
       player = Players.create_player!()

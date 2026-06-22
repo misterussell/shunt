@@ -2,6 +2,14 @@ defmodule Shunt.Npcs.Store do
   @moduledoc false
   use GenServer
 
+  # TODO: delete this entire module (and test/shunt/npcs/store_test.exs) once
+  # Shunt.Content.Store (lib/shunt/content/store.ex) is implemented and wired into
+  # lib/shunt/application.ex with an :npcs source pointed at priv/content/npcs - it covers
+  # the exact same content this module loads from priv/npcs today. Move priv/npcs/*.exs to
+  # priv/content/npcs/*.exs as part of that change. Shunt.Npcs.list/0 and Shunt.Npcs.get!/1
+  # then delegate to Shunt.Content.all(:npcs) / Shunt.Content.fetch!(:npcs, key) instead of
+  # this module.
+
   @table :npcs
 
   def start_link(_opts) do

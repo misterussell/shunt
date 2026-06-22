@@ -6,6 +6,19 @@ defmodule Shunt.FencingTest do
   alias Shunt.Players
   alias Shunt.Repo
 
+  # TODO: per priv/docs/architecture.md Section 3 & 6, once find_lead/1, take_offer/1,
+  # pass_offer/1, and sell_held_item/1 in lib/shunt/fencing.ex return effect lists instead of
+  # {:ok, %Player{}} / {:ok, %Player{}, event}, rewrite every test below to build a plain
+  # %Shunt.Players.Player{} struct literal (no Players.create_player!/0, no Repo, no
+  # Ecto.Changeset) and assert directly on the returned {:ok, effects} list - e.g.
+  # take_offer/1's "deducts buy_cost..." test becomes an assertion that
+  # Fencing.take_offer(%Player{current_offer_key: item.key, scrip: 100}) ==
+  # {:ok, [{:scrip, -item.buy_cost}, {:set, :current_offer_key, nil},
+  # {:set, :held_item_key, item.key}]}. Error-path tests (no offer, insufficient scrip, no
+  # held item) stay structurally the same since those return values don't change. This file
+  # can switch from `use Shunt.DataCase` to `use ExUnit.Case, async: true` once no test in it
+  # touches Repo.
+
   describe "find_lead/1" do
     test "sets current_offer_key to a valid catalog key when idle" do
       player = Players.create_player!()

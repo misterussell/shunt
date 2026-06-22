@@ -8,6 +8,21 @@ defmodule Shunt.CraftingTest do
 
   alias Shunt.Crafting.RawCatalog
 
+  # TODO: per priv/docs/architecture.md Section 3 & 6, once scavenge/1, assemble/2, and
+  # sell_assembled/2 in lib/shunt/crafting.ex return effect lists instead of {:ok, %Player{}} /
+  # {:ok, %Player{}, event}, rewrite every test below to build a plain
+  # %Shunt.Players.Player{} struct literal (no Players.create_player!/0, no Repo, no
+  # Ecto.Changeset) and assert directly on the returned {:ok, effects} list - e.g.
+  # sell_assembled/2's success test becomes an assertion that
+  # Crafting.sell_assembled(%Player{inventory: %{item_key => 1}}, item_key) ==
+  # {:ok, [{:inventory, item_key, -1}, {:heat, recipe.heat_cost}, {:scrip, recipe.sell_value},
+  # {:cred, recipe.cred_gain}]}. Error-path tests (insufficient tier/materials/no item) stay
+  # structurally the same since those return values don't change. This file can switch from
+  # `use Shunt.DataCase` to `use ExUnit.Case, async: true` once no test in it touches Repo -
+  # assemble/2 still calls SkillsCatalog.current_tier/2, which only reads
+  # player.inventory[tool_key] and doesn't touch Repo, so this should be possible for every
+  # test in this file.
+
   describe "scavenge/1" do
     test "adds one of a valid Raw to inventory and raises heat by 4, with no heat event" do
       player = Players.create_player!()

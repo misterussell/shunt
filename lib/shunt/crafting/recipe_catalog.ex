@@ -1,6 +1,13 @@
 defmodule Shunt.Crafting.RecipeCatalog do
   @moduledoc false
 
+  # TODO: per priv/docs/architecture.md Section 4, move each map in @recipes below into its
+  # own file under priv/content/recipes/<key>.exs, delete @recipes, and reimplement recipes/0
+  # and fetch!/1 below as delegates to Shunt.Content.all(:recipes) and
+  # Shunt.Content.fetch!(:recipes, key) respectively. Requires Shunt.Content.Store
+  # (lib/shunt/content/store.ex) to be implemented and wired into lib/shunt/application.ex
+  # first, with :recipes in its @sources.
+
   @recipes [
     %{
       key: "patchwork_courier_drone",

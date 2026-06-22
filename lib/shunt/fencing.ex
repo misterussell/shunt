@@ -5,8 +5,16 @@ defmodule Shunt.Fencing do
   alias Shunt.Players.Player
   alias Shunt.Fencing.Catalog
 
+  # TODO: per priv/docs/architecture.md Section 3, rewrite find_lead/1, take_offer/1,
+  # pass_offer/1, and sell_held_item/1 below to return {:ok, effects} / {:ok, effects, meta} /
+  # {:error, reason} effect lists (see Shunt.Effects' effect vocabulary) instead of calling
+  # Ecto.Changeset.change/Repo.update directly. Preconditions and error returns stay the same -
+  # only the success branch of each function changes. Remove the `alias Shunt.Repo` and
+  # `alias Shunt.Heat` lines once every function below is converted.
+
   def find_lead(%Player{current_offer_key: nil, held_item_key: nil} = player) do
     item = Enum.random(Catalog.items())
+    # TODO: return {:ok, [{:set, :current_offer_key, item.key}]}
 
     player
     |> Ecto.Changeset.change(%{current_offer_key: item.key})
@@ -23,6 +31,8 @@ defmodule Shunt.Fencing do
     if scrip < item.buy_cost do
       {:error, :insufficient_scrip}
     else
+      # TODO: return {:ok, [{:scrip, -item.buy_cost}, {:set, :current_offer_key, nil},
+      # {:set, :held_item_key, key}]}
       player
       |> Ecto.Changeset.change(%{
         scrip: scrip - item.buy_cost,
@@ -36,6 +46,7 @@ defmodule Shunt.Fencing do
   def pass_offer(%Player{current_offer_key: nil}), do: {:error, :no_offer}
 
   def pass_offer(%Player{} = player) do
+    # TODO: return {:ok, [{:set, :current_offer_key, nil}]}
     player
     |> Ecto.Changeset.change(%{current_offer_key: nil})
     |> Repo.update()
@@ -45,6 +56,11 @@ defmodule Shunt.Fencing do
 
   def sell_held_item(%Player{held_item_key: key} = player) do
     item = Catalog.fetch!(key)
+    # TODO: return {:ok, [{:heat, item.heat_cost}, {:scrip, item.sell_value},
+    # {:cred, item.cred_gain}, {:set, :held_item_key, nil}]} - the {:heat, _} effect now owns
+    # the Shunt.Heat.resolve/2 + event-loss logic that the lines below currently duplicate
+    # (event_loss/2 and the `final_heat` calc); delete that usage here once Shunt.Effects
+    # handles it.
     {final_heat, event} = Heat.resolve(player.heat, Heat.clamp(player.heat + item.heat_cost))
 
     player

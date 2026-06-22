@@ -1,6 +1,15 @@
 defmodule Shunt.Skills.Catalog do
   @moduledoc false
 
+  # TODO: per priv/docs/architecture.md Section 4, move the @trees list below into a single
+  # file at priv/content/skills/trees.exs (one file holding the whole list, not one file per
+  # tree - see the :skill_trees special case in the Shunt.Content.Store TODO), delete @trees,
+  # and reimplement trees/0 below as a delegate to Shunt.Content.all(:skill_trees). Requires
+  # Shunt.Content.Store (lib/shunt/content/store.ex) to be implemented and wired into
+  # lib/shunt/application.ex first, with :skill_trees in its @sources. Do NOT touch
+  # current_tier/2 below - its tier-unlock logic is out of scope for this migration (see
+  # priv/docs/architecture.md's "Explicitly deferred" section, GDD Sprint 2 item 1).
+
   @trees [
     %{
       key: "ghostwork",

@@ -5,6 +5,18 @@ defmodule Shunt.NpcsTest do
   alias Shunt.Players
   alias Shunt.Repo
 
+  # TODO: per priv/docs/architecture.md Section 3 & 6, once flesh_tithe/1, move_goods/1,
+  # look_the_other_way/1, data_drop/1, and settle_the_books/1 in lib/shunt/npcs.ex return
+  # effect lists instead of {:ok, %Player{}, meta} / {:ok, %Player{}} / {:error, reason},
+  # rewrite every test below that exercises those 5 functions to build a plain
+  # %Shunt.Players.Player{} struct literal (no Players.create_player!/0, no Repo, no
+  # Ecto.Changeset) and assert directly on the returned {:ok, effects} list - e.g.
+  # flesh_tithe/1's success test becomes an assertion that the returned effects list contains
+  # {:inventory, "raw_flesh_key", -1}, {:heat, ...}, {:scrip, ...}, and
+  # {:npc_loyalty, "tally", 5} (loyalty band-transition assertions move to
+  # test/shunt/effects_test.exs, since Shunt.Effects now owns that computation - see the TODO
+  # in lib/shunt/effects.ex). roll_reliable?/2's probabilistic loop-based tests should stay
+  # where they are since that logic isn't moving. list/0 and get!/1 tests below are unaffected.
   describe "list/0" do
     test "returns 5 npcs sorted by name" do
       names = Enum.map(Npcs.list(), & &1.name)

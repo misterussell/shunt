@@ -40,6 +40,11 @@ defmodule Shunt.Npcs.Loyalty do
     end
   end
 
+  # TODO: once Shunt.Effects' {:npc_loyalty, npc_key, delta} handling (see
+  # lib/shunt/effects.ex) takes over band-transition computation for every Shunt.Npcs
+  # resolver, this function becomes unused - delete it along with its callers in
+  # lib/shunt/npcs.ex. value/2, met?/2, clamp/1, and band_for/1 above are still needed by
+  # Shunt.Effects and must stay.
   def record_interaction(player, npc_key) do
     was_met = met?(player, npc_key)
     old_value = value(player, npc_key)

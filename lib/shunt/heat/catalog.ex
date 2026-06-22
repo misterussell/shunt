@@ -1,6 +1,13 @@
 defmodule Shunt.Heat.Catalog do
   @moduledoc false
 
+  # TODO: per priv/docs/architecture.md Section 4, move each map in @events below into its
+  # own file under priv/content/heat_events/<key>.exs, delete @events, and reimplement
+  # events_for_band/1 and fetch!/1 below as delegates to Shunt.Content.all(:heat_events)
+  # (filtering by band in events_for_band/1) and Shunt.Content.fetch!(:heat_events, key)
+  # respectively. Requires Shunt.Content.Store (lib/shunt/content/store.ex) to be implemented
+  # and wired into lib/shunt/application.ex first, with :heat_events in its @sources.
+
   @events [
     %{
       key: "rival_undercuts_prices",
