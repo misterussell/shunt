@@ -185,6 +185,31 @@ defmodule ShuntWeb.DashboardLiveTest do
     assert Shunt.Players.get_player!().heat == 80
   end
 
+  # TODO: once DashboardLive subscribes to Shunt.Npcs.Signals and handles {:npc_met, _} /
+  # {:loyalty_band_changed, _, _, _} (per the TODOs in dashboard_live.ex), add:
+  #   test "meeting an NPC for the first time flashes a met message", %{conn: conn} do
+  #     player = Shunt.Players.get_player!()
+  #     Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: %{"cracked_bone_plate" => 1}))
+  #     {:ok, view, _html} = live(conn, ~p"/")
+  #     view |> element("#trade-flesh-tithe-button") |> render_click()
+  #     # render(view) again to let the LiveView's own self-broadcast (sent via Phoenix.PubSub
+  #     # in the same handle_event) land and get processed by handle_info before asserting:
+  #     assert render(view) =~ "met Mother Graft"
+  #   end
+  #   test "crossing a loyalty band flashes a band-changed message", %{conn: conn} do
+  #     player = Shunt.Players.get_player!()
+  #     Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: %{"cracked_bone_plate" => 1}, npc_loyalty: %{"mother_graft" => 73}))
+  #     {:ok, view, _html} = live(conn, ~p"/")
+  #     view |> element("#trade-flesh-tithe-button") |> render_click()
+  #     assert render(view) =~ "trust you"
+  #   end
+  #   test "loyalty bar reflects Player.npc_loyalty, not a static NPC value", %{conn: conn} do
+  #     player = Shunt.Players.get_player!()
+  #     Shunt.Repo.update!(Ecto.Changeset.change(player, npc_loyalty: %{"mother_graft" => 80}))
+  #     {:ok, view, _html} = live(conn, ~p"/")
+  #     assert has_element?(view, "#npc-mother_graft", "Loyalty: 80/100")
+  #   end
+
   test "renders recipes as locked for a fresh player", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 

@@ -10,9 +10,35 @@ defmodule ShuntWeb.DashboardLive do
   alias Shunt.Players
   alias Shunt.Skills.Catalog, as: SkillsCatalog
 
+  # TODO: Add `alias Shunt.Npcs.Loyalty` and `alias Shunt.Npcs.Signals` near the other
+  # aliases above, and subscribe to NPC signals on mount:
+  #   def mount(_params, _session, socket) do
+  #     if connected?(socket), do: Signals.subscribe()
+  #     {:ok, assign_player(socket, Players.get_player!())}
+  #   end
   def mount(_params, _session, socket) do
     {:ok, assign_player(socket, Players.get_player!())}
   end
+
+  # TODO: Add handle_info/2 clauses for the two NPC signals, flashing them like
+  # flash_heat_event/2 does below (put_flash(socket, :info, ...) — these are good news/bad
+  # news for the player, not Heat's penalty-flavored :error flashes):
+  #   def handle_info({:npc_met, npc_key}, socket) do
+  #     {:noreply, put_flash(socket, :info, "You've met #{Npcs.get!(npc_key).name}.")}
+  #   end
+  #
+  #   def handle_info({:loyalty_band_changed, npc_key, _old_band, new_band}, socket) do
+  #     name = Npcs.get!(npc_key).name
+  #
+  #     message =
+  #       case new_band do
+  #         :favored -> "#{name} has come to trust you."
+  #         :hostile -> "#{name} no longer trusts you."
+  #         :neutral -> "#{name}'s trust in you has steadied."
+  #       end
+  #
+  #     {:noreply, put_flash(socket, :info, message)}
+  #   end
 
   def handle_event("lay_low", _params, socket) do
     case Players.lay_low(socket.assigns.player) do
@@ -197,6 +223,14 @@ defmodule ShuntWeb.DashboardLive do
           <div :for={npc <- @npcs} id={"npc-#{npc.key}"} class="space-y-1">
             <p class="font-semibold">{npc.name}</p>
             <p class="text-sm text-gray-500">{humanize_faction(npc.faction)}</p>
+            <%!--
+            TODO: Replace npc.loyalty (the now-removed static NPC field) with the player's
+            per-NPC value: Loyalty.value(@player, npc.key). Easiest: precompute a
+            `loyalty: Loyalty.value(player, npc.key)` into each npc map in assign_player/2
+            below (Enum.map over Npcs.list()) so the template keeps reading `npc.loyalty`
+            unchanged, OR call Loyalty.value(@player, npc.key) directly here. Either way the
+            displayed value now comes from Player.npc_loyalty, not the NPC struct.
+            --%>
             <div>
               <p class="text-sm">Loyalty: {npc.loyalty}/100</p>
               <div class="w-full h-2 bg-gray-200 rounded">
@@ -365,6 +399,9 @@ defmodule ShuntWeb.DashboardLive do
       :street_alchemy_tier,
       SkillsCatalog.current_tier(player, SkillsCatalog.fetch!("street_alchemy"))
     )
+    # TODO: if precomputing loyalty here (see the npc-card TODO in render/1 above), replace
+    # this with:
+    #   |> assign(:npcs, Enum.map(Npcs.list(), &Map.put(&1, :loyalty, Loyalty.value(player, &1.key))))
     |> assign(:npcs, Npcs.list())
     |> assign(:raws, RawCatalog.items())
     |> assign(:recipes, RecipeCatalog.recipes())

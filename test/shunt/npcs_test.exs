@@ -24,6 +24,23 @@ defmodule Shunt.NpcsTest do
     end
   end
 
+  # TODO: once flesh_tithe/1, move_goods/1, look_the_other_way/1, data_drop/1, and
+  # settle_the_books/1 are wired into NPC Loyalty (per the TODOs in lib/shunt/npcs.ex), add
+  # to each describe block below:
+  #   - a test that a fresh player (never met the NPC) ends up with
+  #     updated.npc_loyalty["<npc_key>"] == 55 after a successful call (50 start + 5 gain)
+  #   - a test that calling the action when the player's npc_loyalty for that NPC is e.g. 0
+  #     can return {:error, :npc_unreliable} without changing scrip/cred/inventory/heat —
+  #     since the reliability roll is probabilistic, loop the call ~200 times against a
+  #     freshly-reset hostile-loyalty player and assert at least one call returns
+  #     {:error, :npc_unreliable} (mirror Shunt.Npcs.Loyalty's own roll_reliable?/2 test in
+  #     loyalty_test.exs for this style)
+  #   - a test that a favored-loyalty player (npc_loyalty for that NPC >= 75) gets the scaled
+  #     (better) price: e.g. for flesh_tithe, floor(15 * 1.2) == 18 scrip instead of 15; for
+  #     look_the_other_way, ceil(20 * 0.8) == 16 scrip cost instead of 20
+  #   - a test that a hostile-loyalty player (npc_loyalty for that NPC <= 24) gets the scaled
+  #     (worse) price: e.g. floor(15 * 0.8) == 12 scrip for flesh_tithe; ceil(20 * 1.25) == 25
+  #     scrip cost for look_the_other_way
   describe "flesh_tithe/1" do
     test "consumes 1 cracked_bone_plate and grants 15 scrip, raising heat by 5" do
       player =
