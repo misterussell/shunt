@@ -27,4 +27,15 @@ defmodule ShuntWeb.DashboardLiveTest do
     assert has_element?(view, "#resource-cred", "Cred: 20")
     assert has_element?(view, "#resource-heat", "Heat: 20/100")
   end
+
+  test "clicking Find a Lead reveals an offer", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    refute has_element?(view, "#current-offer")
+
+    view |> element("#find-lead-button") |> render_click()
+
+    assert has_element?(view, "#current-offer")
+    refute has_element?(view, "#find-lead-button")
+  end
 end
