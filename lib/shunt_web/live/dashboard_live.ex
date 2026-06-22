@@ -7,11 +7,6 @@ defmodule ShuntWeb.DashboardLive do
     {:ok, assign(socket, player: Players.get_player!())}
   end
 
-  def handle_event("do_job", _params, socket) do
-    {:ok, player} = Players.do_job(socket.assigns.player)
-    {:noreply, assign(socket, player: player)}
-  end
-
   def handle_event("lay_low", _params, socket) do
     case Players.lay_low(socket.assigns.player) do
       {:ok, player} -> {:noreply, assign(socket, player: player)}
@@ -35,13 +30,6 @@ defmodule ShuntWeb.DashboardLive do
         </div>
 
         <div class="flex gap-4">
-          <button
-            id="do-job-button"
-            phx-click="do_job"
-            class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-          >
-            Do a Job
-          </button>
           <button
             id="lay-low-button"
             phx-click="lay_low"

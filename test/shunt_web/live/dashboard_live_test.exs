@@ -16,24 +16,15 @@ defmodule ShuntWeb.DashboardLiveTest do
     assert has_element?(view, "#resource-heat", "Heat: 0/100")
   end
 
-  test "clicking Do a Job increases displayed resources", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
-
-    view |> element("#do-job-button") |> render_click()
-
-    assert has_element?(view, "#resource-cred", "Cred: 5")
-    assert has_element?(view, "#resource-scrip", "Scrip: 15")
-    assert has_element?(view, "#resource-heat", "Heat: 10/100")
-  end
-
   test "clicking Lay Low decreases displayed resources", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, cred: 30, heat: 40))
+
     {:ok, view, _html} = live(conn, ~p"/")
 
-    view |> element("#do-job-button") |> render_click()
-    view |> element("#do-job-button") |> render_click()
     view |> element("#lay-low-button") |> render_click()
 
-    assert has_element?(view, "#resource-cred", "Cred: 0")
-    assert has_element?(view, "#resource-heat", "Heat: 0/100")
+    assert has_element?(view, "#resource-cred", "Cred: 20")
+    assert has_element?(view, "#resource-heat", "Heat: 20/100")
   end
 end

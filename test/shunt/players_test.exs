@@ -28,23 +28,14 @@ defmodule Shunt.PlayersTest do
     end
   end
 
-  describe "do_job/1" do
-    test "increases cred, scrip, and heat" do
-      player = Players.create_player!()
-
-      assert {:ok, updated} = Players.do_job(player)
-
-      assert updated.scrip == player.scrip + 15
-      assert updated.cred == player.cred + 5
-      assert updated.heat == player.heat + 10
-    end
-  end
-
   describe "lay_low/1" do
     test "decreases cred and heat" do
       player = Players.create_player!()
-      {:ok, player} = Players.do_job(player)
-      {:ok, player} = Players.do_job(player)
+
+      {:ok, player} =
+        player
+        |> Ecto.Changeset.change(%{cred: 30, heat: 40})
+        |> Repo.update()
 
       assert {:ok, updated} = Players.lay_low(player)
 
