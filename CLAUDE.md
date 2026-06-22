@@ -68,3 +68,9 @@ For multi-step tasks, state a brief plan:
 ```
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+## Spec/Plan Workflow
+
+In this project, after superpowers:brainstorming reaches an agreed design, do NOT write a
+design doc to docs/superpowers/specs, and do NOT invoke superpowers:writing-plans. Instead
+use the project skill `todo-staging` to stage the design as inline TODOs and implement them.
