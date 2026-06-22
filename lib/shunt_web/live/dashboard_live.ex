@@ -66,6 +66,16 @@ defmodule ShuntWeb.DashboardLive do
     end
   end
 
+  # TODO: Add 5 handle_event clauses for the NPC trade actions, mirroring the
+  # scavenge/sell_assembled clauses above:
+  #   "flesh_tithe" -> Npcs.flesh_tithe(socket.assigns.player) -> {:ok, player, event} | {:error, _}
+  #     (flash_heat_event(socket, event) |> assign_player(player) on success, like sell_assembled)
+  #   "move_goods" -> Npcs.move_goods(socket.assigns.player) -> {:ok, player} | {:error, _}
+  #   "look_the_other_way" -> Npcs.look_the_other_way(socket.assigns.player) -> {:ok, player} | {:error, _}
+  #   "data_drop" -> Npcs.data_drop(socket.assigns.player) -> {:ok, player} | {:error, _}
+  #   "settle_the_books" -> Npcs.settle_the_books(socket.assigns.player) -> {:ok, player} | {:error, _}
+  # On {:error, _reason}, return {:noreply, socket} unchanged, same as the other handlers above.
+
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
@@ -173,6 +183,22 @@ defmodule ShuntWeb.DashboardLive do
                 <span class="font-semibold">{action.name}</span> — {action.description}
               </p>
             </div>
+            <%!--
+            TODO: Add one trade-action button per NPC card, matched on npc.key, mirroring the
+            Assemble button's id/phx-click/disabled pattern (~line 232 below):
+              npc.key == "mother_graft" -> id="trade-flesh-tithe-button" phx-click="flesh_tithe"
+                disabled={Map.get(@player.inventory, "cracked_bone_plate", 0) < 1}
+              npc.key == "rook" -> id="trade-move-goods-button" phx-click="move_goods"
+                disabled={is_nil(@player.held_item_key)}
+              npc.key == "nine_iron" -> id="trade-look-the-other-way-button" phx-click="look_the_other_way"
+                disabled={@player.scrip < 20}
+              npc.key == "splice" -> id="trade-data-drop-button" phx-click="data_drop"
+                disabled={@player.scrip < 20}
+              npc.key == "tally" -> id="trade-settle-the-books-button" phx-click="settle_the_books"
+                disabled={@player.cred < 1}
+            Use a cond/case block keyed on npc.key (inside a tag body, with <%= %> ... <% end %>)
+            to render the single correct button per card; label each button with its action.name.
+            --%>
           </div>
         </div>
 
