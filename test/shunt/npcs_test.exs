@@ -53,6 +53,21 @@ defmodule Shunt.NpcsTest do
       assert updated.npc_loyalty["mother_graft"] == 55
     end
 
+    test "loyalty accumulates and persists across repeated tithes with the same NPC" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(inventory: %{"cracked_bone_plate" => 2})
+        |> Repo.update!()
+
+      assert {:ok, player, _event} = Npcs.flesh_tithe(player)
+      assert player.npc_loyalty["mother_graft"] == 55
+
+      assert {:ok, player, _event} = Npcs.flesh_tithe(player)
+      assert player.npc_loyalty["mother_graft"] == 60
+
+      assert Repo.get!(Shunt.Players.Player, player.id).npc_loyalty["mother_graft"] == 60
+    end
+
     test "a hostile-loyalty player can get {:error, :npc_unreliable} without spending materials" do
       results =
         Enum.map(1..200, fn _ ->
