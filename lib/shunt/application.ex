@@ -12,7 +12,9 @@ defmodule Shunt.Application do
       Shunt.Repo,
       {DNSCluster, query: Application.get_env(:shunt, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Shunt.PubSub},
-      Shunt.Npcs.Store,
+      {Registry, keys: :unique, name: Shunt.Players.Registry},
+      {DynamicSupervisor, name: Shunt.Players.Supervisor, strategy: :one_for_one},
+      Shunt.Content.Store,
       # Start to serve requests, typically the last entry
       ShuntWeb.Endpoint
     ]

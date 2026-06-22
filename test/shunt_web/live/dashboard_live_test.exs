@@ -60,6 +60,15 @@ defmodule ShuntWeb.DashboardLiveTest do
     refute has_element?(view, "#current-offer")
   end
 
+  test "passing an offer when there is no pending offer doesn't crash the view", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    refute has_element?(view, "#current-offer")
+
+    render_click(view, "pass_offer")
+
+    assert has_element?(view, "#find-lead-button")
+  end
+
   test "find a lead, take it, and sell it updates resources and returns to idle", %{conn: conn} do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100))

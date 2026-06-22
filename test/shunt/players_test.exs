@@ -2,6 +2,7 @@ defmodule Shunt.PlayersTest do
   use Shunt.DataCase
 
   alias Shunt.Players
+  alias Shunt.Players.Player
 
   describe "create_player!/0" do
     test "creates a player with default resource values" do
@@ -38,18 +39,16 @@ defmodule Shunt.PlayersTest do
   end
 
   describe "lay_low/1" do
-    test "decreases cred and heat" do
-      player = Players.create_player!()
+    test "returns an effect list reducing cred and heat" do
+      player = %Player{cred: 30, heat: 40}
 
-      {:ok, player} =
-        player
-        |> Ecto.Changeset.change(%{cred: 30, heat: 40})
-        |> Repo.update()
+      assert Players.lay_low(player) == {:ok, [{:cred, -10}, {:heat, -20}]}
+    end
 
-      assert {:ok, updated} = Players.lay_low(player)
+    test "returns an error when cred is below the cost" do
+      player = %Player{cred: 5, heat: 40}
 
-      assert updated.cred == player.cred - 10
-      assert updated.heat == player.heat - 20
+      assert Players.lay_low(player) == {:error, :insufficient_cred}
     end
   end
 end

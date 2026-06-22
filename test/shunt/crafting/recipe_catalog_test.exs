@@ -29,7 +29,7 @@ defmodule Shunt.Crafting.RecipeCatalogTest do
     end
 
     test "raises on an unknown key" do
-      assert_raise RuntimeError, ~r/unknown recipe key/, fn ->
+      assert_raise RuntimeError, ~r/unknown recipes key/, fn ->
         RecipeCatalog.fetch!("not_a_real_key")
       end
     end

@@ -19,7 +19,7 @@ defmodule Shunt.Crafting.RawCatalogTest do
     end
 
     test "raises on an unknown key" do
-      assert_raise RuntimeError, ~r/unknown raw material key/, fn ->
+      assert_raise RuntimeError, ~r/unknown raws key/, fn ->
         RawCatalog.fetch!("not_a_real_key")
       end
     end

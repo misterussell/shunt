@@ -14,7 +14,9 @@ defmodule ShuntWeb.DashboardLive do
 
   def mount(_params, _session, socket) do
     if connected?(socket), do: Signals.subscribe()
-    {:ok, assign_player(socket, Players.get_player!())}
+    player_id = Players.get_player!().id
+    player = Players.current(player_id)
+    {:ok, socket |> assign(player_id: player_id) |> assign_player(player)}
   end
 
   def handle_info({:npc_met, npc_key}, socket) do
@@ -35,88 +37,99 @@ defmodule ShuntWeb.DashboardLive do
   end
 
   def handle_event("lay_low", _params, socket) do
-    case Players.lay_low(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Players.lay_low/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, :insufficient_cred} -> {:noreply, socket}
     end
   end
 
   def handle_event("find_lead", _params, socket) do
-    case Fencing.find_lead(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Fencing.find_lead/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, :offer_in_progress} -> {:noreply, socket}
     end
   end
 
   def handle_event("take_offer", _params, socket) do
-    case Fencing.take_offer(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Fencing.take_offer/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
 
   def handle_event("pass_offer", _params, socket) do
-    {:ok, player} = Fencing.pass_offer(socket.assigns.player)
-    {:noreply, assign_player(socket, player)}
-  end
-
-  def handle_event("sell_item", _params, socket) do
-    case Fencing.sell_held_item(socket.assigns.player) do
-      {:ok, player, event} -> {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
+    case Players.dispatch(socket.assigns.player_id, &Fencing.pass_offer/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
 
+  def handle_event("sell_item", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Fencing.sell_held_item/1) do
+      {:ok, player, meta} ->
+        {:noreply, flash_heat_event(socket, meta.heat_event) |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_event("scavenge", _params, socket) do
-    {:ok, player, event} = Crafting.scavenge(socket.assigns.player)
-    {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
+    {:ok, player, meta} = Players.dispatch(socket.assigns.player_id, &Crafting.scavenge/1)
+    {:noreply, flash_heat_event(socket, meta.heat_event) |> assign_player(player)}
   end
 
   def handle_event("assemble", %{"key" => recipe_key}, socket) do
-    case Crafting.assemble(socket.assigns.player, recipe_key) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Crafting.assemble(&1, recipe_key)) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
 
   def handle_event("sell_assembled", %{"key" => item_key}, socket) do
-    case Crafting.sell_assembled(socket.assigns.player, item_key) do
-      {:ok, player, event} -> {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
-      {:error, _reason} -> {:noreply, socket}
+    case Players.dispatch(socket.assigns.player_id, &Crafting.sell_assembled(&1, item_key)) do
+      {:ok, player, meta} ->
+        {:noreply, flash_heat_event(socket, meta.heat_event) |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
     end
   end
 
   def handle_event("flesh_tithe", _params, socket) do
-    case Npcs.flesh_tithe(socket.assigns.player) do
-      {:ok, player, event} -> {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
-      {:error, _reason} -> {:noreply, socket}
+    case Players.dispatch(socket.assigns.player_id, &Npcs.flesh_tithe/1) do
+      {:ok, player, meta} ->
+        {:noreply, flash_heat_event(socket, meta.heat_event) |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
     end
   end
 
   def handle_event("move_goods", _params, socket) do
-    case Npcs.move_goods(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Npcs.move_goods/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
 
   def handle_event("look_the_other_way", _params, socket) do
-    case Npcs.look_the_other_way(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Npcs.look_the_other_way/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
 
   def handle_event("data_drop", _params, socket) do
-    case Npcs.data_drop(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Npcs.data_drop/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
 
   def handle_event("settle_the_books", _params, socket) do
-    case Npcs.settle_the_books(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Npcs.settle_the_books/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
