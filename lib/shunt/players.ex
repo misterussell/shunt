@@ -1,6 +1,5 @@
 defmodule Shunt.Players do
   @moduledoc false
-  alias Shunt.Heat
   alias Shunt.Repo
   alias Shunt.Players.Player
   alias Shunt.Players.Server
@@ -43,17 +42,7 @@ defmodule Shunt.Players do
     {:error, :insufficient_cred}
   end
 
-  def lay_low(%Player{} = player) do
-    # TODO: per priv/docs/architecture.md Section 3, return {:ok, [{:cred, -@lay_low_cred_cost},
-    # {:heat, -@lay_low_heat_reduction}]} instead of calling Ecto.Changeset.change/Repo.update
-    # directly, same pattern as Shunt.Fencing/Shunt.Crafting/Shunt.Npcs. Remove the
-    # `alias Shunt.Heat` and `alias Shunt.Repo` lines once this and create_player!/0 and
-    # get_player!/0 (which still need Repo) are the only Repo-touching code left here.
-    player
-    |> Ecto.Changeset.change(%{
-      cred: max(player.cred - @lay_low_cred_cost, 0),
-      heat: Heat.clamp(player.heat - @lay_low_heat_reduction)
-    })
-    |> Repo.update()
+  def lay_low(%Player{}) do
+    {:ok, [{:cred, -@lay_low_cred_cost}, {:heat, -@lay_low_heat_reduction}]}
   end
 end
