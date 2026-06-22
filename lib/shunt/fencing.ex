@@ -45,6 +45,14 @@ defmodule Shunt.Fencing do
   def sell_held_item(%Player{held_item_key: key} = player) do
     item = Catalog.fetch!(key)
 
+    # TODO: route the heat change through Shunt.Heat:
+    #   new_heat = Shunt.Heat.clamp(player.heat + item.heat_cost)
+    #   {final_heat, event} = Shunt.Heat.resolve(player.heat, new_heat)
+    # Then apply scrip/cred event penalties on top of the existing scrip/cred gains
+    # (clamped at 0, e.g. max(player.scrip + item.sell_value - (event && event.scrip_loss || 0), 0)),
+    # set heat: final_heat instead of clamp_heat(...), delete the private clamp_heat/1
+    # function below, and change this function's return to {:ok, player, event} /
+    # {:error, reason} so DashboardLive can flash the fired event.
     player
     |> Ecto.Changeset.change(%{
       scrip: player.scrip + item.sell_value,

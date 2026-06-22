@@ -22,6 +22,10 @@ defmodule Shunt.Players do
     player
     |> Ecto.Changeset.change(%{
       cred: max(player.cred - @lay_low_cred_cost, 0),
+      # TODO: replace clamp_heat/1 below with Shunt.Heat.clamp/1, then delete the
+      # private clamp_heat/1 function at the bottom of this module. lay_low only
+      # decreases heat so it can never cross a band upward; no Shunt.Heat.resolve/2
+      # call is needed here, and the {:ok, player} return shape stays unchanged.
       heat: clamp_heat(player.heat - @lay_low_heat_reduction)
     })
     |> Repo.update()

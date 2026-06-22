@@ -9,6 +9,9 @@ defmodule Shunt.CraftingTest do
   alias Shunt.Crafting.RawCatalog
 
   describe "scavenge/1" do
+    # TODO: once Crafting.scavenge/1 returns {:ok, player, event}, update this test to
+    # assert {:ok, updated, nil} = Crafting.scavenge(player) (starting heat 0 + 4 stays
+    # within the :none band, so no event fires), keeping the existing assertions.
     test "adds one of a valid Raw to inventory and raises heat by 4" do
       player = Players.create_player!()
 
@@ -20,6 +23,13 @@ defmodule Shunt.CraftingTest do
       assert Enum.all?(Map.keys(updated.inventory), &(&1 in raw_keys))
     end
 
+    # TODO: replace this test (heat no longer clamps to 100 once a Shunt.Heat band is
+    # crossed). Rewrite as two tests:
+    #   1. starting heat at 99 asserts {:ok, updated, event} = Crafting.scavenge(player),
+    #      event != nil, event.band == :high (99 + 4 clamped to 100 crosses :high),
+    #      updated.heat == 80 (85 - 5).
+    #   2. starting heat already at 100 (already in :high, no band left to cross) asserts
+    #      heat stays clamped at 100 with event == nil.
     test "clamps heat at 100" do
       player =
         Players.create_player!()
@@ -68,6 +78,12 @@ defmodule Shunt.CraftingTest do
   end
 
   describe "sell_assembled/2" do
+    # TODO: once Crafting.sell_assembled/2 returns {:ok, player, event}, update this test
+    # to assert {:ok, updated, nil} = Crafting.sell_assembled(player, "patchwork_courier_drone")
+    # (starting heat 0 + recipe.heat_cost (10) stays within :none, so no event fires),
+    # keeping the existing scrip/cred/heat/inventory assertions. Also add a test starting
+    # at a heat value that crosses a Shunt.Heat band threshold, mirroring the new
+    # Fencing.sell_held_item/1 band-crossing test described in fencing_test.exs.
     test "pays scrip, cred, and heat, and decrements inventory" do
       recipe = RecipeCatalog.fetch!("patchwork_courier_drone")
 

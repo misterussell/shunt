@@ -78,6 +78,10 @@ defmodule Shunt.FencingTest do
   end
 
   describe "sell_held_item/1" do
+    # TODO: once Fencing.sell_held_item/1 returns {:ok, player, event}, update this test to
+    # assert {:ok, updated, nil} = Fencing.sell_held_item(player) for a starting heat low
+    # enough that player.heat + item.heat_cost stays within the same Shunt.Heat band (no
+    # event fires), keeping the existing scrip/cred/heat/held_item_key assertions.
     test "adds sell_value, cred_gain, and heat_cost, then clears held_item_key" do
       player = Players.create_player!()
       item = Catalog.fetch!("cracked_latticework_relay_key")
@@ -95,6 +99,14 @@ defmodule Shunt.FencingTest do
       assert updated.held_item_key == nil
     end
 
+    # TODO: replace this test (heat no longer clamps to 100 once a Shunt.Heat band is
+    # crossed). Rewrite as two tests:
+    #   1. starting heat at 90 + an item whose heat_cost pushes past 85 (:high threshold)
+    #      asserts {:ok, updated, event} = Fencing.sell_held_item(player), event != nil,
+    #      event.band == :high, updated.heat == 80 (85 - 5), and that updated.scrip/cred
+    #      reflect item.sell_value/cred_gain minus event.scrip_loss/cred_loss (clamped at 0).
+    #   2. starting heat at 100 already (no band left above) with a heat_cost that can't
+    #      cross further asserts heat still clamps at 100 with event == nil.
     test "clamps heat at 100" do
       player = Players.create_player!()
       item = Catalog.fetch!("burned_netrunners_memory_core")

@@ -8,6 +8,12 @@ defmodule Shunt.Crafting do
   def scavenge(%Player{} = player) do
     raw = Enum.random(RawCatalog.items())
 
+    # TODO: route the heat change through Shunt.Heat (same pattern as the TODO in
+    # Shunt.Fencing.sell_held_item/1):
+    #   new_heat = Shunt.Heat.clamp(player.heat + 4)
+    #   {final_heat, event} = Shunt.Heat.resolve(player.heat, new_heat)
+    # Apply event scrip/cred penalties (clamped at 0) alongside the inventory change,
+    # set heat: final_heat, and change the return to {:ok, player, event}.
     player
     |> Ecto.Changeset.change(%{
       inventory: Map.update(player.inventory, raw.key, 1, &(&1 + 1)),
@@ -48,6 +54,14 @@ defmodule Shunt.Crafting do
     if Map.get(player.inventory, item_key, 0) < 1 do
       {:error, :no_item}
     else
+      # TODO: route the heat change through Shunt.Heat (same pattern as the TODO in
+      # Shunt.Fencing.sell_held_item/1):
+      #   new_heat = Shunt.Heat.clamp(player.heat + recipe.heat_cost)
+      #   {final_heat, event} = Shunt.Heat.resolve(player.heat, new_heat)
+      # Apply event scrip/cred penalties on top of the existing scrip/cred gains
+      # (clamped at 0), set heat: final_heat instead of clamp_heat(...), delete the
+      # private clamp_heat/1 function below, and change this function's return to
+      # {:ok, player, event} so DashboardLive can flash the fired event.
       player
       |> Ecto.Changeset.change(%{
         inventory: Map.update!(player.inventory, item_key, &(&1 - 1)),
