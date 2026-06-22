@@ -12,8 +12,7 @@ defmodule Shunt.Application do
       Shunt.Repo,
       {DNSCluster, query: Application.get_env(:shunt, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Shunt.PubSub},
-      # Start a worker by calling: Shunt.Worker.start_link(arg)
-      # {Shunt.Worker, arg},
+      Shunt.Npcs.Store,
       # Start to serve requests, typically the last entry
       ShuntWeb.Endpoint
     ]

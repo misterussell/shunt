@@ -87,4 +87,12 @@ defmodule ShuntWeb.DashboardLiveTest do
     assert has_element?(view, "#skill-tree-web", "Locked")
     assert has_element?(view, "#skill-tree-street_alchemy", "Locked")
   end
+
+  test "renders the NPC roster", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#npc-rook", "Rook")
+    assert has_element?(view, "#npc-rook", "Move Goods")
+    assert has_element?(view, "#npc-tally", "Tally")
+  end
 end
