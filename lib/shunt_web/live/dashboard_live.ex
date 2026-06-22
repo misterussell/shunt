@@ -66,15 +66,40 @@ defmodule ShuntWeb.DashboardLive do
     end
   end
 
-  # TODO: Add 5 handle_event clauses for the NPC trade actions, mirroring the
-  # scavenge/sell_assembled clauses above:
-  #   "flesh_tithe" -> Npcs.flesh_tithe(socket.assigns.player) -> {:ok, player, event} | {:error, _}
-  #     (flash_heat_event(socket, event) |> assign_player(player) on success, like sell_assembled)
-  #   "move_goods" -> Npcs.move_goods(socket.assigns.player) -> {:ok, player} | {:error, _}
-  #   "look_the_other_way" -> Npcs.look_the_other_way(socket.assigns.player) -> {:ok, player} | {:error, _}
-  #   "data_drop" -> Npcs.data_drop(socket.assigns.player) -> {:ok, player} | {:error, _}
-  #   "settle_the_books" -> Npcs.settle_the_books(socket.assigns.player) -> {:ok, player} | {:error, _}
-  # On {:error, _reason}, return {:noreply, socket} unchanged, same as the other handlers above.
+  def handle_event("flesh_tithe", _params, socket) do
+    case Npcs.flesh_tithe(socket.assigns.player) do
+      {:ok, player, event} -> {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("move_goods", _params, socket) do
+    case Npcs.move_goods(socket.assigns.player) do
+      {:ok, player} -> {:noreply, assign_player(socket, player)}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("look_the_other_way", _params, socket) do
+    case Npcs.look_the_other_way(socket.assigns.player) do
+      {:ok, player} -> {:noreply, assign_player(socket, player)}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("data_drop", _params, socket) do
+    case Npcs.data_drop(socket.assigns.player) do
+      {:ok, player} -> {:noreply, assign_player(socket, player)}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("settle_the_books", _params, socket) do
+    case Npcs.settle_the_books(socket.assigns.player) do
+      {:ok, player} -> {:noreply, assign_player(socket, player)}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
 
   def render(assigns) do
     ~H"""
@@ -183,22 +208,54 @@ defmodule ShuntWeb.DashboardLive do
                 <span class="font-semibold">{action.name}</span> — {action.description}
               </p>
             </div>
-            <%!--
-            TODO: Add one trade-action button per NPC card, matched on npc.key, mirroring the
-            Assemble button's id/phx-click/disabled pattern (~line 232 below):
-              npc.key == "mother_graft" -> id="trade-flesh-tithe-button" phx-click="flesh_tithe"
-                disabled={Map.get(@player.inventory, "cracked_bone_plate", 0) < 1}
-              npc.key == "rook" -> id="trade-move-goods-button" phx-click="move_goods"
-                disabled={is_nil(@player.held_item_key)}
-              npc.key == "nine_iron" -> id="trade-look-the-other-way-button" phx-click="look_the_other_way"
-                disabled={@player.scrip < 20}
-              npc.key == "splice" -> id="trade-data-drop-button" phx-click="data_drop"
-                disabled={@player.scrip < 20}
-              npc.key == "tally" -> id="trade-settle-the-books-button" phx-click="settle_the_books"
-                disabled={@player.cred < 1}
-            Use a cond/case block keyed on npc.key (inside a tag body, with <%= %> ... <% end %>)
-            to render the single correct button per card; label each button with its action.name.
-            --%>
+            <%= cond do %>
+              <% npc.key == "mother_graft" -> %>
+                <button
+                  id="trade-flesh-tithe-button"
+                  phx-click="flesh_tithe"
+                  class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={Map.get(@player.inventory, "cracked_bone_plate", 0) < 1}
+                >
+                  Flesh Tithe
+                </button>
+              <% npc.key == "rook" -> %>
+                <button
+                  id="trade-move-goods-button"
+                  phx-click="move_goods"
+                  class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={is_nil(@player.held_item_key)}
+                >
+                  Move Goods
+                </button>
+              <% npc.key == "nine_iron" -> %>
+                <button
+                  id="trade-look-the-other-way-button"
+                  phx-click="look_the_other_way"
+                  class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={@player.scrip < 20}
+                >
+                  Look the Other Way
+                </button>
+              <% npc.key == "splice" -> %>
+                <button
+                  id="trade-data-drop-button"
+                  phx-click="data_drop"
+                  class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={@player.scrip < 20}
+                >
+                  Data Drop
+                </button>
+              <% npc.key == "tally" -> %>
+                <button
+                  id="trade-settle-the-books-button"
+                  phx-click="settle_the_books"
+                  class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={@player.cred < 1}
+                >
+                  Settle the Books
+                </button>
+              <% true -> %>
+            <% end %>
           </div>
         </div>
 

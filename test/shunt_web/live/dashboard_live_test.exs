@@ -96,6 +96,69 @@ defmodule ShuntWeb.DashboardLiveTest do
     assert has_element?(view, "#npc-tally", "Tally")
   end
 
+  test "Flesh Tithe consumes a cracked_bone_plate and grants scrip", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+
+    Shunt.Repo.update!(
+      Ecto.Changeset.change(player, inventory: %{"cracked_bone_plate" => 1}, scrip: 0)
+    )
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view |> element("#trade-flesh-tithe-button") |> render_click()
+
+    assert has_element?(view, "#resource-scrip", "Scrip: 15")
+  end
+
+  test "Move Goods pays out for the held item and clears it", %{conn: conn} do
+    item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.key, scrip: 0))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view |> element("#trade-move-goods-button") |> render_click()
+
+    assert has_element?(view, "#resource-scrip", "Scrip: #{floor(item.sell_value * 0.5)}")
+    refute has_element?(view, "#held-item")
+  end
+
+  test "Look the Other Way spends scrip and reduces heat", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 20, heat: 20))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view |> element("#trade-look-the-other-way-button") |> render_click()
+
+    assert has_element?(view, "#resource-scrip", "Scrip: 0")
+    assert has_element?(view, "#resource-heat", "Heat: 5/100")
+  end
+
+  test "Data Drop converts scrip into cred", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 20, cred: 0))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view |> element("#trade-data-drop-button") |> render_click()
+
+    assert has_element?(view, "#resource-scrip", "Scrip: 0")
+    assert has_element?(view, "#resource-cred", "Cred: 1")
+  end
+
+  test "Settle the Books converts cred into scrip", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, cred: 1, scrip: 0))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view |> element("#trade-settle-the-books-button") |> render_click()
+
+    assert has_element?(view, "#resource-cred", "Cred: 0")
+    assert has_element?(view, "#resource-scrip", "Scrip: 10")
+  end
+
   test "scavenging adds a raw material to the displayed inventory", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
