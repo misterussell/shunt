@@ -47,17 +47,14 @@ defmodule Shunt.CraftingTest do
   end
 
   describe "assemble/2" do
-    # TODO: assemble/2 no longer reads player.street_alchemy_tier (see TODO in
-    # lib/shunt/crafting.ex) — tier comes from holding "scrap_forged_soldering_iron" in
-    # inventory (see TODOs in lib/shunt/skills/catalog.ex and
-    # lib/shunt/crafting/recipe_catalog.ex). Replace the changeset's `street_alchemy_tier: 1`
-    # below with `inventory: Map.put(recipe.inputs, "scrap_forged_soldering_iron", 1)`.
     test "consumes inputs and adds the output when tier and materials are sufficient" do
       recipe = RecipeCatalog.fetch!("patchwork_courier_drone")
 
       player =
         Players.create_player!()
-        |> Ecto.Changeset.change(street_alchemy_tier: 1, inventory: recipe.inputs)
+        |> Ecto.Changeset.change(
+          inventory: Map.put(recipe.inputs, "scrap_forged_soldering_iron", 1)
+        )
         |> Repo.update!()
 
       {:ok, updated} = Crafting.assemble(player, "patchwork_courier_drone")
@@ -75,24 +72,28 @@ defmodule Shunt.CraftingTest do
       assert Crafting.assemble(player, "patchwork_courier_drone") == {:error, :insufficient_tier}
     end
 
-    # TODO: same fix as the first test above — replace `street_alchemy_tier: 1` with
-    # `inventory: %{"scrap_forged_soldering_iron" => 1}` so the player has tier 1 via the
-    # tool instead of the now-unused stored field.
     test "returns :insufficient_materials when an input quantity is missing" do
       player =
         Players.create_player!()
-        |> Ecto.Changeset.change(street_alchemy_tier: 1)
+        |> Ecto.Changeset.change(inventory: %{"scrap_forged_soldering_iron" => 1})
         |> Repo.update!()
 
       assert Crafting.assemble(player, "patchwork_courier_drone") ==
                {:error, :insufficient_materials}
     end
 
-    # TODO: add a test proving tier_required: 0 recipes need no tool/tier at all, e.g.:
-    #   recipe = RecipeCatalog.fetch!("scrap_forged_soldering_iron")
-    #   player = Players.create_player!() |> Ecto.Changeset.change(inventory: recipe.inputs) |> Repo.update!()
-    #   {:ok, updated} = Crafting.assemble(player, "scrap_forged_soldering_iron")
-    #   assert updated.inventory["scrap_forged_soldering_iron"] == 1
+    test "tier_required: 0 recipes need no tool or tier" do
+      recipe = RecipeCatalog.fetch!("scrap_forged_soldering_iron")
+
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(inventory: recipe.inputs)
+        |> Repo.update!()
+
+      {:ok, updated} = Crafting.assemble(player, "scrap_forged_soldering_iron")
+
+      assert updated.inventory["scrap_forged_soldering_iron"] == 1
+    end
   end
 
   describe "sell_assembled/2" do
