@@ -19,18 +19,30 @@ defmodule Shunt.Skills.CatalogTest do
   end
 
   describe "current_tier/2" do
-    # TODO: replace this test (current_tier/2 no longer reads tree.tier_field off the
-    # player — see TODO in lib/shunt/skills/catalog.ex). Rewrite as two tests, both using
-    # the ghostwork tree (tool_key: "jury_rigged_terminal" once staged):
-    #   1. a player with `inventory: %{"jury_rigged_terminal" => 1}` asserts
-    #      Catalog.current_tier(player, tree) == 1.
-    #   2. a player with an empty inventory AND ghostwork_tier: 2 set (to prove the stored
-    #      field is now ignored) asserts Catalog.current_tier(player, tree) == 0.
-    test "reads the tree's tier_field off the given player" do
+    test "returns 1 when the player holds the tree's tool in inventory" do
       tree = Enum.find(Catalog.trees(), &(&1.key == "ghostwork"))
-      player = %Player{ghostwork_tier: 2}
+      player = %Player{inventory: %{"jury_rigged_terminal" => 1}}
 
-      assert Catalog.current_tier(player, tree) == 2
+      assert Catalog.current_tier(player, tree) == 1
+    end
+
+    test "returns 0 when the player doesn't hold the tool, ignoring the stored tier field" do
+      tree = Enum.find(Catalog.trees(), &(&1.key == "ghostwork"))
+      player = %Player{inventory: %{}, ghostwork_tier: 2}
+
+      assert Catalog.current_tier(player, tree) == 0
+    end
+  end
+
+  describe "fetch!/1" do
+    test "returns the matching tree" do
+      assert Catalog.fetch!("ghostwork").name == "Ghostwork"
+    end
+
+    test "raises on an unknown key" do
+      assert_raise RuntimeError, ~r/unknown skill tree key/, fn ->
+        Catalog.fetch!("not_a_real_key")
+      end
     end
   end
 end
