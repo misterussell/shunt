@@ -78,4 +78,8 @@ defmodule ShuntWeb.DashboardLiveTest do
     assert player.cred > 0
     assert player.heat > 0
   end
+
+  # TODO: test "renders the four skill trees as locked for a fresh player" — assert
+  # has_element?(view, "#skill-tree-ghostwork", "Locked") and the same for
+  # #skill-tree-chrome_meat, #skill-tree-web, #skill-tree-street_alchemy
 end

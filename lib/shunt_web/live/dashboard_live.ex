@@ -5,6 +5,8 @@ defmodule ShuntWeb.DashboardLive do
   alias Shunt.Fencing.Catalog
   alias Shunt.Players
 
+  # TODO: alias Shunt.Skills.Catalog, as: SkillsCatalog
+
   def mount(_params, _session, socket) do
     {:ok, assign_player(socket, Players.get_player!())}
   end
@@ -112,6 +114,13 @@ defmodule ShuntWeb.DashboardLive do
           <% end %>
         </div>
 
+        <%!-- TODO: render a skill tree section here, before the Lay Low button:
+          for each tree in @skill_trees, render a container with
+          id={"skill-tree-#{tree.key}"} showing tree.name, tree.description, a
+          5-segment tier indicator (filled for segments <= SkillsCatalog.current_tier(@player, tree),
+          grayed otherwise), and a status line: "Locked" when current tier is 0,
+          otherwise the matching tier's name from tree.tiers --%>
+
         <div class="flex gap-4">
           <button
             id="lay-low-button"
@@ -132,6 +141,7 @@ defmodule ShuntWeb.DashboardLive do
     |> assign(:player, player)
     |> assign(:offer, catalog_item(player.current_offer_key))
     |> assign(:held, catalog_item(player.held_item_key))
+    # TODO: |> assign(:skill_trees, SkillsCatalog.trees())
   end
 
   defp catalog_item(nil), do: nil
