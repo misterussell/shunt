@@ -80,7 +80,8 @@ defmodule Shunt.Crafting.RecipeCatalog do
       sell_value: 40,
       cred_gain: 1,
       heat_cost: 5,
-      craft_text: "Flux paste smeared over a scavenged heating coil, and the tip glows cherry-red.",
+      craft_text:
+        "Flux paste smeared over a scavenged heating coil, and the tip glows cherry-red.",
       sell_text: "A pawnbroker tests the tip against a thumbnail before naming a price."
     }
   ]
