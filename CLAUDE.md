@@ -74,3 +74,9 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 In this project, after superpowers:brainstorming reaches an agreed design, do NOT write a
 design doc to docs/superpowers/specs, and do NOT invoke superpowers:writing-plans. Instead
 use the project skill `todo-staging` to stage the design as inline TODOs and implement them.
+
+## Branching
+
+Before committing, check the current branch with `git branch --show-current`. If it is
+`main` or `master`, create and switch to a new feature branch first - never commit feature
+work directly to `main`/`master`.
