@@ -185,6 +185,13 @@ defmodule ShuntWeb.DashboardLiveTest do
     assert Shunt.Players.get_player!().heat == 80
   end
 
+  test "loyalty bar reflects Player.npc_loyalty, not a static NPC value", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, npc_loyalty: %{"mother_graft" => 80}))
+    {:ok, view, _html} = live(conn, ~p"/")
+    assert has_element?(view, "#npc-mother_graft", "Loyalty: 80/100")
+  end
+
   # TODO: once DashboardLive subscribes to Shunt.Npcs.Signals and handles {:npc_met, _} /
   # {:loyalty_band_changed, _, _, _} (per the TODOs in dashboard_live.ex), add:
   #   test "meeting an NPC for the first time flashes a met message", %{conn: conn} do

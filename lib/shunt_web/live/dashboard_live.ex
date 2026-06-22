@@ -7,6 +7,7 @@ defmodule ShuntWeb.DashboardLive do
   alias Shunt.Fencing
   alias Shunt.Fencing.Catalog
   alias Shunt.Npcs
+  alias Shunt.Npcs.Loyalty
   alias Shunt.Players
   alias Shunt.Skills.Catalog, as: SkillsCatalog
 
@@ -223,14 +224,6 @@ defmodule ShuntWeb.DashboardLive do
           <div :for={npc <- @npcs} id={"npc-#{npc.key}"} class="space-y-1">
             <p class="font-semibold">{npc.name}</p>
             <p class="text-sm text-gray-500">{humanize_faction(npc.faction)}</p>
-            <%!--
-            TODO: Replace npc.loyalty (the now-removed static NPC field) with the player's
-            per-NPC value: Loyalty.value(@player, npc.key). Easiest: precompute a
-            `loyalty: Loyalty.value(player, npc.key)` into each npc map in assign_player/2
-            below (Enum.map over Npcs.list()) so the template keeps reading `npc.loyalty`
-            unchanged, OR call Loyalty.value(@player, npc.key) directly here. Either way the
-            displayed value now comes from Player.npc_loyalty, not the NPC struct.
-            --%>
             <div>
               <p class="text-sm">Loyalty: {npc.loyalty}/100</p>
               <div class="w-full h-2 bg-gray-200 rounded">
@@ -399,10 +392,7 @@ defmodule ShuntWeb.DashboardLive do
       :street_alchemy_tier,
       SkillsCatalog.current_tier(player, SkillsCatalog.fetch!("street_alchemy"))
     )
-    # TODO: if precomputing loyalty here (see the npc-card TODO in render/1 above), replace
-    # this with:
-    #   |> assign(:npcs, Enum.map(Npcs.list(), &Map.put(&1, :loyalty, Loyalty.value(player, &1.key))))
-    |> assign(:npcs, Npcs.list())
+    |> assign(:npcs, Enum.map(Npcs.list(), &Map.put(&1, :loyalty, Loyalty.value(player, &1.key))))
     |> assign(:raws, RawCatalog.items())
     |> assign(:recipes, RecipeCatalog.recipes())
   end

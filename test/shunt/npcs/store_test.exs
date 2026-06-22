@@ -13,10 +13,6 @@ defmodule Shunt.Npcs.StoreTest do
         assert Map.has_key?(npc, :key)
         assert Map.has_key?(npc, :name)
         assert Map.has_key?(npc, :faction)
-        # TODO: remove this assertion once `loyalty:` is dropped from every priv/npcs/*.exs
-        # file and from the pattern match in lib/shunt/npcs/store.ex's init/1 — loyalty now
-        # lives on Player.npc_loyalty, not on the NPC struct.
-        assert Map.has_key?(npc, :loyalty)
         assert Map.has_key?(npc, :trade_actions)
       end
 

@@ -28,10 +28,7 @@ defmodule Shunt.Npcs.Store do
     entries =
       for file <- Path.wildcard(Path.join(npcs_dir, "*.exs")) do
         {npc, _bindings} = Code.eval_file(file)
-        %{key: _, name: _, faction: _, loyalty: _, trade_actions: _} = npc
-        # TODO: drop `loyalty: _` from this pattern match once every priv/npcs/*.exs file's
-        # static `loyalty:` field is removed (loyalty now lives on Player.npc_loyalty, read
-        # via Shunt.Npcs.Loyalty.value/2 — NPC structs no longer carry per-player data).
+        %{key: _, name: _, faction: _, trade_actions: _} = npc
         {npc.key, npc}
       end
 
