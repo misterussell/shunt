@@ -12,19 +12,20 @@ defmodule ShuntWeb.DashboardLive do
   alias Shunt.Players
   alias Shunt.Skills.Catalog, as: SkillsCatalog
 
-  # TODO: per priv/docs/architecture.md Section 5, once Shunt.Fencing, Shunt.Crafting, and
-  # Shunt.Npcs's resolver functions return effect lists (see their own staged TODOs), change
-  # every handle_event/3 clause below that currently calls one of those modules directly (e.g.
-  # `Fencing.take_offer(socket.assigns.player)`) to instead call
-  # `Players.dispatch(socket.assigns.player_id, &Fencing.take_offer/1)` (or the equivalent
-  # &Module.function/1 capture for that action), matching the {:ok, player, meta} /
-  # {:error, reason} return shape already used by handle_event("lay_low", ...) below.
-  # flash_heat_event/2 calls should read the fired heat event off `meta.heat_event` returned by
-  # dispatch/2 instead of a resolver's own third tuple element. Calls passing extra params (e.g.
-  # handle_event("assemble", %{"key" => recipe_key})) need a closure: &Crafting.assemble(&1, recipe_key).
-  # Once every clause is converted, mount/3 below can also switch from Players.get_player!() to
-  # Players.lookup_or_start(player_id) |> Players.current() so the LiveView reads through the
-  # same in-memory Players.Server the rest of the dispatch path uses.
+  # TODO: per priv/docs/architecture.md Section 5, once Shunt.Crafting and Shunt.Npcs's
+  # resolver functions return effect lists too (see their own staged TODOs - Shunt.Fencing's
+  # handlers below are already converted), change every remaining handle_event/3 clause that
+  # currently calls one of those modules directly (e.g. `Crafting.scavenge(socket.assigns.player)`)
+  # to instead call `Players.dispatch(socket.assigns.player_id, &Crafting.scavenge/1)` (or the
+  # equivalent &Module.function/1 capture for that action), matching the {:ok, player, meta} /
+  # {:error, reason} return shape already used by handle_event("lay_low", ...) and the Fencing
+  # handlers below. flash_heat_event/2 calls should read the fired heat event off
+  # `meta.heat_event` returned by dispatch/2 instead of a resolver's own third tuple element.
+  # Calls passing extra params (e.g. handle_event("assemble", %{"key" => recipe_key})) need a
+  # closure: &Crafting.assemble(&1, recipe_key). Once every clause is converted, mount/3 below
+  # can also switch from Players.get_player!() to Players.lookup_or_start(player_id) |>
+  # Players.current() so the LiveView reads through the same in-memory Players.Server the rest
+  # of the dispatch path uses.
   def mount(_params, _session, socket) do
     if connected?(socket), do: Signals.subscribe()
     player = Players.get_player!()
@@ -56,28 +57,31 @@ defmodule ShuntWeb.DashboardLive do
   end
 
   def handle_event("find_lead", _params, socket) do
-    case Fencing.find_lead(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Fencing.find_lead/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, :offer_in_progress} -> {:noreply, socket}
     end
   end
 
   def handle_event("take_offer", _params, socket) do
-    case Fencing.take_offer(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Fencing.take_offer/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
 
   def handle_event("pass_offer", _params, socket) do
-    {:ok, player} = Fencing.pass_offer(socket.assigns.player)
+    {:ok, player, _meta} = Players.dispatch(socket.assigns.player_id, &Fencing.pass_offer/1)
     {:noreply, assign_player(socket, player)}
   end
 
   def handle_event("sell_item", _params, socket) do
-    case Fencing.sell_held_item(socket.assigns.player) do
-      {:ok, player, event} -> {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
-      {:error, _reason} -> {:noreply, socket}
+    case Players.dispatch(socket.assigns.player_id, &Fencing.sell_held_item/1) do
+      {:ok, player, meta} ->
+        {:noreply, flash_heat_event(socket, meta.heat_event) |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
     end
   end
 
