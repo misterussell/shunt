@@ -128,16 +128,15 @@ defmodule ShuntWeb.DashboardLiveTest do
     assert has_element?(view, "#recipe-patchwork_courier_drone", "Locked")
   end
 
-  # TODO: add a test that crafting the Scrap-Forged Soldering Iron unlocks street_alchemy
-  # tier 1 end-to-end through the dashboard, once the TODOs in
-  # lib/shunt/crafting/recipe_catalog.ex, lib/shunt/skills/catalog.ex,
-  # lib/shunt/crafting.ex, and lib/shunt_web/live/dashboard_live.ex are implemented:
-  #   1. give the player the tool recipe's inputs directly:
-  #      player = Shunt.Players.get_player!()
-  #      inputs = Shunt.Crafting.RecipeCatalog.fetch!("scrap_forged_soldering_iron").inputs
-  #      Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: inputs))
-  #   2. render the LiveView, then `view |> element("#assemble-scrap_forged_soldering_iron-button") |> render_click()`
-  #   3. assert has_element?(view, "#recipe-patchwork_courier_drone", "Unlocked") — crafting
-  #      the tool flips Shunt.Skills.Catalog.current_tier/2 to 1, which assemble/2 and this
-  #      template both check.
+  test "crafting the Scrap-Forged Soldering Iron unlocks street_alchemy tier 1", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    inputs = Shunt.Crafting.RecipeCatalog.fetch!("scrap_forged_soldering_iron").inputs
+    Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: inputs))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view |> element("#assemble-scrap_forged_soldering_iron-button") |> render_click()
+
+    assert has_element?(view, "#recipe-patchwork_courier_drone", "Unlocked")
+  end
 end

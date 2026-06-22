@@ -203,8 +203,7 @@ defmodule ShuntWeb.DashboardLive do
             <div :for={recipe <- @recipes} id={"recipe-#{recipe.key}"} class="space-y-1">
               <p>
                 <span class="font-semibold">{recipe.name}</span>
-                <%!-- TODO: replace @player.street_alchemy_tier with @street_alchemy_tier (see TODO in assign_player/2 below) --%>
-                <%= if @player.street_alchemy_tier < recipe.tier_required do %>
+                <%= if @street_alchemy_tier < recipe.tier_required do %>
                   Locked
                 <% else %>
                   Unlocked
@@ -223,8 +222,7 @@ defmodule ShuntWeb.DashboardLive do
                 phx-value-key={recipe.key}
                 class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={
-                  # TODO: replace @player.street_alchemy_tier with @street_alchemy_tier (see TODO in assign_player/2 below)
-                  @player.street_alchemy_tier < recipe.tier_required or
+                  @street_alchemy_tier < recipe.tier_required or
                     Enum.any?(recipe.inputs, fn {raw_key, qty} ->
                       qty > Map.get(@player.inventory, raw_key, 0)
                     end)
@@ -275,15 +273,15 @@ defmodule ShuntWeb.DashboardLive do
   end
 
   defp assign_player(socket, player) do
-    # TODO: add `|> assign(:street_alchemy_tier, SkillsCatalog.current_tier(player, SkillsCatalog.fetch!("street_alchemy")))`
-    # to this pipeline, then replace the two `@player.street_alchemy_tier` reads in the
-    # Recipes section above (the Locked/Unlocked label and the Assemble button's `disabled`
-    # attribute — see the TODO comments at each) with `@street_alchemy_tier`.
     socket
     |> assign(:player, player)
     |> assign(:offer, catalog_item(player.current_offer_key))
     |> assign(:held, catalog_item(player.held_item_key))
     |> assign(:skill_trees, SkillsCatalog.trees())
+    |> assign(
+      :street_alchemy_tier,
+      SkillsCatalog.current_tier(player, SkillsCatalog.fetch!("street_alchemy"))
+    )
     |> assign(:npcs, Npcs.list())
     |> assign(:raws, RawCatalog.items())
     |> assign(:recipes, RecipeCatalog.recipes())
