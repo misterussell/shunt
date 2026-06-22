@@ -145,7 +145,9 @@ defmodule ShuntWeb.DashboardLive do
               </div>
             </div>
             <div :for={action <- npc.trade_actions}>
-              <p class="text-sm"><span class="font-semibold">{action.name}</span> — {action.description}</p>
+              <p class="text-sm">
+                <span class="font-semibold">{action.name}</span> — {action.description}
+              </p>
             </div>
           </div>
         </div>
@@ -182,8 +184,7 @@ defmodule ShuntWeb.DashboardLive do
     |> Atom.to_string()
     |> String.replace("_", " ")
     |> String.split()
-    |> Enum.map(&String.capitalize/1)
-    |> Enum.join(" ")
+    |> Enum.map_join(" ", &String.capitalize/1)
   end
 
   defp skill_tree_status(player, tree) do
