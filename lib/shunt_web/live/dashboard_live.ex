@@ -8,38 +8,31 @@ defmodule ShuntWeb.DashboardLive do
   alias Shunt.Fencing.Catalog
   alias Shunt.Npcs
   alias Shunt.Npcs.Loyalty
+  alias Shunt.Npcs.Signals
   alias Shunt.Players
   alias Shunt.Skills.Catalog, as: SkillsCatalog
 
-  # TODO: Add `alias Shunt.Npcs.Loyalty` and `alias Shunt.Npcs.Signals` near the other
-  # aliases above, and subscribe to NPC signals on mount:
-  #   def mount(_params, _session, socket) do
-  #     if connected?(socket), do: Signals.subscribe()
-  #     {:ok, assign_player(socket, Players.get_player!())}
-  #   end
   def mount(_params, _session, socket) do
+    if connected?(socket), do: Signals.subscribe()
     {:ok, assign_player(socket, Players.get_player!())}
   end
 
-  # TODO: Add handle_info/2 clauses for the two NPC signals, flashing them like
-  # flash_heat_event/2 does below (put_flash(socket, :info, ...) — these are good news/bad
-  # news for the player, not Heat's penalty-flavored :error flashes):
-  #   def handle_info({:npc_met, npc_key}, socket) do
-  #     {:noreply, put_flash(socket, :info, "You've met #{Npcs.get!(npc_key).name}.")}
-  #   end
-  #
-  #   def handle_info({:loyalty_band_changed, npc_key, _old_band, new_band}, socket) do
-  #     name = Npcs.get!(npc_key).name
-  #
-  #     message =
-  #       case new_band do
-  #         :favored -> "#{name} has come to trust you."
-  #         :hostile -> "#{name} no longer trusts you."
-  #         :neutral -> "#{name}'s trust in you has steadied."
-  #       end
-  #
-  #     {:noreply, put_flash(socket, :info, message)}
-  #   end
+  def handle_info({:npc_met, npc_key}, socket) do
+    {:noreply, put_flash(socket, :info, "You've met #{Npcs.get!(npc_key).name}.")}
+  end
+
+  def handle_info({:loyalty_band_changed, npc_key, _old_band, new_band}, socket) do
+    name = Npcs.get!(npc_key).name
+
+    message =
+      case new_band do
+        :favored -> "#{name} has come to trust you."
+        :hostile -> "#{name} no longer trusts you."
+        :neutral -> "#{name}'s trust in you has steadied."
+      end
+
+    {:noreply, put_flash(socket, :info, message)}
+  end
 
   def handle_event("lay_low", _params, socket) do
     case Players.lay_low(socket.assigns.player) do
