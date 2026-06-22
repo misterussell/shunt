@@ -10,6 +10,10 @@ defmodule Shunt.Npcs.Signals do
   end
 
   def loyalty_band_changed(npc_key, old_band, new_band) do
-    Phoenix.PubSub.broadcast(Shunt.PubSub, @topic, {:loyalty_band_changed, npc_key, old_band, new_band})
+    Phoenix.PubSub.broadcast(
+      Shunt.PubSub,
+      @topic,
+      {:loyalty_band_changed, npc_key, old_band, new_band}
+    )
   end
 end
