@@ -1,10 +1,10 @@
 defmodule Shunt.Content.StoreTest do
   use ExUnit.Case, async: true
 
-  # TODO: once Crafting.RawCatalog, Crafting.RecipeCatalog, Heat.Catalog, and Skills.Catalog
-  # migrate their data into priv/content/<type>/*.exs (see each module's own staged TODO),
-  # add equivalent coverage here for the :raws, :recipes, :heat_events, and :skill_trees
-  # sources. For now only :npcs and :fencing_items have migrated content.
+  # TODO: once Heat.Catalog and Skills.Catalog migrate their data into priv/content/<type>/*.exs
+  # (see each module's own staged TODO), add equivalent coverage here for the :heat_events and
+  # :skill_trees sources. For now only :npcs, :fencing_items, :raws, and :recipes have migrated
+  # content.
 
   alias Shunt.Content
 
@@ -49,6 +49,43 @@ defmodule Shunt.Content.StoreTest do
       item = Content.fetch!(:fencing_items, "scrap_dermal_plating")
 
       assert item.name == "Scrap Dermal Plating"
+    end
+
+    test "raws: returns 16 raws with the expected keys and shape" do
+      raws = Content.all(:raws)
+
+      assert length(raws) == 16
+
+      for raw <- raws do
+        assert Map.has_key?(raw, :key)
+        assert Map.has_key?(raw, :name)
+        assert Map.has_key?(raw, :scavenge_text)
+      end
+    end
+
+    test "raws: fetch!/2 returns the raw map for a known key" do
+      raw = Content.fetch!(:raws, "stripped_copper_coil")
+
+      assert raw.name == "Stripped Copper Coil"
+    end
+
+    test "recipes: returns 7 recipes with the expected keys and shape" do
+      recipes = Content.all(:recipes)
+
+      assert length(recipes) == 7
+
+      for recipe <- recipes do
+        assert Map.has_key?(recipe, :key)
+        assert Map.has_key?(recipe, :inputs)
+        assert Map.has_key?(recipe, :tier_required)
+      end
+    end
+
+    test "recipes: fetch!/2 returns the recipe map for a known key" do
+      recipe = Content.fetch!(:recipes, "patchwork_courier_drone")
+
+      assert recipe.name == "Patchwork Courier Drone"
+      assert recipe.sell_value == 70
     end
 
     test "repeated calls don't error" do
