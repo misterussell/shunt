@@ -24,23 +24,6 @@ defmodule Shunt.NpcsTest do
     end
   end
 
-  # TODO: once flesh_tithe/1, move_goods/1, look_the_other_way/1, data_drop/1, and
-  # settle_the_books/1 are wired into NPC Loyalty (per the TODOs in lib/shunt/npcs.ex), add
-  # to each describe block below:
-  #   - a test that a fresh player (never met the NPC) ends up with
-  #     updated.npc_loyalty["<npc_key>"] == 55 after a successful call (50 start + 5 gain)
-  #   - a test that calling the action when the player's npc_loyalty for that NPC is e.g. 0
-  #     can return {:error, :npc_unreliable} without changing scrip/cred/inventory/heat —
-  #     since the reliability roll is probabilistic, loop the call ~200 times against a
-  #     freshly-reset hostile-loyalty player and assert at least one call returns
-  #     {:error, :npc_unreliable} (mirror Shunt.Npcs.Loyalty's own roll_reliable?/2 test in
-  #     loyalty_test.exs for this style)
-  #   - a test that a favored-loyalty player (npc_loyalty for that NPC >= 75) gets the scaled
-  #     (better) price: e.g. for flesh_tithe, floor(15 * 1.2) == 18 scrip instead of 15; for
-  #     look_the_other_way, ceil(20 * 0.8) == 16 scrip cost instead of 20
-  #   - a test that a hostile-loyalty player (npc_loyalty for that NPC <= 24) gets the scaled
-  #     (worse) price: e.g. floor(15 * 0.8) == 12 scrip for flesh_tithe; ceil(20 * 1.25) == 25
-  #     scrip cost for look_the_other_way
   describe "flesh_tithe/1" do
     test "consumes 1 cracked_bone_plate and grants 15 scrip, raising heat by 5" do
       player =
@@ -58,6 +41,79 @@ defmodule Shunt.NpcsTest do
       player = Players.create_player!()
 
       assert Npcs.flesh_tithe(player) == {:error, :insufficient_materials}
+    end
+
+    test "a fresh player gains loyalty with mother_graft on a successful tithe" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(inventory: %{"cracked_bone_plate" => 1})
+        |> Repo.update!()
+
+      assert {:ok, updated, _event} = Npcs.flesh_tithe(player)
+      assert updated.npc_loyalty["mother_graft"] == 55
+    end
+
+    test "a hostile-loyalty player can get {:error, :npc_unreliable} without spending materials" do
+      results =
+        Enum.map(1..200, fn _ ->
+          player =
+            Players.create_player!()
+            |> Ecto.Changeset.change(
+              inventory: %{"cracked_bone_plate" => 1},
+              npc_loyalty: %{"mother_graft" => 0}
+            )
+            |> Repo.update!()
+
+          {Npcs.flesh_tithe(player), player}
+        end)
+
+      assert Enum.any?(results, fn {result, _player} -> result == {:error, :npc_unreliable} end)
+
+      assert Enum.all?(results, fn {result, player} ->
+               case result do
+                 {:error, :npc_unreliable} ->
+                   player.inventory["cracked_bone_plate"] == 1
+
+                 _ ->
+                   true
+               end
+             end)
+    end
+
+    test "a favored-loyalty player gets a scaled (better) scrip gain" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(
+          inventory: %{"cracked_bone_plate" => 1},
+          npc_loyalty: %{"mother_graft" => 80}
+        )
+        |> Repo.update!()
+
+      assert {:ok, updated, _event} = Npcs.flesh_tithe(player)
+      assert updated.scrip == floor(15 * 1.2)
+      assert updated.scrip == 18
+    end
+
+    test "a hostile-loyalty player gets a scaled (worse) scrip gain" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(
+          inventory: %{"cracked_bone_plate" => 1},
+          npc_loyalty: %{"mother_graft" => 24}
+        )
+        |> Repo.update!()
+
+      result =
+        Enum.reduce_while(1..200, nil, fn _, _acc ->
+          case Npcs.flesh_tithe(player) do
+            {:ok, updated, _event} -> {:halt, updated}
+            {:error, :npc_unreliable} -> {:cont, nil}
+          end
+        end)
+
+      refute is_nil(result)
+      assert result.scrip == floor(15 * 0.8)
+      assert result.scrip == 12
     end
   end
 
@@ -80,6 +136,73 @@ defmodule Shunt.NpcsTest do
 
       assert Npcs.move_goods(player) == {:error, :no_held_item}
     end
+
+    test "a fresh player gains loyalty with rook on a successful sale" do
+      item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
+
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(held_item_key: item.key)
+        |> Repo.update!()
+
+      assert {:ok, updated} = Npcs.move_goods(player)
+      assert updated.npc_loyalty["rook"] == 55
+    end
+
+    test "a hostile-loyalty player can get {:error, :npc_unreliable} without losing the held item" do
+      item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
+
+      results =
+        Enum.map(1..200, fn _ ->
+          player =
+            Players.create_player!()
+            |> Ecto.Changeset.change(held_item_key: item.key, npc_loyalty: %{"rook" => 0})
+            |> Repo.update!()
+
+          {Npcs.move_goods(player), player}
+        end)
+
+      assert Enum.any?(results, fn {result, _player} -> result == {:error, :npc_unreliable} end)
+
+      assert Enum.all?(results, fn {result, player} ->
+               case result do
+                 {:error, :npc_unreliable} -> player.held_item_key == item.key
+                 _ -> true
+               end
+             end)
+    end
+
+    test "a favored-loyalty player gets a scaled (better) payout" do
+      item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
+
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(held_item_key: item.key, npc_loyalty: %{"rook" => 80})
+        |> Repo.update!()
+
+      assert {:ok, updated} = Npcs.move_goods(player)
+      assert updated.scrip == floor(item.sell_value * 0.5 * 1.2)
+    end
+
+    test "a hostile-loyalty player gets a scaled (worse) payout" do
+      item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
+
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(held_item_key: item.key, npc_loyalty: %{"rook" => 24})
+        |> Repo.update!()
+
+      result =
+        Enum.reduce_while(1..200, nil, fn _, _acc ->
+          case Npcs.move_goods(player) do
+            {:ok, updated} -> {:halt, updated}
+            {:error, :npc_unreliable} -> {:cont, nil}
+          end
+        end)
+
+      refute is_nil(result)
+      assert result.scrip == floor(item.sell_value * 0.5 * 0.8)
+    end
   end
 
   describe "look_the_other_way/1" do
@@ -98,6 +221,67 @@ defmodule Shunt.NpcsTest do
       player = Players.create_player!()
 
       assert Npcs.look_the_other_way(player) == {:error, :insufficient_scrip}
+    end
+
+    test "a fresh player gains loyalty with nine_iron on a successful bribe" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(scrip: 20)
+        |> Repo.update!()
+
+      assert {:ok, updated} = Npcs.look_the_other_way(player)
+      assert updated.npc_loyalty["nine_iron"] == 55
+    end
+
+    test "a hostile-loyalty player can get {:error, :npc_unreliable} without spending scrip" do
+      results =
+        Enum.map(1..200, fn _ ->
+          player =
+            Players.create_player!()
+            |> Ecto.Changeset.change(scrip: 25, npc_loyalty: %{"nine_iron" => 0})
+            |> Repo.update!()
+
+          {Npcs.look_the_other_way(player), player}
+        end)
+
+      assert Enum.any?(results, fn {result, _player} -> result == {:error, :npc_unreliable} end)
+
+      assert Enum.all?(results, fn {result, player} ->
+               case result do
+                 {:error, :npc_unreliable} -> player.scrip == 25
+                 _ -> true
+               end
+             end)
+    end
+
+    test "a favored-loyalty player gets a scaled (better) scrip cost" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(scrip: 20, npc_loyalty: %{"nine_iron" => 80})
+        |> Repo.update!()
+
+      assert {:ok, updated} = Npcs.look_the_other_way(player)
+      assert updated.scrip == 20 - ceil(20 * 0.8)
+      assert updated.scrip == 4
+    end
+
+    test "a hostile-loyalty player gets a scaled (worse) scrip cost" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(scrip: 25, npc_loyalty: %{"nine_iron" => 24})
+        |> Repo.update!()
+
+      result =
+        Enum.reduce_while(1..200, nil, fn _, _acc ->
+          case Npcs.look_the_other_way(player) do
+            {:ok, updated} -> {:halt, updated}
+            {:error, :npc_unreliable} -> {:cont, nil}
+          end
+        end)
+
+      refute is_nil(result)
+      assert result.scrip == 25 - ceil(20 * 1.25)
+      assert result.scrip == 0
     end
   end
 
@@ -118,6 +302,67 @@ defmodule Shunt.NpcsTest do
 
       assert Npcs.data_drop(player) == {:error, :insufficient_scrip}
     end
+
+    test "a fresh player gains loyalty with splice on a successful data drop" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(scrip: 20)
+        |> Repo.update!()
+
+      assert {:ok, updated} = Npcs.data_drop(player)
+      assert updated.npc_loyalty["splice"] == 55
+    end
+
+    test "a hostile-loyalty player can get {:error, :npc_unreliable} without spending scrip" do
+      results =
+        Enum.map(1..200, fn _ ->
+          player =
+            Players.create_player!()
+            |> Ecto.Changeset.change(scrip: 25, npc_loyalty: %{"splice" => 0})
+            |> Repo.update!()
+
+          {Npcs.data_drop(player), player}
+        end)
+
+      assert Enum.any?(results, fn {result, _player} -> result == {:error, :npc_unreliable} end)
+
+      assert Enum.all?(results, fn {result, player} ->
+               case result do
+                 {:error, :npc_unreliable} -> player.scrip == 25
+                 _ -> true
+               end
+             end)
+    end
+
+    test "a favored-loyalty player gets a scaled (better) scrip cost" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(scrip: 20, npc_loyalty: %{"splice" => 80})
+        |> Repo.update!()
+
+      assert {:ok, updated} = Npcs.data_drop(player)
+      assert updated.scrip == 20 - ceil(20 * 0.8)
+      assert updated.scrip == 4
+    end
+
+    test "a hostile-loyalty player gets a scaled (worse) scrip cost" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(scrip: 25, npc_loyalty: %{"splice" => 24})
+        |> Repo.update!()
+
+      result =
+        Enum.reduce_while(1..200, nil, fn _, _acc ->
+          case Npcs.data_drop(player) do
+            {:ok, updated} -> {:halt, updated}
+            {:error, :npc_unreliable} -> {:cont, nil}
+          end
+        end)
+
+      refute is_nil(result)
+      assert result.scrip == 25 - ceil(20 * 1.25)
+      assert result.scrip == 0
+    end
   end
 
   describe "settle_the_books/1" do
@@ -136,6 +381,67 @@ defmodule Shunt.NpcsTest do
       player = Players.create_player!()
 
       assert Npcs.settle_the_books(player) == {:error, :insufficient_cred}
+    end
+
+    test "a fresh player gains loyalty with tally on a successful settle" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(cred: 1)
+        |> Repo.update!()
+
+      assert {:ok, updated} = Npcs.settle_the_books(player)
+      assert updated.npc_loyalty["tally"] == 55
+    end
+
+    test "a hostile-loyalty player can get {:error, :npc_unreliable} without spending cred" do
+      results =
+        Enum.map(1..200, fn _ ->
+          player =
+            Players.create_player!()
+            |> Ecto.Changeset.change(cred: 2, npc_loyalty: %{"tally" => 0})
+            |> Repo.update!()
+
+          {Npcs.settle_the_books(player), player}
+        end)
+
+      assert Enum.any?(results, fn {result, _player} -> result == {:error, :npc_unreliable} end)
+
+      assert Enum.all?(results, fn {result, player} ->
+               case result do
+                 {:error, :npc_unreliable} -> player.cred == 2
+                 _ -> true
+               end
+             end)
+    end
+
+    test "a favored-loyalty player gets a scaled (better) scrip gain" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(cred: 1, scrip: 0, npc_loyalty: %{"tally" => 80})
+        |> Repo.update!()
+
+      assert {:ok, updated} = Npcs.settle_the_books(player)
+      assert updated.scrip == floor(10 * 1.2)
+      assert updated.scrip == 12
+    end
+
+    test "a hostile-loyalty player gets a scaled (worse) cred cost" do
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(cred: 2, scrip: 0, npc_loyalty: %{"tally" => 24})
+        |> Repo.update!()
+
+      result =
+        Enum.reduce_while(1..200, nil, fn _, _acc ->
+          case Npcs.settle_the_books(player) do
+            {:ok, updated} -> {:halt, updated}
+            {:error, :npc_unreliable} -> {:cont, nil}
+          end
+        end)
+
+      refute is_nil(result)
+      assert result.cred == 2 - ceil(1 * 1.25)
+      assert result.cred == 0
     end
   end
 end
