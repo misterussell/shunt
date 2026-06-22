@@ -1,11 +1,6 @@
 defmodule Shunt.Content.StoreTest do
   use ExUnit.Case, async: true
 
-  # TODO: once Heat.Catalog and Skills.Catalog migrate their data into priv/content/<type>/*.exs
-  # (see each module's own staged TODO), add equivalent coverage here for the :heat_events and
-  # :skill_trees sources. For now only :npcs, :fencing_items, :raws, and :recipes have migrated
-  # content.
-
   alias Shunt.Content
 
   describe "all sources load at boot" do
@@ -86,6 +81,35 @@ defmodule Shunt.Content.StoreTest do
 
       assert recipe.name == "Patchwork Courier Drone"
       assert recipe.sell_value == 70
+    end
+
+    test "heat_events: returns 9 events with the expected keys and shape" do
+      events = Content.all(:heat_events)
+
+      assert length(events) == 9
+
+      for event <- events do
+        assert Map.has_key?(event, :key)
+        assert Map.has_key?(event, :band)
+        assert Map.has_key?(event, :scrip_loss)
+        assert Map.has_key?(event, :cred_loss)
+      end
+    end
+
+    test "heat_events: fetch!/2 returns the event map for a known key" do
+      event = Content.fetch!(:heat_events, "rival_undercuts_prices")
+
+      assert event.name == "Rival Undercuts Prices"
+      assert event.band == :low
+    end
+
+    test "skill_trees: fetch!/2 with the :skill_trees key returns the full trees list" do
+      trees = Content.fetch!(:skill_trees, :skill_trees)
+
+      assert length(trees) == 4
+
+      assert MapSet.new(Enum.map(trees, & &1.key)) ==
+               MapSet.new(["ghostwork", "chrome_meat", "web", "street_alchemy"])
     end
 
     test "repeated calls don't error" do

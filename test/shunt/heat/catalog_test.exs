@@ -21,7 +21,7 @@ defmodule Shunt.Heat.CatalogTest do
     end
 
     test "raises for an unknown key" do
-      assert_raise RuntimeError, ~r/unknown heat event key/, fn ->
+      assert_raise RuntimeError, ~r/unknown heat_events key/, fn ->
         Catalog.fetch!("not-a-real-key")
       end
     end
