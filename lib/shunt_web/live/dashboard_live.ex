@@ -12,21 +12,11 @@ defmodule ShuntWeb.DashboardLive do
   alias Shunt.Players
   alias Shunt.Skills.Catalog, as: SkillsCatalog
 
-  # TODO: per priv/docs/architecture.md Section 5, once Shunt.Npcs's resolver functions return
-  # effect lists too (see its own staged TODOs - the Fencing and Crafting handlers below are
-  # already converted), change every remaining handle_event/3 clause that currently calls
-  # Npcs directly (e.g. `Npcs.flesh_tithe(socket.assigns.player)`) to instead call
-  # `Players.dispatch(socket.assigns.player_id, &Npcs.flesh_tithe/1)`, matching the
-  # {:ok, player, meta} / {:error, reason} return shape already used below. flash_heat_event/2
-  # calls should read the fired heat event off `meta.heat_event` returned by dispatch/2 instead
-  # of a resolver's own third tuple element. Once every clause is converted, mount/3 below can
-  # also switch from Players.get_player!() to Players.lookup_or_start(player_id) |>
-  # Players.current() so the LiveView reads through the same in-memory Players.Server the rest
-  # of the dispatch path uses.
   def mount(_params, _session, socket) do
     if connected?(socket), do: Signals.subscribe()
-    player = Players.get_player!()
-    {:ok, socket |> assign(player_id: player.id) |> assign_player(player)}
+    player_id = Players.get_player!().id
+    player = Players.current(player_id)
+    {:ok, socket |> assign(player_id: player_id) |> assign_player(player)}
   end
 
   def handle_info({:npc_met, npc_key}, socket) do
@@ -105,36 +95,39 @@ defmodule ShuntWeb.DashboardLive do
   end
 
   def handle_event("flesh_tithe", _params, socket) do
-    case Npcs.flesh_tithe(socket.assigns.player) do
-      {:ok, player, event} -> {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
-      {:error, _reason} -> {:noreply, socket}
+    case Players.dispatch(socket.assigns.player_id, &Npcs.flesh_tithe/1) do
+      {:ok, player, meta} ->
+        {:noreply, flash_heat_event(socket, meta.heat_event) |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
     end
   end
 
   def handle_event("move_goods", _params, socket) do
-    case Npcs.move_goods(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Npcs.move_goods/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
 
   def handle_event("look_the_other_way", _params, socket) do
-    case Npcs.look_the_other_way(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Npcs.look_the_other_way/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
 
   def handle_event("data_drop", _params, socket) do
-    case Npcs.data_drop(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Npcs.data_drop/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
 
   def handle_event("settle_the_books", _params, socket) do
-    case Npcs.settle_the_books(socket.assigns.player) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Npcs.settle_the_books/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end

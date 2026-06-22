@@ -4,7 +4,6 @@ defmodule Shunt.Npcs.Loyalty do
   @start_value 50
   @hostile_max 24
   @favored_min 75
-  @gain 5
   @hostile_failure_chance 0.30
 
   def clamp(loyalty), do: loyalty |> max(0) |> min(100)
@@ -38,24 +37,5 @@ defmodule Shunt.Npcs.Loyalty do
       :neutral -> 1.0
       :favored -> 0.8
     end
-  end
-
-  # TODO: once Shunt.Effects' {:npc_loyalty, npc_key, delta} handling (see
-  # lib/shunt/effects.ex) takes over band-transition computation for every Shunt.Npcs
-  # resolver, this function becomes unused - delete it along with its callers in
-  # lib/shunt/npcs.ex. value/2, met?/2, clamp/1, and band_for/1 above are still needed by
-  # Shunt.Effects and must stay.
-  def record_interaction(player, npc_key) do
-    was_met = met?(player, npc_key)
-    old_value = value(player, npc_key)
-    new_value = clamp(old_value + @gain)
-    new_npc_loyalty = Map.put(player.npc_loyalty, npc_key, new_value)
-
-    %{
-      npc_loyalty: new_npc_loyalty,
-      met_for_first_time: not was_met,
-      old_band: band_for(old_value),
-      new_band: band_for(new_value)
-    }
   end
 end
