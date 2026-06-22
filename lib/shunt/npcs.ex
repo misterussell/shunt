@@ -1,9 +1,9 @@
 defmodule Shunt.Npcs do
   @moduledoc false
+  alias Shunt.Content
   alias Shunt.Heat
   alias Shunt.Npcs.Loyalty
   alias Shunt.Npcs.Signals
-  alias Shunt.Npcs.Store
   alias Shunt.Players.Player
   alias Shunt.Repo
 
@@ -13,11 +13,11 @@ defmodule Shunt.Npcs do
   @flesh_tithe_npc_key "mother_graft"
 
   def list do
-    Enum.sort_by(Store.all(), & &1.name)
+    Enum.sort_by(Content.all(:npcs), & &1.name)
   end
 
   def get!(key) do
-    Store.fetch!(key)
+    Content.fetch!(:npcs, key)
   end
 
   # TODO: per priv/docs/architecture.md Section 2 & 3, rewrite flesh_tithe/1, move_goods/1,

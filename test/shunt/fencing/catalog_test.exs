@@ -30,7 +30,7 @@ defmodule Shunt.Fencing.CatalogTest do
     end
 
     test "raises when the key is not in the catalog" do
-      assert_raise RuntimeError, ~r/unknown catalog item key/, fn ->
+      assert_raise RuntimeError, ~r/unknown fencing_items key/, fn ->
         Catalog.fetch!("not_a_real_key")
       end
     end

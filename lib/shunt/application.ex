@@ -14,10 +14,7 @@ defmodule Shunt.Application do
       {Phoenix.PubSub, name: Shunt.PubSub},
       {Registry, keys: :unique, name: Shunt.Players.Registry},
       {DynamicSupervisor, name: Shunt.Players.Supervisor, strategy: :one_for_one},
-      # TODO: per priv/docs/architecture.md Section 4, once Shunt.Content.Store
-      # (lib/shunt/content/store.ex) is implemented, replace the Shunt.Npcs.Store child below
-      # with Shunt.Content.Store.
-      Shunt.Npcs.Store,
+      Shunt.Content.Store,
       # Start to serve requests, typically the last entry
       ShuntWeb.Endpoint
     ]

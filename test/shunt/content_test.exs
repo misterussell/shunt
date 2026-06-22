@@ -1,14 +1,33 @@
 defmodule Shunt.ContentTest do
   use ExUnit.Case, async: true
 
-  # TODO: once Shunt.Content.all/1 and Shunt.Content.fetch!/2 are implemented
-  # (lib/shunt/content.ex), write pure unit tests against an ETS table set up directly in
-  # this test (e.g. :ets.new(:test_table, [:set, :public, :named_table]) then
-  # :ets.insert(:test_table, {"a", %{key: "a"}})) covering:
-  #   - all/1 returns every inserted item, regardless of insertion order
-  #   - fetch!/2 returns the item for a known key
-  #   - fetch!/2 raises "unknown :test_table key: ..." for an unknown key, mirroring
-  #     Shunt.Npcs.Store.fetch!/1's existing error message shape
+  alias Shunt.Content
+
   describe "all/1 and fetch!/2" do
+    test "all/1 returns every inserted item, regardless of insertion order" do
+      table = :content_test_all
+      :ets.new(table, [:set, :public, :named_table])
+      :ets.insert(table, {"b", %{key: "b"}})
+      :ets.insert(table, {"a", %{key: "a"}})
+
+      assert MapSet.new(Content.all(table)) == MapSet.new([%{key: "a"}, %{key: "b"}])
+    end
+
+    test "fetch!/2 returns the item for a known key" do
+      table = :content_test_fetch_known
+      :ets.new(table, [:set, :public, :named_table])
+      :ets.insert(table, {"a", %{key: "a"}})
+
+      assert Content.fetch!(table, "a") == %{key: "a"}
+    end
+
+    test "fetch!/2 raises for an unknown key" do
+      table = :content_test_fetch_unknown
+      :ets.new(table, [:set, :public, :named_table])
+
+      assert_raise RuntimeError, ~r/unknown content_test_fetch_unknown key/, fn ->
+        Content.fetch!(table, "missing")
+      end
+    end
   end
 end
