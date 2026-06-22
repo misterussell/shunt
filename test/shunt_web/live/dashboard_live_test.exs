@@ -96,14 +96,20 @@ defmodule ShuntWeb.DashboardLiveTest do
     assert has_element?(view, "#npc-tally", "Tally")
   end
 
-  # TODO: test "scavenging adds a raw material to the displayed inventory", %{conn: conn} —
-  # {:ok, view, _html} = live(conn, ~p"/"), render_click(view, "scavenge"), then assert at
-  # least one #raw-<key> element is present (use Shunt.Crafting.RawCatalog.items/0 to check
-  # has_element?(view, "#raw-\#{raw.key}") for any raw — the random pick means you can't
-  # assert a specific key, so assert Enum.any?(RawCatalog.items(), &has_element?(view, "#raw-#{&1.key}")))
+  test "scavenging adds a raw material to the displayed inventory", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
 
-  # TODO: test "renders recipes as locked for a fresh player", %{conn: conn} —
-  # {:ok, view, _html} = live(conn, ~p"/"), assert
-  # has_element?(view, "#recipe-patchwork_courier_drone", "Locked") (street_alchemy_tier is
-  # 0 for a fresh player, every recipe requires tier_required: 1)
+    view |> element("#scavenge-button") |> render_click()
+
+    assert Enum.any?(
+             Shunt.Crafting.RawCatalog.items(),
+             &has_element?(view, "#raw-#{&1.key}")
+           )
+  end
+
+  test "renders recipes as locked for a fresh player", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#recipe-patchwork_courier_drone", "Locked")
+  end
 end

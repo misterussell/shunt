@@ -45,18 +45,24 @@ defmodule ShuntWeb.DashboardLive do
     {:noreply, assign_player(socket, player)}
   end
 
-  # TODO: handle_event("scavenge", _params, socket) — call Crafting.scavenge(socket.assigns.player),
-  # which always returns {:ok, player}; assign_player(socket, player) and {:noreply, socket}
-  # (no error case, mirroring how pass_offer/sell_item don't branch on the result either).
+  def handle_event("scavenge", _params, socket) do
+    {:ok, player} = Crafting.scavenge(socket.assigns.player)
+    {:noreply, assign_player(socket, player)}
+  end
 
-  # TODO: handle_event("assemble", %{"key" => recipe_key}, socket) — call
-  # Crafting.assemble(socket.assigns.player, recipe_key); on {:ok, player},
-  # {:noreply, assign_player(socket, player)}; on {:error, _reason}, {:noreply, socket}
-  # (mirrors take_offer's error handling).
+  def handle_event("assemble", %{"key" => recipe_key}, socket) do
+    case Crafting.assemble(socket.assigns.player, recipe_key) do
+      {:ok, player} -> {:noreply, assign_player(socket, player)}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
 
-  # TODO: handle_event("sell_assembled", %{"key" => item_key}, socket) — call
-  # Crafting.sell_assembled(socket.assigns.player, item_key); on {:ok, player},
-  # {:noreply, assign_player(socket, player)}; on {:error, _reason}, {:noreply, socket}.
+  def handle_event("sell_assembled", %{"key" => item_key}, socket) do
+    case Crafting.sell_assembled(socket.assigns.player, item_key) do
+      {:ok, player} -> {:noreply, assign_player(socket, player)}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
 
   def render(assigns) do
     ~H"""
@@ -168,31 +174,86 @@ defmodule ShuntWeb.DashboardLive do
           </div>
         </div>
 
-        <%!-- TODO: render a Crafting section here, before the Lay Low button, in a container
-          styled like the sections above (border border-gray-300 rounded-lg p-4 space-y-4):
+        <div class="border border-gray-300 rounded-lg p-4 space-y-4">
+          <button
+            id="scavenge-button"
+            phx-click="scavenge"
+            class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Scavenge
+          </button>
 
-          1. A Scavenge button (id="scavenge-button", phx-click="scavenge"), always enabled.
+          <div class="space-y-1">
+            <p class="font-semibold">Raw materials</p>
+            <div :for={raw <- @raws}>
+              <p
+                :if={Map.get(@player.inventory, raw.key, 0) > 0}
+                id={"raw-#{raw.key}"}
+                class="text-sm"
+              >
+                {raw.name} ({Map.get(@player.inventory, raw.key, 0)})
+              </p>
+            </div>
+          </div>
 
-          2. A "Raw materials" list: :for={raw <- @raws} (assigned below), only rendering
-             entries where Map.get(@player.inventory, raw.key, 0) > 0, each showing
-             id={"raw-#{raw.key}"}, raw.name, and the owned quantity.
+          <div class="space-y-2">
+            <p class="font-semibold">Recipes</p>
+            <div :for={recipe <- @recipes} id={"recipe-#{recipe.key}"} class="space-y-1">
+              <p>
+                <span class="font-semibold">{recipe.name}</span>
+                <%= if @player.street_alchemy_tier < recipe.tier_required do %>
+                  Locked
+                <% else %>
+                  Unlocked
+                <% end %>
+              </p>
+              <p :for={{raw_key, qty} <- recipe.inputs} class="text-sm text-gray-500">
+                {qty} x {RawCatalog.fetch!(raw_key).name} (owned: {Map.get(
+                  @player.inventory,
+                  raw_key,
+                  0
+                )})
+              </p>
+              <button
+                id={"assemble-#{recipe.key}-button"}
+                phx-click="assemble"
+                phx-value-key={recipe.key}
+                class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={
+                  @player.street_alchemy_tier < recipe.tier_required or
+                    Enum.any?(recipe.inputs, fn {raw_key, qty} ->
+                      qty > Map.get(@player.inventory, raw_key, 0)
+                    end)
+                }
+              >
+                Assemble
+              </button>
+            </div>
+          </div>
 
-          3. A "Recipes" list: :for={recipe <- @recipes}, each in a container with
-             id={"recipe-#{recipe.key}"} showing recipe.name; a locked/unlocked indicator
-             (locked when @player.street_alchemy_tier < recipe.tier_required, e.g. text
-             "Locked" vs "Unlocked"); each {raw_key, qty} in recipe.inputs rendered as
-             "qty x raw name (owned: N)" where N is Map.get(@player.inventory, raw_key, 0)
-             (look up raw.name via RawCatalog.fetch!(raw_key)); and an Assemble button
-             (id={"assemble-#{recipe.key}-button"}, phx-click="assemble",
-             phx-value-key={recipe.key}), disabled when locked OR when any input quantity
-             exceeds what's owned.
-
-          4. An "Assembled goods" list: :for={recipe <- @recipes} again, only rendering
-             entries where Map.get(@player.inventory, recipe.key, 0) > 0, each showing
-             id={"assembled-#{recipe.key}"}, recipe.name, owned quantity, recipe.sell_value,
-             and a Sell button (id={"sell-assembled-#{recipe.key}-button"},
-             phx-click="sell_assembled", phx-value-key={recipe.key}).
-        --%>
+          <div class="space-y-1">
+            <p class="font-semibold">Assembled goods</p>
+            <div :for={recipe <- @recipes}>
+              <div
+                :if={Map.get(@player.inventory, recipe.key, 0) > 0}
+                id={"assembled-#{recipe.key}"}
+                class="text-sm flex items-center gap-2"
+              >
+                <p>
+                  {recipe.name} ({Map.get(@player.inventory, recipe.key, 0)}) — {recipe.sell_value} Scrip
+                </p>
+                <button
+                  id={"sell-assembled-#{recipe.key}-button"}
+                  phx-click="sell_assembled"
+                  phx-value-key={recipe.key}
+                  class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Sell
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div class="flex gap-4">
           <button
@@ -216,8 +277,8 @@ defmodule ShuntWeb.DashboardLive do
     |> assign(:held, catalog_item(player.held_item_key))
     |> assign(:skill_trees, SkillsCatalog.trees())
     |> assign(:npcs, Npcs.list())
-    # TODO: |> assign(:raws, RawCatalog.items())
-    # TODO: |> assign(:recipes, RecipeCatalog.recipes())
+    |> assign(:raws, RawCatalog.items())
+    |> assign(:recipes, RecipeCatalog.recipes())
   end
 
   defp catalog_item(nil), do: nil

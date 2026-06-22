@@ -3,10 +3,25 @@ defmodule Shunt.Crafting.RawCatalogTest do
 
   alias Shunt.Crafting.RawCatalog
 
-  # TODO: describe "items/0" — assert it returns 4 items, each with a unique :key, and
-  # assert every item has a non-empty :scavenge_text
+  describe "items/0" do
+    test "returns 4 items, each with a unique key and non-empty scavenge_text" do
+      items = RawCatalog.items()
 
-  # TODO: describe "fetch!/1" — assert RawCatalog.fetch!("stripped_copper_coil") returns
-  # the matching map (spot-check :name), and assert RawCatalog.fetch!("not_a_real_key")
-  # raises a RuntimeError matching ~r/unknown raw material key/
+      assert length(items) == 4
+      assert items |> Enum.map(& &1.key) |> Enum.uniq() |> length() == 4
+      assert Enum.all?(items, &(&1.scavenge_text != ""))
+    end
+  end
+
+  describe "fetch!/1" do
+    test "returns the matching raw material" do
+      assert RawCatalog.fetch!("stripped_copper_coil").name == "Stripped Copper Coil"
+    end
+
+    test "raises on an unknown key" do
+      assert_raise RuntimeError, ~r/unknown raw material key/, fn ->
+        RawCatalog.fetch!("not_a_real_key")
+      end
+    end
+  end
 end
