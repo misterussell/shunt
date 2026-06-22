@@ -1,28 +1,174 @@
 defmodule Shunt.EffectsTest do
   use ExUnit.Case, async: true
 
-  # TODO: per priv/docs/architecture.md Section 2, write pure unit tests for
-  # Shunt.Effects.apply/2 (lib/shunt/effects.ex) once implemented, covering:
-  #   - {:scrip, delta}, {:cred, delta} - clamp at 0, never negative
-  #   - {:heat, delta} - clamps via Shunt.Heat.clamp/1; when the resulting band crosses
-  #     upward into a new Shunt.Heat band, prepends the band's fired event's
-  #     {:scrip, -event.scrip_loss} and {:cred, -event.cred_loss} effects to the remaining
-  #     worklist and records the event in the returned meta (e.g. under :heat_event); no band
-  #     crossing -> meta's heat_event is nil
-  #   - {:inventory, key, delta} - Map.update(inventory, key, delta, &(&1 + delta)), never
-  #     goes negative for delta < 0 (only reachable today with sufficient stock, per each
-  #     resolver's own precondition checks)
-  #   - {:npc_loyalty, npc_key, delta} - clamps via Shunt.Npcs.Loyalty.clamp/1; detects a
-  #     band transition (Shunt.Npcs.Loyalty.band_for/1 old vs new) and a first-meeting
-  #     transition (old value was the unmet sentinel), recording both in meta, and calls
-  #     Shunt.Npcs.Signals.npc_met/1 / loyalty_band_changed/3 - this is the only Effects
-  #     case allowed to reach outside the player struct, since those are fire-and-forget
-  #     PubSub broadcasts, not persistence
-  #   - {:set, field, value} - Map.put(player, field, value)
-  #   - apply/2 takes a plain %Shunt.Players.Player{} struct (no Repo) and a list of effects,
-  #     returns {updated_player, meta}; folding behavior - effects apply in list order, and
-  #     a {:heat, _} effect's prepended event-loss effects must also fold against the same
-  #     accumulator before any effects originally after the {:heat, _} effect
-  describe "apply/2" do
+  alias Shunt.Effects
+  alias Shunt.Players.Player
+
+  describe "apply/2 - :scrip and :cred" do
+    test "adds a positive scrip delta" do
+      player = %Player{scrip: 10}
+
+      {changes, _meta} = Effects.apply(player, [{:scrip, 5}])
+
+      assert changes.scrip == 15
+    end
+
+    test "clamps scrip at 0 when a delta would take it negative" do
+      player = %Player{scrip: 5}
+
+      {changes, _meta} = Effects.apply(player, [{:scrip, -20}])
+
+      assert changes.scrip == 0
+    end
+
+    test "adds a positive cred delta" do
+      player = %Player{cred: 2}
+
+      {changes, _meta} = Effects.apply(player, [{:cred, 3}])
+
+      assert changes.cred == 5
+    end
+
+    test "clamps cred at 0 when a delta would take it negative" do
+      player = %Player{cred: 1}
+
+      {changes, _meta} = Effects.apply(player, [{:cred, -10}])
+
+      assert changes.cred == 0
+    end
+  end
+
+  describe "apply/2 - :heat" do
+    test "raises heat with no event when staying within the current band" do
+      player = %Player{heat: 0}
+
+      {changes, meta} = Effects.apply(player, [{:heat, 10}])
+
+      assert changes.heat == 10
+      assert meta.heat_event == nil
+    end
+
+    test "fires a heat event and discharges heat when crossing a band, then applies the event's losses" do
+      player = %Player{heat: 60, scrip: 100, cred: 20}
+
+      {changes, meta} = Effects.apply(player, [{:heat, 30}, {:scrip, 15}, {:cred, 3}])
+
+      assert meta.heat_event.band == :high
+      assert changes.heat == 80
+      assert changes.scrip == max(100 + 15 - meta.heat_event.scrip_loss, 0)
+      assert changes.cred == max(20 + 3 - meta.heat_event.cred_loss, 0)
+    end
+  end
+
+  describe "apply/2 - :inventory" do
+    test "increments an existing inventory key" do
+      player = %Player{inventory: %{"raw_key" => 2}}
+
+      {changes, _meta} = Effects.apply(player, [{:inventory, "raw_key", 1}])
+
+      assert changes.inventory == %{"raw_key" => 3}
+    end
+
+    test "adds a new inventory key starting from zero" do
+      player = %Player{inventory: %{}}
+
+      {changes, _meta} = Effects.apply(player, [{:inventory, "raw_key", 1}])
+
+      assert changes.inventory == %{"raw_key" => 1}
+    end
+
+    test "decrements an inventory key, clamped at 0" do
+      player = %Player{inventory: %{"raw_key" => 1}}
+
+      {changes, _meta} = Effects.apply(player, [{:inventory, "raw_key", -5}])
+
+      assert changes.inventory == %{"raw_key" => 0}
+    end
+
+    test "accumulates multiple inventory effects across different keys" do
+      player = %Player{inventory: %{"raw_a" => 2, "raw_b" => 1, "output" => 0}}
+
+      {changes, _meta} =
+        Effects.apply(player, [
+          {:inventory, "raw_a", -1},
+          {:inventory, "raw_b", -1},
+          {:inventory, "output", 1}
+        ])
+
+      assert changes.inventory == %{"raw_a" => 1, "raw_b" => 0, "output" => 1}
+    end
+  end
+
+  describe "apply/2 - :npc_loyalty" do
+    test "raises loyalty for an already-met npc, clamped at 100" do
+      player = %Player{npc_loyalty: %{"tally" => 98}}
+
+      {changes, meta} = Effects.apply(player, [{:npc_loyalty, "tally", 5}])
+
+      assert changes.npc_loyalty == %{"tally" => 100}
+      assert meta.loyalty_signals == []
+    end
+
+    test "records an :npc_met signal the first time an npc is interacted with" do
+      player = %Player{npc_loyalty: %{}}
+
+      {changes, meta} = Effects.apply(player, [{:npc_loyalty, "tally", 5}])
+
+      assert changes.npc_loyalty == %{"tally" => 55}
+      assert {:npc_met, "tally"} in meta.loyalty_signals
+    end
+
+    test "records a :loyalty_band_changed signal when crossing into :favored" do
+      player = %Player{npc_loyalty: %{"tally" => 74}}
+
+      {changes, meta} = Effects.apply(player, [{:npc_loyalty, "tally", 5}])
+
+      assert changes.npc_loyalty == %{"tally" => 79}
+      assert {:loyalty_band_changed, "tally", :neutral, :favored} in meta.loyalty_signals
+    end
+
+    test "records no band-change signal when staying within the same band" do
+      player = %Player{npc_loyalty: %{"tally" => 50}}
+
+      {_changes, meta} = Effects.apply(player, [{:npc_loyalty, "tally", 5}])
+
+      assert meta.loyalty_signals == []
+    end
+  end
+
+  describe "apply/2 - :set" do
+    test "sets a field to a literal value" do
+      player = %Player{current_offer_key: "old_key"}
+
+      {changes, _meta} = Effects.apply(player, [{:set, :current_offer_key, nil}])
+
+      assert changes.current_offer_key == nil
+    end
+  end
+
+  describe "apply/2 - ordering and folding" do
+    test "an empty effect list returns no changes and default meta" do
+      player = %Player{scrip: 10}
+
+      assert Effects.apply(player, []) == {%{}, %{heat_event: nil, loyalty_signals: []}}
+    end
+
+    test "applies effects in list order, folding prepended heat-event effects ahead of later ones" do
+      player = %Player{heat: 60, scrip: 100, cred: 20, held_item_key: "some_item"}
+
+      {changes, meta} =
+        Effects.apply(player, [
+          {:heat, 30},
+          {:scrip, 15},
+          {:cred, 3},
+          {:set, :held_item_key, nil}
+        ])
+
+      assert meta.heat_event.band == :high
+      assert changes.heat == 80
+      assert changes.scrip == max(100 + 15 - meta.heat_event.scrip_loss, 0)
+      assert changes.cred == max(20 + 3 - meta.heat_event.cred_loss, 0)
+      assert changes.held_item_key == nil
+    end
   end
 end

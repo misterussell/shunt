@@ -1,10 +1,10 @@
-  # TODO: per priv/docs/architecture.md Section 4, once Shunt.Content.Store
-  # (lib/shunt/content/store.ex) is implemented and wired into lib/shunt/application.ex with
-  # an :npcs source pointed at priv/content/npcs, delete this entire file - its coverage is
-  # superseded by a generic test/shunt/content/store_test.exs exercising Shunt.Content.all/1
-  # and Shunt.Content.fetch!/2 across all 6 sources (see the @sources TODO in
-  # lib/shunt/content/store.ex). Also delete lib/shunt/npcs/store.ex itself at that point (see
-  # the TODO already at the top of that file).
+# TODO: per priv/docs/architecture.md Section 4, once Shunt.Content.Store
+# (lib/shunt/content/store.ex) is implemented and wired into lib/shunt/application.ex with
+# an :npcs source pointed at priv/content/npcs, delete this entire file - its coverage is
+# superseded by a generic test/shunt/content/store_test.exs exercising Shunt.Content.all/1
+# and Shunt.Content.fetch!/2 across all 6 sources (see the @sources TODO in
+# lib/shunt/content/store.ex). Also delete lib/shunt/npcs/store.ex itself at that point (see
+# the TODO already at the top of that file).
 defmodule Shunt.Npcs.StoreTest do
   use ExUnit.Case, async: true
 
