@@ -12,18 +12,15 @@ defmodule ShuntWeb.DashboardLive do
   alias Shunt.Players
   alias Shunt.Skills.Catalog, as: SkillsCatalog
 
-  # TODO: per priv/docs/architecture.md Section 5, once Shunt.Crafting and Shunt.Npcs's
-  # resolver functions return effect lists too (see their own staged TODOs - Shunt.Fencing's
-  # handlers below are already converted), change every remaining handle_event/3 clause that
-  # currently calls one of those modules directly (e.g. `Crafting.scavenge(socket.assigns.player)`)
-  # to instead call `Players.dispatch(socket.assigns.player_id, &Crafting.scavenge/1)` (or the
-  # equivalent &Module.function/1 capture for that action), matching the {:ok, player, meta} /
-  # {:error, reason} return shape already used by handle_event("lay_low", ...) and the Fencing
-  # handlers below. flash_heat_event/2 calls should read the fired heat event off
-  # `meta.heat_event` returned by dispatch/2 instead of a resolver's own third tuple element.
-  # Calls passing extra params (e.g. handle_event("assemble", %{"key" => recipe_key})) need a
-  # closure: &Crafting.assemble(&1, recipe_key). Once every clause is converted, mount/3 below
-  # can also switch from Players.get_player!() to Players.lookup_or_start(player_id) |>
+  # TODO: per priv/docs/architecture.md Section 5, once Shunt.Npcs's resolver functions return
+  # effect lists too (see its own staged TODOs - the Fencing and Crafting handlers below are
+  # already converted), change every remaining handle_event/3 clause that currently calls
+  # Npcs directly (e.g. `Npcs.flesh_tithe(socket.assigns.player)`) to instead call
+  # `Players.dispatch(socket.assigns.player_id, &Npcs.flesh_tithe/1)`, matching the
+  # {:ok, player, meta} / {:error, reason} return shape already used below. flash_heat_event/2
+  # calls should read the fired heat event off `meta.heat_event` returned by dispatch/2 instead
+  # of a resolver's own third tuple element. Once every clause is converted, mount/3 below can
+  # also switch from Players.get_player!() to Players.lookup_or_start(player_id) |>
   # Players.current() so the LiveView reads through the same in-memory Players.Server the rest
   # of the dispatch path uses.
   def mount(_params, _session, socket) do
@@ -86,21 +83,24 @@ defmodule ShuntWeb.DashboardLive do
   end
 
   def handle_event("scavenge", _params, socket) do
-    {:ok, player, event} = Crafting.scavenge(socket.assigns.player)
-    {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
+    {:ok, player, meta} = Players.dispatch(socket.assigns.player_id, &Crafting.scavenge/1)
+    {:noreply, flash_heat_event(socket, meta.heat_event) |> assign_player(player)}
   end
 
   def handle_event("assemble", %{"key" => recipe_key}, socket) do
-    case Crafting.assemble(socket.assigns.player, recipe_key) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Crafting.assemble(&1, recipe_key)) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
 
   def handle_event("sell_assembled", %{"key" => item_key}, socket) do
-    case Crafting.sell_assembled(socket.assigns.player, item_key) do
-      {:ok, player, event} -> {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
-      {:error, _reason} -> {:noreply, socket}
+    case Players.dispatch(socket.assigns.player_id, &Crafting.sell_assembled(&1, item_key)) do
+      {:ok, player, meta} ->
+        {:noreply, flash_heat_event(socket, meta.heat_event) |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
     end
   end
 

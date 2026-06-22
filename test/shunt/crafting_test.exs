@@ -1,97 +1,42 @@
 defmodule Shunt.CraftingTest do
-  use Shunt.DataCase
+  use ExUnit.Case, async: true
 
   alias Shunt.Crafting
-  alias Shunt.Crafting.RecipeCatalog
-  alias Shunt.Players
-  alias Shunt.Repo
-
   alias Shunt.Crafting.RawCatalog
-
-  # TODO: per priv/docs/architecture.md Section 3 & 6, once scavenge/1, assemble/2, and
-  # sell_assembled/2 in lib/shunt/crafting.ex return effect lists instead of {:ok, %Player{}} /
-  # {:ok, %Player{}, event}, rewrite every test below to build a plain
-  # %Shunt.Players.Player{} struct literal (no Players.create_player!/0, no Repo, no
-  # Ecto.Changeset) and assert directly on the returned {:ok, effects} list - e.g.
-  # sell_assembled/2's success test becomes an assertion that
-  # Crafting.sell_assembled(%Player{inventory: %{item_key => 1}}, item_key) ==
-  # {:ok, [{:inventory, item_key, -1}, {:heat, recipe.heat_cost}, {:scrip, recipe.sell_value},
-  # {:cred, recipe.cred_gain}]}. Error-path tests (insufficient tier/materials/no item) stay
-  # structurally the same since those return values don't change. This file can switch from
-  # `use Shunt.DataCase` to `use ExUnit.Case, async: true` once no test in it touches Repo -
-  # assemble/2 still calls SkillsCatalog.current_tier/2, which only reads
-  # player.inventory[tool_key] and doesn't touch Repo, so this should be possible for every
-  # test in this file.
+  alias Shunt.Crafting.RecipeCatalog
+  alias Shunt.Players.Player
 
   describe "scavenge/1" do
-    test "adds one of a valid Raw to inventory and raises heat by 4, with no heat event" do
-      player = Players.create_player!()
+    test "returns effects for a random raw and a heat increase of 4" do
+      player = %Player{}
 
-      {:ok, updated, nil} = Crafting.scavenge(player)
+      assert {:ok, [{:inventory, key, 1}, {:heat, 4}]} = Crafting.scavenge(player)
 
-      assert updated.heat == player.heat + 4
-      assert Enum.sum(Map.values(updated.inventory)) == Enum.sum(Map.values(player.inventory)) + 1
       raw_keys = Enum.map(RawCatalog.items(), & &1.key)
-      assert Enum.all?(Map.keys(updated.inventory), &(&1 in raw_keys))
-    end
-
-    test "fires a heat event and discharges heat when crossing a Shunt.Heat band" do
-      player =
-        Players.create_player!()
-        |> Ecto.Changeset.change(heat: 84, scrip: 100, cred: 100)
-        |> Repo.update!()
-
-      {:ok, updated, event} = Crafting.scavenge(player)
-
-      assert event.band == :high
-      assert updated.heat == 80
-      assert updated.scrip == 100 - event.scrip_loss
-      assert updated.cred == 100 - event.cred_loss
-    end
-
-    test "clamps heat at 100 with no event when already at the top of the :high band" do
-      player =
-        Players.create_player!()
-        |> Ecto.Changeset.change(heat: 100)
-        |> Repo.update!()
-
-      {:ok, updated, nil} = Crafting.scavenge(player)
-
-      assert updated.heat == 100
+      assert key in raw_keys
     end
   end
 
   describe "assemble/2" do
-    test "consumes inputs and adds the output when tier and materials are sufficient" do
+    test "returns input-decrement and output-increment effects when tier and materials are sufficient" do
       recipe = RecipeCatalog.fetch!("patchwork_courier_drone")
+      player = %Player{inventory: Map.put(recipe.inputs, "scrap_forged_soldering_iron", 1)}
 
-      player =
-        Players.create_player!()
-        |> Ecto.Changeset.change(
-          inventory: Map.put(recipe.inputs, "scrap_forged_soldering_iron", 1)
-        )
-        |> Repo.update!()
+      expected_effects =
+        Enum.map(recipe.inputs, fn {raw_key, qty} -> {:inventory, raw_key, -qty} end) ++
+          [{:inventory, recipe.key, 1}]
 
-      {:ok, updated} = Crafting.assemble(player, "patchwork_courier_drone")
-
-      for {raw_key, qty} <- recipe.inputs do
-        assert Map.get(updated.inventory, raw_key, 0) == Map.get(recipe.inputs, raw_key) - qty
-      end
-
-      assert updated.inventory["patchwork_courier_drone"] == 1
+      assert Crafting.assemble(player, "patchwork_courier_drone") == {:ok, expected_effects}
     end
 
     test "returns :insufficient_tier when street_alchemy_tier is below the requirement" do
-      player = Players.create_player!()
+      player = %Player{}
 
       assert Crafting.assemble(player, "patchwork_courier_drone") == {:error, :insufficient_tier}
     end
 
     test "returns :insufficient_materials when an input quantity is missing" do
-      player =
-        Players.create_player!()
-        |> Ecto.Changeset.change(inventory: %{"scrap_forged_soldering_iron" => 1})
-        |> Repo.update!()
+      player = %Player{inventory: %{"scrap_forged_soldering_iron" => 1}}
 
       assert Crafting.assemble(player, "patchwork_courier_drone") ==
                {:error, :insufficient_materials}
@@ -99,63 +44,33 @@ defmodule Shunt.CraftingTest do
 
     test "tier_required: 0 recipes need no tool or tier" do
       recipe = RecipeCatalog.fetch!("scrap_forged_soldering_iron")
+      player = %Player{inventory: recipe.inputs}
 
-      player =
-        Players.create_player!()
-        |> Ecto.Changeset.change(inventory: recipe.inputs)
-        |> Repo.update!()
+      expected_effects =
+        Enum.map(recipe.inputs, fn {raw_key, qty} -> {:inventory, raw_key, -qty} end) ++
+          [{:inventory, recipe.key, 1}]
 
-      {:ok, updated} = Crafting.assemble(player, "scrap_forged_soldering_iron")
-
-      assert updated.inventory["scrap_forged_soldering_iron"] == 1
+      assert Crafting.assemble(player, "scrap_forged_soldering_iron") == {:ok, expected_effects}
     end
   end
 
   describe "sell_assembled/2" do
-    test "pays scrip, cred, and heat, and decrements inventory, with no heat event" do
+    test "returns effects for inventory, heat, scrip, and cred" do
       recipe = RecipeCatalog.fetch!("patchwork_courier_drone")
+      player = %Player{inventory: %{"patchwork_courier_drone" => 1}}
 
-      player =
-        Players.create_player!()
-        |> Ecto.Changeset.change(
-          inventory: %{"patchwork_courier_drone" => 1},
-          scrip: 0,
-          cred: 0,
-          heat: 0
-        )
-        |> Repo.update!()
-
-      {:ok, updated, nil} = Crafting.sell_assembled(player, "patchwork_courier_drone")
-
-      assert updated.scrip == recipe.sell_value
-      assert updated.cred == recipe.cred_gain
-      assert updated.heat == recipe.heat_cost
-      assert updated.inventory["patchwork_courier_drone"] == 0
-    end
-
-    test "fires a heat event and discharges heat when crossing a Shunt.Heat band" do
-      recipe = RecipeCatalog.fetch!("patchwork_courier_drone")
-
-      player =
-        Players.create_player!()
-        |> Ecto.Changeset.change(
-          inventory: %{"patchwork_courier_drone" => 1},
-          scrip: 0,
-          cred: 0,
-          heat: 25
-        )
-        |> Repo.update!()
-
-      {:ok, updated, event} = Crafting.sell_assembled(player, "patchwork_courier_drone")
-
-      assert event.band == :low
-      assert updated.heat == 25
-      assert updated.scrip == max(recipe.sell_value - event.scrip_loss, 0)
-      assert updated.cred == max(recipe.cred_gain - event.cred_loss, 0)
+      assert Crafting.sell_assembled(player, "patchwork_courier_drone") ==
+               {:ok,
+                [
+                  {:inventory, "patchwork_courier_drone", -1},
+                  {:heat, recipe.heat_cost},
+                  {:scrip, recipe.sell_value},
+                  {:cred, recipe.cred_gain}
+                ]}
     end
 
     test "returns :no_item when the player doesn't own one" do
-      player = Players.create_player!()
+      player = %Player{}
 
       assert Crafting.sell_assembled(player, "patchwork_courier_drone") == {:error, :no_item}
     end
