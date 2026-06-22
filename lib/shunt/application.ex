@@ -12,11 +12,11 @@ defmodule Shunt.Application do
       Shunt.Repo,
       {DNSCluster, query: Application.get_env(:shunt, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Shunt.PubSub},
-      # TODO: per priv/docs/architecture.md Sections 1 & 4, once Shunt.Content.Store
+      {Registry, keys: :unique, name: Shunt.Players.Registry},
+      {DynamicSupervisor, name: Shunt.Players.Supervisor, strategy: :one_for_one},
+      # TODO: per priv/docs/architecture.md Section 4, once Shunt.Content.Store
       # (lib/shunt/content/store.ex) is implemented, replace the Shunt.Npcs.Store child below
-      # with Shunt.Content.Store, and add two new children above ShuntWeb.Endpoint:
-      #   {Registry, keys: :unique, name: Shunt.Players.Registry}
-      #   {DynamicSupervisor, name: Shunt.Players.Supervisor, strategy: :one_for_one}
+      # with Shunt.Content.Store.
       Shunt.Npcs.Store,
       # Start to serve requests, typically the last entry
       ShuntWeb.Endpoint

@@ -3,6 +3,7 @@ defmodule Shunt.Players do
   alias Shunt.Heat
   alias Shunt.Repo
   alias Shunt.Players.Player
+  alias Shunt.Players.Server
 
   @lay_low_cred_cost 10
   @lay_low_heat_reduction 20
@@ -15,21 +16,28 @@ defmodule Shunt.Players do
     Repo.one!(Player)
   end
 
-  # TODO: per priv/docs/architecture.md Section 1, implement lookup_or_start(player_id)
-  # returning the pid of an already-running Shunt.Players.Server for player_id, or starting
-  # one under Shunt.Players.Supervisor (via DynamicSupervisor.start_child/2) if none is
-  # running yet. Use Registry.lookup(Shunt.Players.Registry, player_id) to check first, since
-  # DynamicSupervisor.start_child/2 with a :via name will return
-  # {:error, {:already_started, pid}} on a race rather than silently reusing the pid - handle
-  # that case by returning the existing pid instead of treating it as an error.
+  def lookup_or_start(player_id) do
+    case Registry.lookup(Shunt.Players.Registry, player_id) do
+      [{pid, _}] ->
+        {:ok, pid}
 
-  # TODO: implement dispatch(player_id, resolver_fun), which calls lookup_or_start/1 then
-  # GenServer.call(pid, {:dispatch, resolver_fun}). See Shunt.Players.Server's TODO for what
-  # resolver_fun must look like and what dispatch/2 returns.
+      [] ->
+        case DynamicSupervisor.start_child(Shunt.Players.Supervisor, {Server, player_id}) do
+          {:ok, pid} -> {:ok, pid}
+          {:error, {:already_started, pid}} -> {:ok, pid}
+        end
+    end
+  end
 
-  # TODO: implement current(player_id_or_pid) delegating to Shunt.Players.Server.current/1,
-  # used by ShuntWeb.DashboardLive.mount/3 to read the in-memory player after
-  # lookup_or_start/1.
+  def dispatch(player_id, resolver_fun) do
+    {:ok, pid} = lookup_or_start(player_id)
+    GenServer.call(pid, {:dispatch, resolver_fun})
+  end
+
+  def current(player_id) do
+    {:ok, pid} = lookup_or_start(player_id)
+    Server.current(pid)
+  end
 
   def lay_low(%Player{cred: cred}) when cred < @lay_low_cred_cost do
     {:error, :insufficient_cred}

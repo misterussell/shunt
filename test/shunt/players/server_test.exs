@@ -1,25 +1,68 @@
 defmodule Shunt.Players.ServerTest do
   use Shunt.DataCase
 
-  # TODO: per priv/docs/architecture.md Section 1, write integration tests for
-  # Shunt.Players.Server (lib/shunt/players/server.ex) and Shunt.Players.lookup_or_start/1,
-  # dispatch/2, current/1 (lib/shunt/players.ex) once implemented, covering:
-  #   - lookup_or_start/1 starts exactly one Shunt.Players.Server per player_id under
-  #     Shunt.Players.Supervisor, registered via Shunt.Players.Registry; calling it twice
-  #     with the same player_id returns the same pid (use Registry.lookup/2 to assert)
-  #   - current/1 returns {:ok, %Player{}} matching the row in Postgres
-  #   - dispatch/2 with a resolver returning {:ok, effects}: applies the effects via
-  #     Shunt.Effects.apply/2, persists the result via Repo.update, and returns
-  #     {:ok, updated_player, meta}; a subsequent current/1 call reflects the persisted state
-  #   - dispatch/2 with a resolver returning {:error, reason}: returns {:error, reason}
-  #     unchanged, performs no Repo.update, and leaves the server's in-memory player
-  #     untouched (assert via a follow-up current/1)
-  #   - dispatch/2 against a resolver that fires a Shunt.Heat band-crossing event or an
-  #     :npc_loyalty band transition: asserts Shunt.Npcs.Signals broadcasts land (subscribe
-  #     via Shunt.Npcs.Signals.subscribe/0 in the test process before dispatching)
-  #   - a Repo.update failure during dispatch/2 does not crash the server process and leaves
-  #     it usable for a subsequent dispatch/2 call (exact recovery behavior to be decided
-  #     when lib/shunt/players/server.ex's handle_call TODO is implemented)
-  describe "lookup_or_start/1 and dispatch/2" do
+  alias Shunt.Npcs.Signals
+  alias Shunt.Players
+  alias Shunt.Players.Player
+
+  describe "lookup_or_start/1" do
+    test "starts a server for a player_id and returns the same pid on a repeated call" do
+      player = Players.create_player!()
+
+      assert {:ok, pid} = Players.lookup_or_start(player.id)
+      assert {:ok, ^pid} = Players.lookup_or_start(player.id)
+      assert Process.alive?(pid)
+      assert [{^pid, nil}] = Registry.lookup(Shunt.Players.Registry, player.id)
+    end
+  end
+
+  describe "current/1" do
+    test "returns the player loaded from Postgres" do
+      player = Players.create_player!()
+
+      assert Players.current(player.id).id == player.id
+    end
+  end
+
+  describe "dispatch/2" do
+    test "applies the resolver's effects and persists the result" do
+      player = Players.create_player!()
+
+      assert {:ok, updated, _meta} =
+               Players.dispatch(player.id, fn _p -> {:ok, [{:scrip, 50}]} end)
+
+      assert updated.scrip == 50
+      assert Players.current(player.id).scrip == 50
+      assert Repo.get!(Player, player.id).scrip == 50
+    end
+
+    test "returns the resolver's error without persisting or mutating in-memory state" do
+      player = Players.create_player!()
+
+      assert Players.dispatch(player.id, fn _p -> {:error, :no_offer} end) == {:error, :no_offer}
+
+      assert Players.current(player.id).scrip == 0
+      assert Repo.get!(Player, player.id).scrip == 0
+    end
+
+    test "merges a resolver's extra meta with the effect meta" do
+      player = Players.create_player!()
+
+      assert {:ok, _updated, meta} =
+               Players.dispatch(player.id, fn _p -> {:ok, [{:scrip, 10}], %{flash: :sold}} end)
+
+      assert meta.flash == :sold
+      assert meta.heat_event == nil
+    end
+
+    test "broadcasts npc signals via Shunt.Npcs.Signals after a successful loyalty band transition" do
+      player = Players.create_player!()
+      Signals.subscribe()
+
+      assert {:ok, _updated, _meta} =
+               Players.dispatch(player.id, fn _p -> {:ok, [{:npc_loyalty, "tally", 5}]} end)
+
+      assert_receive {:npc_met, "tally"}
+    end
   end
 end
