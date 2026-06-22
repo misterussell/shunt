@@ -25,7 +25,7 @@ defmodule Shunt.Content.Store do
     {:ok, :ok}
   end
 
-  defp load_source(:skill_trees, dir) do
+  def load_source(:skill_trees, dir) do
     case content_files(dir) do
       [file] ->
         {trees, _bindings} = Code.eval_file(file)
@@ -33,10 +33,13 @@ defmodule Shunt.Content.Store do
 
       [] ->
         :ok
+
+      files ->
+        raise "expected exactly one skill_trees content file, found #{length(files)}: #{inspect(files)}"
     end
   end
 
-  defp load_source(table, dir) do
+  def load_source(table, dir) do
     entries =
       for file <- content_files(dir) do
         {item, _bindings} = Code.eval_file(file)

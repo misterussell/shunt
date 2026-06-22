@@ -58,8 +58,10 @@ defmodule ShuntWeb.DashboardLive do
   end
 
   def handle_event("pass_offer", _params, socket) do
-    {:ok, player, _meta} = Players.dispatch(socket.assigns.player_id, &Fencing.pass_offer/1)
-    {:noreply, assign_player(socket, player)}
+    case Players.dispatch(socket.assigns.player_id, &Fencing.pass_offer/1) do
+      {:ok, player, _meta} -> {:noreply, assign_player(socket, player)}
+      {:error, _reason} -> {:noreply, socket}
+    end
   end
 
   def handle_event("sell_item", _params, socket) do

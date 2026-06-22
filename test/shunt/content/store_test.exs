@@ -116,4 +116,17 @@ defmodule Shunt.Content.StoreTest do
       assert Content.all(:npcs) == Content.all(:npcs)
     end
   end
+
+  describe "load_source/2 for :skill_trees" do
+    test "raises a clear error instead of a CaseClauseError when more than one file is found" do
+      dir = "priv/content/skills"
+      extra_file = Path.join(Application.app_dir(:shunt, dir), "extra.exs")
+      File.write!(extra_file, "%{}")
+      on_exit(fn -> File.rm!(extra_file) end)
+
+      assert_raise RuntimeError, ~r/expected exactly one skill_trees content file/, fn ->
+        Shunt.Content.Store.load_source(:skill_trees, dir)
+      end
+    end
+  end
 end

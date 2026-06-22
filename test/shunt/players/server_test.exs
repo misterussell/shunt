@@ -14,6 +14,13 @@ defmodule Shunt.Players.ServerTest do
       assert Process.alive?(pid)
       assert [{^pid, nil}] = Registry.lookup(Shunt.Players.Registry, player.id)
     end
+
+    test "returns an error instead of crashing when the player no longer exists" do
+      player = Players.create_player!()
+      Repo.delete!(player)
+
+      assert Players.lookup_or_start(player.id) == {:error, :not_found}
+    end
   end
 
   describe "current/1" do
@@ -21,6 +28,13 @@ defmodule Shunt.Players.ServerTest do
       player = Players.create_player!()
 
       assert Players.current(player.id).id == player.id
+    end
+
+    test "returns an error instead of crashing when the player no longer exists" do
+      player = Players.create_player!()
+      Repo.delete!(player)
+
+      assert Players.current(player.id) == {:error, :not_found}
     end
   end
 
@@ -63,6 +77,13 @@ defmodule Shunt.Players.ServerTest do
                Players.dispatch(player.id, fn _p -> {:ok, [{:npc_loyalty, "tally", 5}]} end)
 
       assert_receive {:npc_met, "tally"}
+    end
+
+    test "returns an error instead of crashing when the player no longer exists" do
+      player = Players.create_player!()
+      Repo.delete!(player)
+
+      assert Players.dispatch(player.id, fn _p -> {:ok, []} end) == {:error, :not_found}
     end
   end
 end

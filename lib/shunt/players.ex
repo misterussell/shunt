@@ -24,18 +24,21 @@ defmodule Shunt.Players do
         case DynamicSupervisor.start_child(Shunt.Players.Supervisor, {Server, player_id}) do
           {:ok, pid} -> {:ok, pid}
           {:error, {:already_started, pid}} -> {:ok, pid}
+          {:error, _reason} -> {:error, :not_found}
         end
     end
   end
 
   def dispatch(player_id, resolver_fun) do
-    {:ok, pid} = lookup_or_start(player_id)
-    GenServer.call(pid, {:dispatch, resolver_fun})
+    with {:ok, pid} <- lookup_or_start(player_id) do
+      GenServer.call(pid, {:dispatch, resolver_fun})
+    end
   end
 
   def current(player_id) do
-    {:ok, pid} = lookup_or_start(player_id)
-    Server.current(pid)
+    with {:ok, pid} <- lookup_or_start(player_id) do
+      Server.current(pid)
+    end
   end
 
   def lay_low(%Player{cred: cred}) when cred < @lay_low_cred_cost do
