@@ -41,13 +41,15 @@ defmodule ShuntWeb.DashboardLive do
   end
 
   def handle_event("sell_item", _params, socket) do
-    {:ok, player} = Fencing.sell_held_item(socket.assigns.player)
-    {:noreply, assign_player(socket, player)}
+    case Fencing.sell_held_item(socket.assigns.player) do
+      {:ok, player, event} -> {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
+      {:error, _reason} -> {:noreply, socket}
+    end
   end
 
   def handle_event("scavenge", _params, socket) do
-    {:ok, player} = Crafting.scavenge(socket.assigns.player)
-    {:noreply, assign_player(socket, player)}
+    {:ok, player, event} = Crafting.scavenge(socket.assigns.player)
+    {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
   end
 
   def handle_event("assemble", %{"key" => recipe_key}, socket) do
@@ -59,7 +61,7 @@ defmodule ShuntWeb.DashboardLive do
 
   def handle_event("sell_assembled", %{"key" => item_key}, socket) do
     case Crafting.sell_assembled(socket.assigns.player, item_key) do
-      {:ok, player} -> {:noreply, assign_player(socket, player)}
+      {:ok, player, event} -> {:noreply, flash_heat_event(socket, event) |> assign_player(player)}
       {:error, _reason} -> {:noreply, socket}
     end
   end
@@ -283,6 +285,16 @@ defmodule ShuntWeb.DashboardLive do
 
   defp catalog_item(nil), do: nil
   defp catalog_item(key), do: Catalog.fetch!(key)
+
+  defp flash_heat_event(socket, nil), do: socket
+
+  defp flash_heat_event(socket, event) do
+    put_flash(
+      socket,
+      :error,
+      "#{event.name} — #{event.flavor_text} (-#{event.scrip_loss} Scrip, -#{event.cred_loss} Cred)"
+    )
+  end
 
   defp humanize_faction(faction) do
     faction

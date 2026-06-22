@@ -78,7 +78,7 @@ defmodule Shunt.FencingTest do
   end
 
   describe "sell_held_item/1" do
-    test "adds sell_value, cred_gain, and heat_cost, then clears held_item_key" do
+    test "adds sell_value, cred_gain, and heat_cost, then clears held_item_key, with no heat event" do
       player = Players.create_player!()
       item = Catalog.fetch!("cracked_latticework_relay_key")
 
@@ -87,7 +87,7 @@ defmodule Shunt.FencingTest do
         |> Ecto.Changeset.change(%{held_item_key: item.key})
         |> Repo.update()
 
-      assert {:ok, updated} = Fencing.sell_held_item(player)
+      assert {:ok, updated, nil} = Fencing.sell_held_item(player)
 
       assert updated.scrip == player.scrip + item.sell_value
       assert updated.cred == player.cred + item.cred_gain
@@ -95,16 +95,33 @@ defmodule Shunt.FencingTest do
       assert updated.held_item_key == nil
     end
 
-    test "clamps heat at 100" do
+    test "fires a heat event and discharges heat when crossing a Shunt.Heat band" do
       player = Players.create_player!()
       item = Catalog.fetch!("burned_netrunners_memory_core")
 
       {:ok, player} =
         player
-        |> Ecto.Changeset.change(%{held_item_key: item.key, heat: 90})
+        |> Ecto.Changeset.change(%{held_item_key: item.key, heat: 60})
         |> Repo.update()
 
-      assert {:ok, updated} = Fencing.sell_held_item(player)
+      assert {:ok, updated, event} = Fencing.sell_held_item(player)
+
+      assert event.band == :high
+      assert updated.heat == 80
+      assert updated.scrip == max(player.scrip + item.sell_value - event.scrip_loss, 0)
+      assert updated.cred == max(player.cred + item.cred_gain - event.cred_loss, 0)
+    end
+
+    test "clamps heat at 100 with no event when already at the top of the :high band" do
+      player = Players.create_player!()
+      item = Catalog.fetch!("burned_netrunners_memory_core")
+
+      {:ok, player} =
+        player
+        |> Ecto.Changeset.change(%{held_item_key: item.key, heat: 100})
+        |> Repo.update()
+
+      assert {:ok, updated, nil} = Fencing.sell_held_item(player)
 
       assert updated.heat == 100
     end

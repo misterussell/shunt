@@ -1,5 +1,6 @@
 defmodule Shunt.Players do
   @moduledoc false
+  alias Shunt.Heat
   alias Shunt.Repo
   alias Shunt.Players.Player
 
@@ -22,10 +23,8 @@ defmodule Shunt.Players do
     player
     |> Ecto.Changeset.change(%{
       cred: max(player.cred - @lay_low_cred_cost, 0),
-      heat: clamp_heat(player.heat - @lay_low_heat_reduction)
+      heat: Heat.clamp(player.heat - @lay_low_heat_reduction)
     })
     |> Repo.update()
   end
-
-  defp clamp_heat(heat), do: heat |> max(0) |> min(100)
 end

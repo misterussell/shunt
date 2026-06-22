@@ -107,6 +107,21 @@ defmodule ShuntWeb.DashboardLiveTest do
            )
   end
 
+  test "scavenging across a heat threshold flashes the fired event and drops heat", %{
+    conn: conn
+  } do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, heat: 84))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    html = view |> element("#scavenge-button") |> render_click()
+
+    assert html =~ "Scrip"
+    assert has_element?(view, "#flash-error")
+    assert Shunt.Players.get_player!().heat == 80
+  end
+
   test "renders recipes as locked for a fresh player", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 

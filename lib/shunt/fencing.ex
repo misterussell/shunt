@@ -1,5 +1,6 @@
 defmodule Shunt.Fencing do
   @moduledoc false
+  alias Shunt.Heat
   alias Shunt.Repo
   alias Shunt.Players.Player
   alias Shunt.Fencing.Catalog
@@ -44,16 +45,22 @@ defmodule Shunt.Fencing do
 
   def sell_held_item(%Player{held_item_key: key} = player) do
     item = Catalog.fetch!(key)
+    {final_heat, event} = Heat.resolve(player.heat, Heat.clamp(player.heat + item.heat_cost))
 
     player
     |> Ecto.Changeset.change(%{
-      scrip: player.scrip + item.sell_value,
-      cred: player.cred + item.cred_gain,
-      heat: clamp_heat(player.heat + item.heat_cost),
+      scrip: max(player.scrip + item.sell_value - event_loss(event, :scrip_loss), 0),
+      cred: max(player.cred + item.cred_gain - event_loss(event, :cred_loss), 0),
+      heat: final_heat,
       held_item_key: nil
     })
     |> Repo.update()
+    |> case do
+      {:ok, player} -> {:ok, player, event}
+      {:error, reason} -> {:error, reason}
+    end
   end
 
-  defp clamp_heat(heat), do: heat |> max(0) |> min(100)
+  defp event_loss(nil, _field), do: 0
+  defp event_loss(event, field), do: Map.fetch!(event, field)
 end
