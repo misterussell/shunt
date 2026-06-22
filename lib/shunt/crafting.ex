@@ -5,6 +5,7 @@ defmodule Shunt.Crafting do
   alias Shunt.Crafting.RawCatalog
   alias Shunt.Crafting.RecipeCatalog
   alias Shunt.Repo
+  alias Shunt.Skills.Catalog, as: SkillsCatalog
 
   def scavenge(%Player{} = player) do
     raw = Enum.random(RawCatalog.items())
@@ -25,7 +26,8 @@ defmodule Shunt.Crafting do
     recipe = RecipeCatalog.fetch!(recipe_key)
 
     cond do
-      player.street_alchemy_tier < recipe.tier_required ->
+      SkillsCatalog.current_tier(player, SkillsCatalog.fetch!("street_alchemy")) <
+          recipe.tier_required ->
         {:error, :insufficient_tier}
 
       Enum.any?(recipe.inputs, fn {raw_key, qty} ->

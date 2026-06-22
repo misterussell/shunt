@@ -52,7 +52,9 @@ defmodule Shunt.CraftingTest do
 
       player =
         Players.create_player!()
-        |> Ecto.Changeset.change(street_alchemy_tier: 1, inventory: recipe.inputs)
+        |> Ecto.Changeset.change(
+          inventory: Map.put(recipe.inputs, "scrap_forged_soldering_iron", 1)
+        )
         |> Repo.update!()
 
       {:ok, updated} = Crafting.assemble(player, "patchwork_courier_drone")
@@ -73,11 +75,24 @@ defmodule Shunt.CraftingTest do
     test "returns :insufficient_materials when an input quantity is missing" do
       player =
         Players.create_player!()
-        |> Ecto.Changeset.change(street_alchemy_tier: 1)
+        |> Ecto.Changeset.change(inventory: %{"scrap_forged_soldering_iron" => 1})
         |> Repo.update!()
 
       assert Crafting.assemble(player, "patchwork_courier_drone") ==
                {:error, :insufficient_materials}
+    end
+
+    test "tier_required: 0 recipes need no tool or tier" do
+      recipe = RecipeCatalog.fetch!("scrap_forged_soldering_iron")
+
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(inventory: recipe.inputs)
+        |> Repo.update!()
+
+      {:ok, updated} = Crafting.assemble(player, "scrap_forged_soldering_iron")
+
+      assert updated.inventory["scrap_forged_soldering_iron"] == 1
     end
   end
 

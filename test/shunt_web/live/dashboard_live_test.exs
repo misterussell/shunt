@@ -127,4 +127,16 @@ defmodule ShuntWeb.DashboardLiveTest do
 
     assert has_element?(view, "#recipe-patchwork_courier_drone", "Locked")
   end
+
+  test "crafting the Scrap-Forged Soldering Iron unlocks street_alchemy tier 1", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    inputs = Shunt.Crafting.RecipeCatalog.fetch!("scrap_forged_soldering_iron").inputs
+    Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: inputs))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view |> element("#assemble-scrap_forged_soldering_iron-button") |> render_click()
+
+    assert has_element?(view, "#recipe-patchwork_courier_drone", "Unlocked")
+  end
 end
