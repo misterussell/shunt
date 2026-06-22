@@ -1,4 +1,5 @@
 defmodule Shunt.Fencing do
+  @moduledoc false
   alias Shunt.Repo
   alias Shunt.Players.Player
   alias Shunt.Fencing.Catalog

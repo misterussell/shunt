@@ -1,4 +1,5 @@
 defmodule Shunt.Players do
+  @moduledoc false
   alias Shunt.Repo
   alias Shunt.Players.Player
 

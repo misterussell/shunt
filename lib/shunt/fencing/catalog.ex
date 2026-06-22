@@ -1,4 +1,5 @@
 defmodule Shunt.Fencing.Catalog do
+  @moduledoc false
   @items [
     %{
       key: "scrap_dermal_plating",
