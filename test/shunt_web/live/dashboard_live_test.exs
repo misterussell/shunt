@@ -38,4 +38,25 @@ defmodule ShuntWeb.DashboardLiveTest do
     assert has_element?(view, "#current-offer")
     refute has_element?(view, "#find-lead-button")
   end
+
+  test "taking an offer deducts scrip and shows the held item", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    view |> element("#find-lead-button") |> render_click()
+    view |> element("#take-offer-button") |> render_click()
+
+    assert has_element?(view, "#held-item")
+    refute has_element?(view, "#current-offer")
+  end
+
+  test "passing an offer returns to idle", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    view |> element("#find-lead-button") |> render_click()
+    view |> element("#pass-offer-button") |> render_click()
+
+    assert has_element?(view, "#find-lead-button")
+    refute has_element?(view, "#current-offer")
+  end
 end

@@ -23,6 +23,18 @@ defmodule ShuntWeb.DashboardLive do
     end
   end
 
+  def handle_event("take_offer", _params, socket) do
+    case Fencing.take_offer(socket.assigns.player) do
+      {:ok, player} -> {:noreply, assign_player(socket, player)}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("pass_offer", _params, socket) do
+    {:ok, player} = Fencing.pass_offer(socket.assigns.player)
+    {:noreply, assign_player(socket, player)}
+  end
+
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
@@ -61,6 +73,23 @@ defmodule ShuntWeb.DashboardLive do
                 </span>
                 <p>{@offer.offer_text}</p>
                 <p>Buy: {@offer.buy_cost} Scrip</p>
+                <div class="flex gap-4">
+                  <button
+                    id="take-offer-button"
+                    phx-click="take_offer"
+                    class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={@player.scrip < @offer.buy_cost}
+                  >
+                    Take It
+                  </button>
+                  <button
+                    id="pass-offer-button"
+                    phx-click="pass_offer"
+                    class="px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-700"
+                  >
+                    Pass
+                  </button>
+                </div>
               </div>
             <% true -> %>
               <div id="held-item" class="space-y-2">
