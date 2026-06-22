@@ -35,39 +35,56 @@ defmodule Shunt.Crafting.RecipeCatalog do
       heat_cost: 9,
       craft_text: "The servo's pump action drives the coils into a rough injector cycle.",
       sell_text: "A back-alley medic takes it without asking who it was built for."
+    },
+    %{
+      key: "jury_rigged_terminal",
+      name: "Jury-Rigged Terminal",
+      tier_required: 0,
+      inputs: %{"cracked_datachip" => 1, "salvaged_fiber_spool" => 1},
+      sell_value: 45,
+      cred_gain: 1,
+      heat_cost: 5,
+      craft_text:
+        "The datachip's firmware boots just long enough to pair with a spliced fiber uplink.",
+      sell_text: "A Midgrid pawnshop pays for anything that still boots."
+    },
+    %{
+      key: "patchwork_scalpel",
+      name: "Patchwork Scalpel",
+      tier_required: 0,
+      inputs: %{"sterile_suture_kit" => 1, "subdermal_wiring_bundle" => 1},
+      sell_value: 45,
+      cred_gain: 1,
+      heat_cost: 5,
+      craft_text:
+        "Suture-kit steel, honed to an edge, wired to a subdermal grip that hums faintly.",
+      sell_text: "Even unlicensed, a working scalpel finds a buyer fast."
+    },
+    %{
+      key: "burner_ledger",
+      name: "Burner Ledger",
+      tier_required: 0,
+      inputs: %{"burner_sim_stack" => 1, "forged_credential_stub" => 1},
+      sell_value: 40,
+      cred_gain: 1,
+      heat_cost: 5,
+      craft_text:
+        "A burner SIM paired to a half-forged credential — enough to open a ledger no one can trace.",
+      sell_text: "Burner hardware moves fast and cheap in the Underbelly."
+    },
+    %{
+      key: "scrap_forged_soldering_iron",
+      name: "Scrap-Forged Soldering Iron",
+      tier_required: 0,
+      inputs: %{"flux_paste_tin" => 1, "scrap_heating_coil" => 1},
+      sell_value: 40,
+      cred_gain: 1,
+      heat_cost: 5,
+      craft_text: "Flux paste smeared over a scavenged heating coil, and the tip glows cherry-red.",
+      sell_text: "A pawnbroker tests the tip against a thumbnail before naming a price."
     }
   ]
 
-  # TODO: append these 4 new recipes to @recipes above, tier_required: 0 (no skill
-  # prerequisite — these are the "starter tools" that gate Shunt.Skills.Catalog tier 1, see
-  # the TODO in lib/shunt/skills/catalog.ex). They use the new thematic raws staged in
-  # lib/shunt/crafting/raw_catalog.ex. Each is sellable like any other assembled good via
-  # Crafting.sell_assembled/2 — that's intentional, it's how a player could accidentally
-  # sell off their own tool and lose the skill tier it grants.
-  #
-  #   %{key: "jury_rigged_terminal", name: "Jury-Rigged Terminal", tier_required: 0,
-  #     inputs: %{"cracked_datachip" => 1, "salvaged_fiber_spool" => 1}, sell_value: 45,
-  #     cred_gain: 1, heat_cost: 5,
-  #     craft_text: "The datachip's firmware boots just long enough to pair with a spliced fiber uplink.",
-  #     sell_text: "A Midgrid pawnshop pays for anything that still boots."}
-  #
-  #   %{key: "patchwork_scalpel", name: "Patchwork Scalpel", tier_required: 0,
-  #     inputs: %{"sterile_suture_kit" => 1, "subdermal_wiring_bundle" => 1}, sell_value: 45,
-  #     cred_gain: 1, heat_cost: 5,
-  #     craft_text: "Suture-kit steel, honed to an edge, wired to a subdermal grip that hums faintly.",
-  #     sell_text: "Even unlicensed, a working scalpel finds a buyer fast."}
-  #
-  #   %{key: "burner_ledger", name: "Burner Ledger", tier_required: 0,
-  #     inputs: %{"burner_sim_stack" => 1, "forged_credential_stub" => 1}, sell_value: 40,
-  #     cred_gain: 1, heat_cost: 5,
-  #     craft_text: "A burner SIM paired to a half-forged credential — enough to open a ledger no one can trace.",
-  #     sell_text: "Burner hardware moves fast and cheap in the Underbelly."}
-  #
-  #   %{key: "scrap_forged_soldering_iron", name: "Scrap-Forged Soldering Iron", tier_required: 0,
-  #     inputs: %{"flux_paste_tin" => 1, "scrap_heating_coil" => 1}, sell_value: 40,
-  #     cred_gain: 1, heat_cost: 5,
-  #     craft_text: "Flux paste smeared over a scavenged heating coil, and the tip glows cherry-red.",
-  #     sell_text: "A pawnbroker tests the tip against a thumbnail before naming a price."}
   def recipes, do: @recipes
 
   def fetch!(key) do
