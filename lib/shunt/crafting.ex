@@ -5,6 +5,7 @@ defmodule Shunt.Crafting do
   alias Shunt.Crafting.RawCatalog
   alias Shunt.Crafting.RecipeCatalog
   alias Shunt.Repo
+  # TODO: add `alias Shunt.Skills.Catalog, as: SkillsCatalog` for the assemble/2 fix below.
 
   def scavenge(%Player{} = player) do
     raw = Enum.random(RawCatalog.items())
@@ -24,6 +25,12 @@ defmodule Shunt.Crafting do
   def assemble(%Player{} = player, recipe_key) do
     recipe = RecipeCatalog.fetch!(recipe_key)
 
+    # TODO: replace `player.street_alchemy_tier < recipe.tier_required` below with
+    # `SkillsCatalog.current_tier(player, SkillsCatalog.fetch!("street_alchemy")) < recipe.tier_required`.
+    # Nothing has ever written to player.street_alchemy_tier (see the TODO in
+    # lib/shunt/skills/catalog.ex) — without this fix, the 3 existing tier_required: 1
+    # recipes stay permanently unreachable even after a player builds the Scrap-Forged
+    # Soldering Iron.
     cond do
       player.street_alchemy_tier < recipe.tier_required ->
         {:error, :insufficient_tier}

@@ -1,6 +1,10 @@
 defmodule Shunt.Skills.Catalog do
   @moduledoc false
 
+  # TODO: add `tool_key: "jury_rigged_terminal"` to the ghostwork tree map below,
+  # `tool_key: "patchwork_scalpel"` to chrome_meat, `tool_key: "burner_ledger"` to web, and
+  # `tool_key: "scrap_forged_soldering_iron"` to street_alchemy. Each references the matching
+  # recipe key staged in lib/shunt/crafting/recipe_catalog.ex.
   @trees [
     %{
       key: "ghostwork",
@@ -58,5 +62,20 @@ defmodule Shunt.Skills.Catalog do
 
   def trees, do: @trees
 
+  # TODO: add `def fetch!(key), do: Enum.find(@trees, &(&1.key == key)) || raise "unknown
+  # skill tree key: #{inspect(key)}"`, mirroring the RawCatalog/RecipeCatalog convention.
+  # Callers like Shunt.Crafting.assemble/2 need this to look up a tree by its string key
+  # without iterating @trees themselves.
+
+  # TODO: rewrite current_tier/2 to be gated on holding the tree's starter tool instead of
+  # reading tree.tier_field off the player:
+  #   def current_tier(player, tree) do
+  #     if Map.get(player.inventory, tree.tool_key, 0) > 0, do: 1, else: 0
+  #   end
+  # Tier is intentionally capped at 0/1 for now — tiers 2-5's advancement mechanic (cost
+  # curve, rare components, NPC relationships per the GDD) is undesigned until a future
+  # sprint item, and the existing tier_field columns on Player are unused by this function
+  # from this point on. Add a one-line comment above the new body noting the cap, since
+  # "why does this never return above 1" isn't obvious from the code alone.
   def current_tier(player, tree), do: Map.fetch!(player, tree.tier_field)
 end
