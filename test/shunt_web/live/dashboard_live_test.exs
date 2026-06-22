@@ -59,4 +59,23 @@ defmodule ShuntWeb.DashboardLiveTest do
     assert has_element?(view, "#find-lead-button")
     refute has_element?(view, "#current-offer")
   end
+
+  test "find a lead, take it, and sell it updates resources and returns to idle", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view |> element("#find-lead-button") |> render_click()
+    view |> element("#take-offer-button") |> render_click()
+    view |> element("#sell-item-button") |> render_click()
+
+    assert has_element?(view, "#find-lead-button")
+    refute has_element?(view, "#held-item")
+
+    player = Shunt.Players.get_player!()
+    assert player.scrip > 0
+    assert player.cred > 0
+    assert player.heat > 0
+  end
 end

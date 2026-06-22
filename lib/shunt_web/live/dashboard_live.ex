@@ -35,6 +35,11 @@ defmodule ShuntWeb.DashboardLive do
     {:noreply, assign_player(socket, player)}
   end
 
+  def handle_event("sell_item", _params, socket) do
+    {:ok, player} = Fencing.sell_held_item(socket.assigns.player)
+    {:noreply, assign_player(socket, player)}
+  end
+
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
@@ -96,6 +101,13 @@ defmodule ShuntWeb.DashboardLive do
                 <p class="font-semibold">{@held.name}</p>
                 <p>{@held.sell_text}</p>
                 <p>Sell: {@held.sell_value} Scrip · +{@held.heat_cost} Heat</p>
+                <button
+                  id="sell-item-button"
+                  phx-click="sell_item"
+                  class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Move It
+                </button>
               </div>
           <% end %>
         </div>
