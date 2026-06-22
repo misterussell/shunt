@@ -1,36 +1,62 @@
 defmodule Shunt.Skills.Catalog do
   @moduledoc false
 
-  # TODO: define @trees, a list of 4 maps, one per skill tree, each shaped as:
-  #   %{
-  #     key: "ghostwork",
-  #     name: "Ghostwork",
-  #     description: "Interfacing with the Latticework — skimming feeds to cracking military ICE.",
-  #     tier_field: :ghostwork_tier,
-  #     tiers: [
-  #       %{tier: 1, name: "Feed Skimmer"},
-  #       %{tier: 2, name: "Backdoor Runner"},
-  #       %{tier: 3, name: "ICE Cracker"},
-  #       %{tier: 4, name: "Ghost in the Wire"},
-  #       %{tier: 5, name: "Latticework Phantom"}
-  #     ]
-  #   }
-  # The other 3 trees, same shape:
-  #   chrome_meat / "Chrome & Meat" / :chrome_meat_tier /
-  #     "Sourcing, installing, and trading illegal augmentations." / tiers:
-  #     1 "Back-Alley Tinkerer", 2 "Subdermal Installer", 3 "Augment Smuggler",
-  #     4 "Graftsman's Equal", 5 "Flesh Made Machine"
-  #   web / "The Web" / :web_tier /
-  #     "Reading people, building leverage, calling in favors." / tiers:
-  #     1 "Ear to the Ground", 2 "Favor Broker", 3 "Leverage Player",
-  #     4 "Faction Whisperer", 5 "Web's Center"
-  #   street_alchemy / "Street Alchemy" / :street_alchemy_tier /
-  #     "Breaking down scavenged tech and rebuilding it into something valuable." / tiers:
-  #     1 "Scrap Picker", 2 "Bench Tinkerer", 3 "Salvage Artisan",
-  #     4 "Patchworker's Peer", 5 "Old-World Machinist"
+  @trees [
+    %{
+      key: "ghostwork",
+      name: "Ghostwork",
+      description: "Interfacing with the Latticework — skimming feeds to cracking military ICE.",
+      tier_field: :ghostwork_tier,
+      tiers: [
+        %{tier: 1, name: "Feed Skimmer"},
+        %{tier: 2, name: "Backdoor Runner"},
+        %{tier: 3, name: "ICE Cracker"},
+        %{tier: 4, name: "Ghost in the Wire"},
+        %{tier: 5, name: "Latticework Phantom"}
+      ]
+    },
+    %{
+      key: "chrome_meat",
+      name: "Chrome & Meat",
+      description: "Sourcing, installing, and trading illegal augmentations.",
+      tier_field: :chrome_meat_tier,
+      tiers: [
+        %{tier: 1, name: "Back-Alley Tinkerer"},
+        %{tier: 2, name: "Subdermal Installer"},
+        %{tier: 3, name: "Augment Smuggler"},
+        %{tier: 4, name: "Graftsman's Equal"},
+        %{tier: 5, name: "Flesh Made Machine"}
+      ]
+    },
+    %{
+      key: "web",
+      name: "The Web",
+      description: "Reading people, building leverage, calling in favors.",
+      tier_field: :web_tier,
+      tiers: [
+        %{tier: 1, name: "Ear to the Ground"},
+        %{tier: 2, name: "Favor Broker"},
+        %{tier: 3, name: "Leverage Player"},
+        %{tier: 4, name: "Faction Whisperer"},
+        %{tier: 5, name: "Web's Center"}
+      ]
+    },
+    %{
+      key: "street_alchemy",
+      name: "Street Alchemy",
+      description: "Breaking down scavenged tech and rebuilding it into something valuable.",
+      tier_field: :street_alchemy_tier,
+      tiers: [
+        %{tier: 1, name: "Scrap Picker"},
+        %{tier: 2, name: "Bench Tinkerer"},
+        %{tier: 3, name: "Salvage Artisan"},
+        %{tier: 4, name: "Patchworker's Peer"},
+        %{tier: 5, name: "Old-World Machinist"}
+      ]
+    }
+  ]
 
-  # TODO: def trees, do: @trees
+  def trees, do: @trees
 
-  # TODO: def current_tier(player, tree), do: Map.fetch!(player, tree.tier_field)
-  # (player is a %Shunt.Players.Player{}, tree is one of the maps from trees/0)
+  def current_tier(player, tree), do: Map.fetch!(player, tree.tier_field)
 end

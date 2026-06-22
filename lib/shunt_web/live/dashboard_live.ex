@@ -4,8 +4,7 @@ defmodule ShuntWeb.DashboardLive do
   alias Shunt.Fencing
   alias Shunt.Fencing.Catalog
   alias Shunt.Players
-
-  # TODO: alias Shunt.Skills.Catalog, as: SkillsCatalog
+  alias Shunt.Skills.Catalog, as: SkillsCatalog
 
   def mount(_params, _session, socket) do
     {:ok, assign_player(socket, Players.get_player!())}
@@ -114,12 +113,25 @@ defmodule ShuntWeb.DashboardLive do
           <% end %>
         </div>
 
-        <%!-- TODO: render a skill tree section here, before the Lay Low button:
-          for each tree in @skill_trees, render a container with
-          id={"skill-tree-#{tree.key}"} showing tree.name, tree.description, a
-          5-segment tier indicator (filled for segments <= SkillsCatalog.current_tier(@player, tree),
-          grayed otherwise), and a status line: "Locked" when current tier is 0,
-          otherwise the matching tier's name from tree.tiers --%>
+        <div class="border border-gray-300 rounded-lg p-4 space-y-4">
+          <div :for={tree <- @skill_trees} id={"skill-tree-#{tree.key}"} class="space-y-1">
+            <p class="font-semibold">{tree.name}</p>
+            <p class="text-sm text-gray-500">{tree.description}</p>
+            <div class="flex gap-1">
+              <div
+                :for={tier <- tree.tiers}
+                class={[
+                  "w-6 h-2 rounded",
+                  if(tier.tier <= SkillsCatalog.current_tier(@player, tree),
+                    do: "bg-blue-600",
+                    else: "bg-gray-200"
+                  )
+                ]}
+              />
+            </div>
+            <p class="text-sm">{skill_tree_status(@player, tree)}</p>
+          </div>
+        </div>
 
         <div class="flex gap-4">
           <button
@@ -141,9 +153,16 @@ defmodule ShuntWeb.DashboardLive do
     |> assign(:player, player)
     |> assign(:offer, catalog_item(player.current_offer_key))
     |> assign(:held, catalog_item(player.held_item_key))
-    # TODO: |> assign(:skill_trees, SkillsCatalog.trees())
+    |> assign(:skill_trees, SkillsCatalog.trees())
   end
 
   defp catalog_item(nil), do: nil
   defp catalog_item(key), do: Catalog.fetch!(key)
+
+  defp skill_tree_status(player, tree) do
+    case SkillsCatalog.current_tier(player, tree) do
+      0 -> "Locked"
+      tier -> Enum.find(tree.tiers, &(&1.tier == tier)).name
+    end
+  end
 end

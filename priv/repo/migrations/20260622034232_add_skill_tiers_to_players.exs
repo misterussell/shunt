@@ -2,8 +2,11 @@ defmodule Shunt.Repo.Migrations.AddSkillTiersToPlayers do
   use Ecto.Migration
 
   def change do
-    # TODO: add :ghostwork_tier, :chrome_meat_tier, :web_tier, :street_alchemy_tier as
-    # non-null :integer columns on :players, default: 0 (mirrors :cred/:scrip/:heat
-    # pattern from 20260621211053_create_players.exs)
+    alter table(:players) do
+      add :ghostwork_tier, :integer, null: false, default: 0
+      add :chrome_meat_tier, :integer, null: false, default: 0
+      add :web_tier, :integer, null: false, default: 0
+      add :street_alchemy_tier, :integer, null: false, default: 0
+    end
   end
 end

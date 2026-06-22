@@ -8,9 +8,10 @@ defmodule Shunt.Players.Player do
     field :current_offer_key, :string
     field :held_item_key, :string
 
-    # TODO: add :ghostwork_tier, :chrome_meat_tier, :web_tier, :street_alchemy_tier
-    # fields, :integer, default: 0 — matches the columns added in
-    # 20260622034232_add_skill_tiers_to_players.exs
+    field :ghostwork_tier, :integer, default: 0
+    field :chrome_meat_tier, :integer, default: 0
+    field :web_tier, :integer, default: 0
+    field :street_alchemy_tier, :integer, default: 0
 
     timestamps()
   end

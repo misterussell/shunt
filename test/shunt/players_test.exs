@@ -18,6 +18,15 @@ defmodule Shunt.PlayersTest do
       assert player.current_offer_key == nil
       assert player.held_item_key == nil
     end
+
+    test "creates a player with all skill trees locked at tier 0" do
+      player = Players.create_player!()
+
+      assert player.ghostwork_tier == 0
+      assert player.chrome_meat_tier == 0
+      assert player.web_tier == 0
+      assert player.street_alchemy_tier == 0
+    end
   end
 
   describe "get_player!/0" do
