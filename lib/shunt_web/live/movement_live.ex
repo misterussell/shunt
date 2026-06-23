@@ -39,10 +39,10 @@ defmodule ShuntWeb.MovementLive do
     <Layouts.app flash={@flash} player={@player} active={:map} status={@status}>
       <Chrome.section_header>MAP</Chrome.section_header>
       <Chrome.panel id="current-location">
-        <p>{@location.name}</p>
-        <p>{@location.description}</p>
+        <p class="location-name">{@location.name}</p>
+        <p class="location-description">{@location.description}</p>
       </Chrome.panel>
-      <ul>
+      <ul class="exit-list">
         <li :for={exit <- @exits}>
           <Chrome.btn
             id={"move-to-#{exit.to}"}
