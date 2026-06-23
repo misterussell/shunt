@@ -41,6 +41,8 @@ defmodule Shunt.Players do
     end
   end
 
+  def can_lay_low?(%Player{cred: cred}), do: cred >= @lay_low_cred_cost
+
   def lay_low(%Player{cred: cred}) when cred < @lay_low_cred_cost do
     {:error, :insufficient_cred}
   end

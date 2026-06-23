@@ -18,12 +18,16 @@ defmodule Shunt.Npcs do
     Content.fetch!(:npcs, key)
   end
 
+  def can_flesh_tithe?(%Player{} = player) do
+    Map.get(player.inventory, @flesh_tithe_input_raw_key, 0) >= 1
+  end
+
   def flesh_tithe(%Player{} = player) do
     cond do
       not Loyalty.roll_reliable?(player, @flesh_tithe_npc_key) ->
         {:error, :npc_unreliable}
 
-      Map.get(player.inventory, @flesh_tithe_input_raw_key, 0) < 1 ->
+      not can_flesh_tithe?(player) ->
         {:error, :insufficient_materials}
 
       true ->
@@ -40,9 +44,12 @@ defmodule Shunt.Npcs do
     end
   end
 
-  def move_goods(%Player{held_item_key: nil}), do: {:error, :no_held_item}
-
   @move_goods_npc_key "rook"
+
+  def can_move_goods?(%Player{held_item_key: nil}), do: false
+  def can_move_goods?(%Player{}), do: true
+
+  def move_goods(%Player{held_item_key: nil}), do: {:error, :no_held_item}
 
   def move_goods(%Player{held_item_key: key} = player) do
     if Loyalty.roll_reliable?(player, @move_goods_npc_key) do
@@ -66,12 +73,19 @@ defmodule Shunt.Npcs do
   @look_the_other_way_heat_reduction 15
   @look_the_other_way_npc_key "nine_iron"
 
+  defp look_the_other_way_cost(player) do
+    ceil(
+      @look_the_other_way_cost_scrip *
+        Loyalty.cost_multiplier(player, @look_the_other_way_npc_key)
+    )
+  end
+
+  def can_look_the_other_way?(%Player{} = player) do
+    player.scrip >= look_the_other_way_cost(player)
+  end
+
   def look_the_other_way(%Player{} = player) do
-    cost =
-      ceil(
-        @look_the_other_way_cost_scrip *
-          Loyalty.cost_multiplier(player, @look_the_other_way_npc_key)
-      )
+    cost = look_the_other_way_cost(player)
 
     cond do
       player.scrip < cost ->
@@ -94,8 +108,14 @@ defmodule Shunt.Npcs do
   @data_drop_gain_cred 1
   @data_drop_npc_key "splice"
 
+  defp data_drop_cost(player) do
+    ceil(@data_drop_cost_scrip * Loyalty.cost_multiplier(player, @data_drop_npc_key))
+  end
+
+  def can_data_drop?(%Player{} = player), do: player.scrip >= data_drop_cost(player)
+
   def data_drop(%Player{} = player) do
-    cost = ceil(@data_drop_cost_scrip * Loyalty.cost_multiplier(player, @data_drop_npc_key))
+    cost = data_drop_cost(player)
     gain = floor(@data_drop_gain_cred * Loyalty.price_multiplier(player, @data_drop_npc_key))
 
     cond do
@@ -114,11 +134,14 @@ defmodule Shunt.Npcs do
   @settle_the_books_gain_scrip 10
   @settle_the_books_npc_key "tally"
 
+  defp settle_the_books_cost(player) do
+    ceil(@settle_the_books_cost_cred * Loyalty.cost_multiplier(player, @settle_the_books_npc_key))
+  end
+
+  def can_settle_the_books?(%Player{} = player), do: player.cred >= settle_the_books_cost(player)
+
   def settle_the_books(%Player{} = player) do
-    cost =
-      ceil(
-        @settle_the_books_cost_cred * Loyalty.cost_multiplier(player, @settle_the_books_npc_key)
-      )
+    cost = settle_the_books_cost(player)
 
     gain =
       floor(
