@@ -253,7 +253,7 @@ defmodule ShuntWeb.HubLive do
             </div>
           <% end %>
 
-          <p>Lay Low — 10 Cred, -20 Heat</p>
+          <p class="held-flavor">Lay Low — 10 Cred, -20 Heat</p>
           <Chrome.btn
             id="lay-low-button"
             variant={if(Players.can_lay_low?(@player), do: :ghost, else: :dead)}
