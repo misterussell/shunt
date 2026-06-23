@@ -33,15 +33,11 @@ defmodule ShuntWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
-  # player/active default to nil so ShuntWeb.DashboardLive (pending deletion once HubLive and
-  # SkillsLive fully replace it — see that module's own deletion TODO) can keep calling
-  # <Layouts.app flash={@flash}> without colliding with Chrome.wallet_hud's
-  # #resource-cred/#resource-scrip/#resource-heat ids, which it already renders itself.
-  attr :player, :map, default: nil, doc: "for the WalletHud (Cred/Scrip/Heat)"
+  attr :player, :map, required: true, doc: "for the WalletHud (Cred/Scrip/Heat)"
 
   attr :active, :atom,
-    default: nil,
-    values: [nil, :hub, :ghostwork, :chrome_meat, :web, :street_alchemy],
+    required: true,
+    values: [:hub, :ghostwork, :chrome_meat, :web, :street_alchemy],
     doc: "which nav tab to highlight"
 
   # TODO: restyle the plain .footer-ticker div below into the brief's §4 footer ticker (fixed
@@ -63,7 +59,7 @@ defmodule ShuntWeb.Layouts do
     ~H"""
     <header class="main-bar">
       <span class="wordmark">SHUNT</span>
-      <Chrome.wallet_hud :if={@player} player={@player} />
+      <Chrome.wallet_hud player={@player} />
       <nav class="nav-tabs">
         <.link navigate={~p"/"} class={["tab", @active == :hub && "tab--active"]}>HUB</.link>
         <.link

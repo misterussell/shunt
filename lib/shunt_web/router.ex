@@ -17,16 +17,11 @@ defmodule ShuntWeb.Router do
   scope "/", ShuntWeb do
     pipe_through :browser
 
+    live "/", HubLive
     live "/skills/ghostwork", SkillsLive, :ghostwork
     live "/skills/chrome-meat", SkillsLive, :chrome_meat
     live "/skills/the-web", SkillsLive, :web
     live "/skills/street-alchemy", SkillsLive, :street_alchemy
-
-    # TODO: repoint "/" at HubLive (live "/", HubLive) and delete this line plus the
-    # now-unused DashboardLive module + its test (see hub_live.ex's own deletion note on
-    # dashboard_live.ex) — deferred until last since HubLive and DashboardLive can't both
-    # answer "/" at once.
-    live "/", DashboardLive
   end
 
   # Other scopes may use custom stacks.

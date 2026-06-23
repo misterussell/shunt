@@ -8,11 +8,8 @@ defmodule ShuntWeb.HubLiveTest do
     :ok
   end
 
-  # HubLive isn't routed yet (router.ex still points "/" at DashboardLive — see that file's
-  # TODO), so these tests mount it directly via live_isolated/3 instead of live(conn, ~p"/").
-
   test "renders initial resource values", %{conn: conn} do
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(view, "#resource-cred", "CRED 0")
     assert has_element?(view, "#resource-scrip", "SCRIP 0")
@@ -23,7 +20,7 @@ defmodule ShuntWeb.HubLiveTest do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, cred: 30, heat: 40))
 
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
 
     view |> element("#lay-low-button") |> render_click()
 
@@ -33,7 +30,7 @@ defmodule ShuntWeb.HubLiveTest do
   end
 
   test "clicking Find a Lead reveals an offer", %{conn: conn} do
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
 
     refute has_element?(view, "#current-offer")
 
@@ -47,7 +44,7 @@ defmodule ShuntWeb.HubLiveTest do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100))
 
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
     view |> element("#find-lead-button") |> render_click()
     view |> element("#take-offer-button") |> render_click()
 
@@ -56,7 +53,7 @@ defmodule ShuntWeb.HubLiveTest do
   end
 
   test "passing an offer returns to idle", %{conn: conn} do
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
     view |> element("#find-lead-button") |> render_click()
     view |> element("#pass-offer-button") |> render_click()
 
@@ -65,7 +62,7 @@ defmodule ShuntWeb.HubLiveTest do
   end
 
   test "passing an offer when there is no pending offer doesn't crash the view", %{conn: conn} do
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
     refute has_element?(view, "#current-offer")
 
     render_click(view, "pass_offer")
@@ -77,7 +74,7 @@ defmodule ShuntWeb.HubLiveTest do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100))
 
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
 
     view |> element("#find-lead-button") |> render_click()
     view |> element("#take-offer-button") |> render_click()
@@ -93,7 +90,7 @@ defmodule ShuntWeb.HubLiveTest do
   end
 
   test "renders the NPC roster", %{conn: conn} do
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(view, "#npc-rook", "Rook")
     assert has_element?(view, "#npc-rook", "MOVE GOODS")
@@ -103,7 +100,7 @@ defmodule ShuntWeb.HubLiveTest do
   test "loyalty bar reflects Player.npc_loyalty, not a static NPC value", %{conn: conn} do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, npc_loyalty: %{"mother_graft" => 80}))
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
     assert has_element?(view, "#npc-mother_graft", "Loyalty: 80/100")
   end
 
@@ -114,7 +111,7 @@ defmodule ShuntWeb.HubLiveTest do
       Ecto.Changeset.change(player, inventory: %{"cracked_bone_plate" => 1}, scrip: 0)
     )
 
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
 
     view |> element("#trade-flesh-tithe-button") |> render_click()
 
@@ -127,7 +124,7 @@ defmodule ShuntWeb.HubLiveTest do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.key, scrip: 0))
 
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
 
     view |> element("#trade-move-goods-button") |> render_click()
 
@@ -139,7 +136,7 @@ defmodule ShuntWeb.HubLiveTest do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 20, heat: 20))
 
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
 
     view |> element("#trade-look-the-other-way-button") |> render_click()
 
@@ -151,7 +148,7 @@ defmodule ShuntWeb.HubLiveTest do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 20, cred: 0))
 
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
 
     view |> element("#trade-data-drop-button") |> render_click()
 
@@ -163,7 +160,7 @@ defmodule ShuntWeb.HubLiveTest do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, cred: 1, scrip: 0))
 
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
 
     view |> element("#trade-settle-the-books-button") |> render_click()
 
@@ -174,7 +171,7 @@ defmodule ShuntWeb.HubLiveTest do
   test "meeting an NPC for the first time flashes a met message", %{conn: conn} do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: %{"cracked_bone_plate" => 1}))
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
     view |> element("#trade-flesh-tithe-button") |> render_click()
     # render(view) again to let the LiveView's own self-broadcast (sent via Phoenix.PubSub
     # in the same handle_event) land and get processed by handle_info before asserting:
@@ -191,7 +188,7 @@ defmodule ShuntWeb.HubLiveTest do
       )
     )
 
-    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    {:ok, view, _html} = live(conn, ~p"/")
     view |> element("#trade-flesh-tithe-button") |> render_click()
     assert render(view) =~ "trust you"
   end
