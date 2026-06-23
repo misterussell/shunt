@@ -9,7 +9,5 @@ defmodule Shunt.World do
 
   def connected?(from, to), do: to in Enum.map(exits(from), & &1.to)
 
-  # TODO: add `all_locations/0` returning `Content.all(:locations)` (mirrors get_location/1's
-  # Content.fetch!/2 call). Needed by ShuntWeb.Components.MapGraph to render every location on
-  # the map, not just the current one's exits.
+  def all_locations, do: Content.all(:locations)
 end

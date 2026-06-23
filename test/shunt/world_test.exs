@@ -31,11 +31,16 @@ defmodule Shunt.WorldTest do
     end
   end
 
-  # TODO: add `describe "all_locations/0"` with two tests: (1) returns all 7 seeded locations
-  # — assert `length(World.all_locations()) == 7` and that
-  # `Enum.map(World.all_locations(), & &1.key)` includes "shunt9_bazaar"; (2) every returned
-  # location has its `graph_position` set to a `{x, y}` tuple — assert
-  # `Enum.all?(World.all_locations(), &match?({_, _}, &1.graph_position))`.
+  describe "all_locations/0" do
+    test "returns all 7 seeded locations" do
+      assert length(World.all_locations()) == 7
+      assert "shunt9_bazaar" in Enum.map(World.all_locations(), & &1.key)
+    end
+
+    test "every returned location has a graph_position tuple" do
+      assert Enum.all?(World.all_locations(), &match?({_, _}, &1.graph_position))
+    end
+  end
 
   describe "connected?/2" do
     test "returns true for a real exit pair" do
