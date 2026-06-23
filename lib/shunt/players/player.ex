@@ -16,12 +16,8 @@ defmodule Shunt.Players.Player do
     field :inventory, :map, default: %{}
     field :npc_loyalty, :map, default: %{}
 
-    # TODO: add `field :location_id, :string, default: "shunt9_player_squat"` and
-    # `field :discovered_locations, {:array, :string}, default: []`. Needs a new
-    # migration (mix ecto.gen.migration add_location_to_players) following the
-    # precedent of add_npc_loyalty_to_players.exs, adding both columns with the
-    # same defaults and `null: false`, so existing rows backfill to the starting
-    # location.
+    field :location_id, :string, default: "shunt9_player_squat"
+    field :discovered_locations, {:array, :string}, default: []
 
     timestamps()
   end
