@@ -1,3 +1,12 @@
+# TODO: add a `stub:` key to each tree map below — the dormant-page flavor line shown on
+# SkillsLive for trees with no gameplay wired up yet (brief §6 page map / §2 "stub pages
+# should look intentionally dormant"). Use these exact lines (lifted from the prototype,
+# which already nailed the tone):
+#   ghostwork:     stub: "No backdoor cracked yet."
+#   chrome_meat:   stub: "No table prepped. No hands steady enough yet."
+#   web:           stub: "No threads pulled. The Web is listening, not talking."
+#   street_alchemy: stub: nil — it's the one fully functional tree, SkillsLive renders its
+#     real crafting body instead of the dormant-stub panel, so it never needs this text.
 [
   %{
     key: "ghostwork",

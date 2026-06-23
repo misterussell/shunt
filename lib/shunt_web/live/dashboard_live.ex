@@ -1,3 +1,8 @@
+# TODO: delete this module once HubLive and SkillsLive (see lib/shunt_web/live/hub_live.ex,
+# lib/shunt_web/live/skills_live.ex) are fully implemented and passing, the router's "/" route
+# is repointed to HubLive (see router.ex TODO), and test/shunt_web/live/dashboard_live_test.exs
+# is deleted in the same commit. Every behavior here has a port destination staged in the new
+# modules — do not let any of it quietly disappear.
 defmodule ShuntWeb.DashboardLive do
   use ShuntWeb, :live_view
 

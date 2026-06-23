@@ -6,6 +6,18 @@
 @source "../js";
 @source "../../lib/shunt_web";
 
+/* TODO: self-host the three brief/prototype fonts in assets/fonts/ and declare them here
+   with @font-face — no external <link>/<script> is allowed per AGENTS.md. Source the
+   OFL-licensed .woff2 files for:
+     - Chakra Petch, weights 500/600/700 (display/UI labels: headers, nav, button labels)
+     - IBM Plex Mono, weights 400/500/600 (data/numeric readouts: Cred/Scrip/Heat, tier counts)
+     - Space Grotesk, weights 400/500/600 (body/flavor text: descriptions, offer text, NPC
+       dialogue — chosen over the brief's "Inter" to match what the prototype actually built)
+   Each @font-face needs font-family, font-weight, font-style: normal, font-display: swap,
+   and src: url("../fonts/<file>.woff2") format("woff2"). If outbound network access turns
+   out to be blocked when implementing this, stop and ask for the font files rather than
+   falling back to a CDN link. */
+
 /* A Tailwind plugin that makes "hero-#{ICON}" classes available.
    The heroicons installation itself is managed by your mix.exs */
 @plugin "../vendor/heroicons";
@@ -17,10 +29,26 @@
   themes: false;
 }
 
-/* daisyUI theme plugin. You can update this file by fetching the latest version with:
-  curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.js
-  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
-  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
+/* TODO: replace these two daisyUI theme blocks (currently "dark" and "light") with two new
+   ones named "street" (default: true) and "corp" (default: false) — matching the two
+   data-theme values the toggle now writes (see root.html.heex, layouts.ex theme_toggle/1).
+   We are NOT using daisyUI's component classes (btn/card/etc — forbidden by the brief for
+   this game-specific look) or its OKLch color machinery for our palette; per the agreed
+   design, lift the concrete hex values straight from the prototype's own runtime CSS
+   variables (Shunt.dc.html renderVals(), STREET/CORP consts) rather than the brief's single
+   palette table, since the two conflict and the prototype is what was actually built:
+     STREET: --bg:#06080A --panel(p1):#0C1217 --panel2(p2):#080C10 --border:#27312F
+       --text:#C7D4CE --muted:#5E6B66 --cyan:#3FE0C8 --amber:#D9913E --red:#FF4D5E
+       --sunk:#05090C --bar1:#0A0F14 --bar2:#070B0F --strip:#03060A --hi:rgba(255,255,255,0.03)
+     CORP:   --bg:#0C1622 --panel(p1):#243A4D --panel2(p2):#1B2C3B --border:#496781
+       --text:#ECF5FC --muted:#94AABB --cyan:#63D9FF --amber:#F2B873 --red:#FF7186
+       --sunk:#0F1E2A --bar1:#2E4861 --bar2:#1C2E3E --strip:#15242F --hi:rgba(255,255,255,0.12)
+   Define these as plain CSS custom properties scoped to [data-theme="street"] and
+   [data-theme="corp"] (not daisyUI --color-* tokens), since all our components below
+   reference var(--bg)/var(--panel)/etc directly. Keep the @plugin daisyui-theme blocks only
+   if daisyUI's base reset is still needed elsewhere; otherwise this whole pair of blocks can
+   become two plain `[data-theme="street"] { ... }` / `[data-theme="corp"] { ... }` rule sets
+   instead of @plugin blocks. */
 @plugin "../vendor/daisyui-theme" {
   name: "dark";
   default: false;
@@ -103,3 +131,32 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+/* TODO: add the cyberpunk component classes used by lib/shunt_web/components/chrome.ex and
+   layouts.ex — no inline `style="..."` attributes anywhere in the HEEx templates; every
+   visual rule the prototype expressed as inline styles must become a class here instead.
+   Needed classes (names are suggestions, keep them consistent with chrome.ex):
+     .panel          — surface gradient (var(--p1) to var(--p2)), 1px var(--border), no
+                       radius, inset top highlight (var(--hi)); .panel--active adds the
+                       small L-bracket corner accents (HUD-reticle corners, ::before/::after)
+     .section-header — small-caps label + thin horizontal rule (the "// WALLET" style)
+     .btn-primary, .btn-ghost, .btn-dead — rectangular, uppercase tracked-out label, thin
+       border, fills with var(--cyan) on hover/active for primary; .btn-dead is desaturated
+       + a repeating 45deg hatch background instead of opacity-50, cursor: not-allowed
+     .ladder-track, .ladder-segment, .ladder-segment--current, .ladder-segment--reached,
+       .ladder-segment--unreached — the 5-segment horizontal track; unreached segments get
+       the diagonal hatch texture (not just dimmed)
+     .heat-bar, .heat-bar-fill — ramps color cyan/amber/red by fill %; .heat-bar--danger adds
+       the `heatpulse` animation once heat >= 75 (no animation below that threshold)
+     .wallet-chip — hairline-border, no-fill monospace chip for Cred/Scrip
+     .hatch — reusable diagonal-stripe background for locked/disabled/redacted states
+     .utility-strip, .footer-ticker — the sticky terminal-prompt strip and fixed footer line
+   Keyframes to add (copied 1:1 from the prototype's <style> block in Shunt.dc.html):
+     @keyframes heatpulse { 0%,100%{opacity:1} 50%{opacity:.55} }
+     @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+     @keyframes crtflicker { 0%,100%{opacity:.10} 8%{opacity:.16} 9%{opacity:.07} 40%{opacity:.12} 41%{opacity:.18} 70%{opacity:.09} }
+     @keyframes drift { from{background-position:0 0} to{background-position:0 -2400px} }
+     @keyframes recblink { 0%,60%{opacity:1} 61%,100%{opacity:.15} }
+   Apply var(--cyan)/var(--amber)/var(--red)/var(--text)/var(--muted)/var(--border) etc from
+   the per-theme custom properties staged above, not literal hex values, so switching
+   data-theme recolors everything. */

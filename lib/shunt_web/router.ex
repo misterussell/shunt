@@ -17,6 +17,15 @@ defmodule ShuntWeb.Router do
   scope "/", ShuntWeb do
     pipe_through :browser
 
+    # TODO: replace this single route with HubLive at "/" plus four explicit SkillsLive
+    # routes (one per skill tree, sharing live_action so SkillsLive can branch on it):
+    #   live "/", HubLive
+    #   live "/skills/ghostwork", SkillsLive, :ghostwork
+    #   live "/skills/chrome-meat", SkillsLive, :chrome_meat
+    #   live "/skills/the-web", SkillsLive, :web
+    #   live "/skills/street-alchemy", SkillsLive, :street_alchemy
+    # Delete this line and the now-unused DashboardLive module + its test once both new
+    # LiveViews are implemented and passing (see hub_live.ex, skills_live.ex).
     live "/", DashboardLive
   end
 

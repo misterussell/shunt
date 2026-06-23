@@ -1,3 +1,6 @@
+# TODO: delete this file once every test here has a confirmed port in
+# test/shunt_web/live/hub_live_test.exs and test/shunt_web/live/skills_live_test.exs and those
+# suites pass (see lib/shunt_web/live/dashboard_live.ex's matching deletion TODO).
 defmodule ShuntWeb.DashboardLiveTest do
   use ShuntWeb.ConnCase
 
