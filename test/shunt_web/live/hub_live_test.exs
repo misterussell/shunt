@@ -321,6 +321,36 @@ defmodule ShuntWeb.HubLiveTest do
     assert has_element?(view, "#npc-mother_graft", "80/100 · SOLID")
   end
 
+  test "a hostile-band (<=24) NPC shows BURNED and the red accent/fill classes", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, npc_loyalty: %{"mother_graft" => 24}))
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#npc-mother_graft .npc-trust-row", "24/100 · BURNED")
+    assert has_element?(view, "#npc-mother_graft .npc-accent-bar--red")
+    assert has_element?(view, "#npc-mother_graft .npc-trust-fill--red")
+  end
+
+  test "a favored-band (>=75) NPC shows SOLID and the cyan accent/fill classes", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, npc_loyalty: %{"mother_graft" => 75}))
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#npc-mother_graft .npc-trust-row", "75/100 · SOLID")
+    assert has_element?(view, "#npc-mother_graft .npc-accent-bar--cyan")
+    assert has_element?(view, "#npc-mother_graft .npc-trust-fill--cyan")
+  end
+
+  test "a mid-band (25..74) NPC shows WARY and the amber accent/fill classes", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, npc_loyalty: %{"mother_graft" => 25}))
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#npc-mother_graft .npc-trust-row", "25/100 · WARY")
+    assert has_element?(view, "#npc-mother_graft .npc-accent-bar--amber")
+    assert has_element?(view, "#npc-mother_graft .npc-trust-fill--amber")
+  end
+
   test "Flesh Tithe consumes a cracked_bone_plate and grants scrip", %{conn: conn} do
     player = Shunt.Players.get_player!()
 
