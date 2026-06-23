@@ -62,5 +62,21 @@ defmodule ShuntWeb.LayoutsTest do
       assert html =~ ~s(class="scanline-sweep")
       assert html =~ ~s(class="vignette")
     end
+
+    test "footer ticker renders a caret, the status, a blinking cursor, and the right-aligned system line" do
+      html = render_app(%{status: "FENCED: 3x SCRAP CHIP"})
+
+      assert html =~ ~s(class="footer-ticker-caret")
+      assert html =~ "FENCED: 3x SCRAP CHIP"
+      assert html =~ ~s(class="footer-ticker-cursor")
+      assert html =~ ~s(class="flex-1")
+      assert html =~ "SHUNT_9 · NIGHT_CYCLE · ALL SYSTEMS NOMINAL"
+    end
+
+    test "footer ticker status falls back to the default line when @status is nil" do
+      html = render_app(%{status: nil})
+
+      assert html =~ "SYSTEM ONLINE // DECK WARM"
+    end
   end
 end

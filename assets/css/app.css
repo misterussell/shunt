@@ -161,6 +161,10 @@
      .noise-overlay, .scanline, .scanline-sweep, .vignette — fixed full-viewport decorative
        layers (layouts.ex app/1), pointer-events: none. .scanline-sweep uses the `drift`
        keyframes below; .noise-overlay is the `crtflicker`-animated grain layer
+     .footer-ticker — fixed bottom:0, flex row, var(--strip) background, var(--border) top
+       hairline. .footer-ticker-caret is var(--cyan). .footer-ticker-cursor is a thin var(--cyan)
+       block using the `blink` keyframes below. .footer-ticker-sysid is var(--muted), small-caps
+       tracked-out
    Keyframes to add (copied 1:1 from the prototype's <style> block in Shunt.dc.html):
      @keyframes heatpulse { 0%,100%{opacity:1} 50%{opacity:.55} }
      @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }

@@ -96,11 +96,13 @@ defmodule ShuntWeb.Layouts do
 
     <.flash_group flash={@flash} />
 
-    <%!-- TODO: restyle this into the brief's footer ticker (fixed bottom:0): a cyan ">"
-    caret before @status, status text truncated with ellipsis, a blinking cursor span after
-    it, a flex-1 spacer, then "SHUNT_9 · NIGHT_CYCLE · ALL SYSTEMS NOMINAL" right-aligned
-    (static text — no live data source for the ticker segment yet). --%>
-    <div class="footer-ticker">{@status || "SYSTEM ONLINE // DECK WARM"}</div>
+    <div class="footer-ticker">
+      <span class="footer-ticker-caret">&gt;</span>
+      <span class="footer-ticker-status truncate">{@status || "SYSTEM ONLINE // DECK WARM"}</span>
+      <span class="footer-ticker-cursor"></span>
+      <div class="flex-1"></div>
+      <span class="footer-ticker-sysid">SHUNT_9 · NIGHT_CYCLE · ALL SYSTEMS NOMINAL</span>
+    </div>
     """
   end
 
