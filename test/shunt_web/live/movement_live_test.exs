@@ -55,6 +55,21 @@ defmodule ShuntWeb.MovementLiveTest do
     assert has_element?(view, "#narrative-entries", second_entry)
   end
 
+  # TODO: replace this test (the #exit-badge-* ids it asserts on go away once the exit-list
+  # <ul> in MovementLive is replaced by MapGraph.map_graph/1 — see the TODO in
+  # lib/shunt_web/live/movement_live.ex). Rewrite as two assertions on rendered map-node
+  # markup instead: (1) before any move, "shunt9_maintenance_tunnel" is the player's only
+  # exit and has never been visited — assert the view contains `id="move-to-shunt9_maintenance_tunnel"`
+  # (still clickable, since :connected wins over discovery) and is rendered with whatever
+  # CSS class/data-attribute map_graph/1 uses to distinguish a :connected node that's NOT yet
+  # in player.discovered_locations from one that is, once that attribute is decided during
+  # implementation; (2) after moving there and back (`move-to-shunt9_maintenance_tunnel` then
+  # `move-to-shunt9_player_squat`), Player Squat's node should now read as :discovered or
+  # :connected (it's still the only exit from Maintenance Tunnel) rather than :undiscovered —
+  # pick a location further from the start (e.g. assert on "shunt9_bazaar" or
+  # "shunt9_power_relay"'s ✕ → real-name transition isn't reachable in 2 moves from
+  # shunt9_player_squat, so this test may need a 3rd move added to actually exercise the
+  # :undiscovered → :discovered/:connected transition on a node that was never a direct exit).
   test "undiscovered exits are marked as new and discovered ones as visited", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/map")
 

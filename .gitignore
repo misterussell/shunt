@@ -35,3 +35,6 @@ shunt-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# superpowers:brainstorming visual companion mockups
+/.superpowers/
+

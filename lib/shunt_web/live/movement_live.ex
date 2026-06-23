@@ -42,6 +42,14 @@ defmodule ShuntWeb.MovementLive do
         <p class="location-name">{@location.name}</p>
         <p class="location-description">{@location.description}</p>
       </Chrome.panel>
+      <%!-- TODO: replace this block with the SVG map graph:
+        <MapGraph.map_legend />
+        <MapGraph.map_graph player={@player} locations={@locations} />
+        Also `alias ShuntWeb.Components.MapGraph` at the top of this module, and drop the now
+        unused `alias Shunt.World` import here if World stops being called directly in this
+        file's template/handlers (assign_location/2 below still calls World, so check before
+        removing). Delete the discovered_badge/2 private function below once this block is
+        gone — it only existed to drive the old exit-list badges. --%>
       <ul class="exit-list">
         <li :for={exit <- @exits}>
           <Chrome.btn
@@ -75,6 +83,8 @@ defmodule ShuntWeb.MovementLive do
     |> assign(:player, player)
     |> assign(:location, World.get_location(player.location_id))
     |> assign(:exits, World.exits(player.location_id))
+    # TODO: add `|> assign(:locations, World.all_locations())` once World.all_locations/0
+    # exists — MapGraph.map_graph/1 needs the full location list, not just current exits.
   end
 
   defp discovered_badge(location_key, player) do

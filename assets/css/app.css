@@ -1408,6 +1408,16 @@
   margin-bottom: 32px;
 }
 
+/* TODO: once lib/shunt_web/live/movement_live.ex's exit-list <ul> is replaced by
+   MapGraph.map_graph/1 + map_legend/1, delete .exit-list above and .exit-badge/
+   .exit-badge--new/.exit-badge--visited below — they become orphaned by that change.
+   Add their replacements here instead:
+     - .map-node--connected { cursor: pointer; } and a
+       `.map-node--connected:hover { filter: brightness(1.3); }` glow boost (connected nodes
+       are the only clickable ones — everything else should NOT get a pointer cursor)
+     - .map-legend (flex row, ~8px gap, same 9-11px/letter-spacing sizing as .exit-badge
+       above) and .map-legend-row for each of the 4 "<glyph>  LABEL" entries */
+
 #narrative-feed {
   padding: 16px 20px;
 }
