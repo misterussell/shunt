@@ -1008,6 +1008,10 @@
   box-shadow: 0 0 8px var(--cyan);
 }
 
+.ladder-segment--unreached {
+  border: 1px solid var(--border-c);
+}
+
 .ladder-segment-label {
   display: flex;
   align-items: baseline;
@@ -1037,9 +1041,10 @@
 
 .heat-bar {
   position: relative;
-  height: 6px;
+  height: 7px;
   background: var(--bar2);
   border: 1px solid var(--border-c);
+  padding: 1px;
   overflow: hidden;
 }
 
