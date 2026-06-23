@@ -52,11 +52,15 @@ defmodule ShuntWeb.Layouts do
     <div class="vignette"></div>
 
     <div class="utility-strip">
-      <span class="utility-strip-prompt">root@shunt-9:~/{cwd(@active)}$</span>
+      <span class="utility-strip-prompt">root@shunt-9</span><span class="utility-strip-muted">:</span><span class="utility-strip-cwd">~/{cwd(@active)}</span><span class="utility-strip-muted">$</span>
       <span class="utility-strip-cursor"></span>
-      <span class="utility-strip-net">NET: DARKLINE</span>
-      <span class="utility-strip-rec"></span>
-      <span id="utility-strip-clock" phx-hook="Clock" phx-update="ignore"></span>
+      <div class="flex-1"></div>
+      <span class="utility-strip-net-label">NET: </span><span class="utility-strip-net-value">DARKLINE</span>
+      <span class="utility-strip-sep">│</span>
+      <span class="utility-strip-rec"></span><span class="utility-strip-rec-label">REC</span>
+      <span class="utility-strip-sep">│</span>
+      <span id="utility-strip-clock" class="utility-strip-clock" phx-hook="Clock" phx-update="ignore">
+      </span>
       <div class="flex-1"></div>
       <span class="utility-strip-lighting-label">LIGHTING</span>
       <.theme_toggle />

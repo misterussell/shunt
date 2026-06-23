@@ -1248,6 +1248,31 @@
 
 .utility-strip-prompt {
   color: var(--cyan);
+  text-shadow: 0 0 6px var(--cyan);
+}
+
+.utility-strip-muted {
+  color: var(--muted);
+}
+
+.utility-strip-cwd {
+  color: var(--amber);
+}
+
+.utility-strip-net-value {
+  color: var(--cyan);
+}
+
+.utility-strip-sep {
+  color: var(--border-c);
+}
+
+.utility-strip-rec-label {
+  color: var(--muted);
+}
+
+.utility-strip-clock {
+  color: var(--text);
 }
 
 .utility-strip-cursor,

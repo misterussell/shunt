@@ -89,15 +89,26 @@ defmodule ShuntWeb.LayoutsTest do
           ] do
         html = render_app(%{active: active})
 
-        assert html =~ "root@shunt-9:~/#{cwd}$"
+        assert html =~ "root@shunt-9"
+        assert html =~ "~/#{cwd}"
       end
     end
 
-    test "utility strip shows NET: DARKLINE and a REC dot" do
+    test "utility strip prompt splits into cyan/muted/amber/muted segments", %{} = _ctx do
       html = render_app()
 
-      assert html =~ "NET: DARKLINE"
+      assert html =~ ~s(class="utility-strip-prompt">root@shunt-9)
+      assert html =~ ~s(class="utility-strip-cwd">~/blackmarket)
+    end
+
+    test "utility strip shows a colored NET: DARKLINE split, a REC label, and segment separators" do
+      html = render_app()
+
+      assert html =~ ~s(class="utility-strip-net-label">NET:)
+      assert html =~ ~s(class="utility-strip-net-value">DARKLINE)
       assert html =~ ~s(class="utility-strip-rec")
+      assert html =~ ~s(class="utility-strip-rec-label">REC)
+      assert Regex.scan(~r/class="utility-strip-sep"/, html) |> length() == 2
     end
 
     test "utility strip includes a client-side clock hook that LiveView won't manage the DOM of" do
