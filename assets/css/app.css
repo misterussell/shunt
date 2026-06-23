@@ -301,6 +301,47 @@
   color: var(--red);
 }
 
+#stash-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.stash-header {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.stash-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 150px;
+  border: 1px dashed var(--border-c);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(94, 107, 104, 0.05) 0 7px,
+    transparent 7px 14px
+  );
+}
+
+.stash-empty-glyph {
+  font-size: 26px;
+  color: var(--border-c);
+}
+
+.stash-empty-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  padding: 0 18px;
+  letter-spacing: 0.06em;
+}
+
 .panel--active::before,
 .panel--active::after {
   content: "";

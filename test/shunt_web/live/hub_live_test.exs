@@ -71,6 +71,19 @@ defmodule ShuntWeb.HubLiveTest do
     assert has_element?(view, "#current-offer .offer-stat", "HEAT +")
   end
 
+  test "stash panel shows a STASH // 1 SLOT header", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#stash-panel .stash-header", "STASH // 1 SLOT")
+  end
+
+  test "the empty stash shows a dashed empty-state box", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#stash-panel .stash-empty", "EMPTY")
+    assert has_element?(view, "#stash-panel .stash-empty", "take a lead to hold stock")
+  end
+
   test "taking an offer deducts scrip and shows the held item", %{conn: conn} do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100))

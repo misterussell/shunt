@@ -225,15 +225,13 @@ defmodule ShuntWeb.HubLive do
           <% end %>
         </Chrome.panel>
 
-        <%!-- TODO: stash panel chrome (docs/design-comp.html lines 166-187): a
-          "▓ STASH // 1 SLOT" header above the cond, and when `@held == nil` a
-          dashed/hatched empty-state box (border:1px dashed var(--border-c);
-          background:repeating-linear-gradient(45deg, ...)) containing "[ ]" and "EMPTY ·
-          take a lead to hold stock" (replacing having no empty-state markup at all today).
-          When `@held != nil`, keep the existing held-item content unchanged. --%>
         <Chrome.panel id="stash-panel">
+          <div class="stash-header">▓ STASH // 1 SLOT</div>
           <%= if @held == nil do %>
-            <p>Stash empty.</p>
+            <div class="stash-empty">
+              <span class="stash-empty-glyph">[ ]</span>
+              <span class="stash-empty-label">EMPTY · take a lead to hold stock</span>
+            </div>
           <% else %>
             <div id="held-item">
               <p>{@held.name}</p>
