@@ -170,7 +170,54 @@ defmodule ShuntWeb.HubLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} player={@player} active={:hub} status={@status}>
+      <%!-- TODO: once Chrome.section_header gets its `secondary` attr (staged in
+        chrome.ex), pass secondary="0x1A · FENCE_PROTOCOL" here (docs/design-comp.html
+        line 108). --%>
       <Chrome.section_header>BLACK_MARKET</Chrome.section_header>
+      <%!-- TODO: this is currently ONE Chrome.panel with a three-way cond
+        (no-offer-no-held / offer / held), but the comp renders it as TWO independent
+        side-by-side panels (docs/design-comp.html line 112:
+        `display:grid; grid-template-columns:1.35fr 1fr; gap:14px; margin-bottom:36px;`
+        wrapping an offer panel and a stash panel). Note: @offer and @held are mutually
+        exclusive by game rules (Fencing.find_lead/1 only succeeds when both are nil —
+        one stash slot total), so this is a pure markup split, not a behavior change.
+        Replace the single `<Chrome.panel>` below with:
+          1. A `<div class="black-market-grid">` wrapper (new app.css grid rule above).
+          2. Left panel — a `<Chrome.panel>` that conds ONLY on `@offer`: when nil, show
+             the "find lead" empty state (see next TODO for its chrome + the
+             [ FIND A LEAD ] button); when present, show the current `@offer != nil`
+             branch's content unchanged.
+          3. Right panel — a separate `<Chrome.panel>` that conds ONLY on `@held`: when
+             nil, show a stash-empty state (see TODO below); when present, show the
+             current `<% true -> %>` branch's held-item content unchanged, plus the
+             "Lay Low" button moved into this panel (see TODO below) since it has no
+             equivalent in the comp and was decided to live here as a secondary action.
+        --%>
+      <%!-- TODO: offer panel chrome (docs/design-comp.html lines 115-164): a top amber
+        dashed accent strip (absolute-positioned span, background:repeating-linear-
+        gradient(90deg, var(--amber) 0 9px, ... 9px 18px)), a ">> INTERCEPTED LEAD"
+        header row with a blinking red dot (reuse the `.utility-strip-rec`-style blink
+        animation) + a muted signal-strength glyph ("||||·|||·||||·|·|||"), and in the
+        `@offer != nil` branch a colored tier badge (cyan/amber/red border+text by
+        @offer.tier — CLEAN/WARM/HOT) plus a 3-up buy/fence/heat stat strip (each stat:
+        muted label above a value, divided by 1px gaps, background var(--sunk))
+        replacing the current bare `<p>Buy: {@offer.buy_cost} Scrip</p>`. In the
+        `@offer == nil` empty state, add the "awaiting handshake" line with a blinking
+        `_` cursor before the button (docs/design-comp.html line 161; the comp's button
+        reads "[ PULL LEAD ]" vs. this code's "[ FIND A LEAD ]" — confirm the copy
+        change with the user before renaming it, since hub_live_test.exs asserts on the
+        current label). --%>
+      <%!-- TODO: stash panel chrome (docs/design-comp.html lines 166-187): a
+        "▓ STASH // 1 SLOT" header above the cond, and when `@held == nil` a
+        dashed/hatched empty-state box (border:1px dashed var(--border-c);
+        background:repeating-linear-gradient(45deg, ...)) containing "[ ]" and "EMPTY ·
+        take a lead to hold stock" (replacing having no empty-state markup at all today).
+        When `@held != nil`, keep the existing held-item content unchanged. Regardless of
+        which branch renders, append the "Lay Low" button (currently its own standalone
+        Chrome.panel below — see next TODO) as a secondary action row at the bottom of
+        this panel, outside the empty/held cond — Lay Low is independent of stash state
+        today (always clickable whenever the player has >= 10 Cred) and must stay that
+        way; don't gate it on `@held`. --%>
       <Chrome.panel>
         <%= cond do %>
           <% @offer == nil and @held == nil -> %>
@@ -206,6 +253,11 @@ defmodule ShuntWeb.HubLive do
         <% end %>
       </Chrome.panel>
 
+      <%!-- TODO: this standalone "Lay Low" panel has no equivalent in the design comp.
+        Per decision, move its contents (the cost line + button below) into the stash
+        panel above as a secondary action row at the bottom of the held-item view, then
+        delete this panel entirely. Update hub_live_test.exs if it asserts on this
+        panel's structure rather than just the #lay-low-button id/click. --%>
       <Chrome.panel>
         <p>Lay Low — 10 Cred, -20 Heat</p>
         <Chrome.btn
@@ -217,8 +269,26 @@ defmodule ShuntWeb.HubLive do
         </Chrome.btn>
       </Chrome.panel>
 
+      <%!-- TODO: once Chrome.section_header gets its `secondary` attr, pass
+        secondary="5 DOSSIERS · USE WISELY" here (docs/design-comp.html line 193). --%>
       <Chrome.section_header>CONTACTS</Chrome.section_header>
+      <%!-- TODO: wrap this `:for` div in a grid container — change the outer element to
+        `<div class="contacts-grid">` with CSS `display:grid;
+        grid-template-columns:repeat(auto-fill, minmax(290px,1fr)); gap:12px;` in app.css
+        (docs/design-comp.html line 197 — this is the second instance of the
+        originally-reported bug: NPC panels currently stack full-width). The `:for` can
+        move onto this same div (Phoenix allows `:for` directly on the grid container) or
+        stay on a child — keep whichever keeps `id={"npc-\#{npc.key}"}` on each panel. --%>
       <div :for={npc <- @npcs} id={"npc-#{npc.key}"}>
+        <%!-- TODO: add NPC panel chrome (docs/design-comp.html lines 199-217): a
+          left-edge accent bar (absolute-positioned 3px-wide span, height:100%, colored by
+          loyalty band — cyan >=60, amber >=35, red below) replacing the plain `<p>` name;
+          the faction text rendered as a small colored pill (background = the loyalty
+          color, dark text) instead of plain text; and a trust bar — a label row
+          ("TRUST" / "{loyalty}/100 · {word}") above a thin colored fill bar (height:5px,
+          border, background var(--sunk)) — replacing the bare
+          `<p>Loyalty: {npc.loyalty}/100</p>`. Reuse the heat-bar's color-ramp pattern
+          (cyan/amber/red) for both the accent bar and the trust-bar fill. --%>
         <Chrome.panel>
           <p>{npc.name}</p>
           <p>{humanize_faction(npc.faction)}</p>

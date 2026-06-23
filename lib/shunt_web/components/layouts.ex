@@ -63,8 +63,22 @@ defmodule ShuntWeb.Layouts do
     </div>
 
     <header class="main-bar">
+      <%!-- TODO: wrap "SHUNT" in a flex-column div with a second span below it reading
+        "NODE_9 · MAKESHIFT DECK · v0.9.4" (docs/design-comp.html lines 52-55: wordmark
+        block is `display:flex; flex-direction:column; line-height:1;` with the subtitle
+        span at font-size:8.5px, letter-spacing:0.18em, color:var(--muted),
+        margin-top:4px). Add a `.wordmark-sub` class in app.css for the subtitle span. --%>
       <span class="wordmark">SHUNT</span>
+      <%!-- TODO: insert a vertical divider div between the wordmark and the wallet HUD,
+        matching docs/design-comp.html line 57: width:1px; height:34px;
+        background:repeating-linear-gradient(180deg, var(--border-c) 0 3px, transparent
+        3px 6px). Add a `.main-bar-divider` class in app.css. --%>
       <Chrome.wallet_hud player={@player} />
+      <%!-- TODO: add `<div class="flex-1"></div>` here (matching the utility-strip's
+        existing spacer pattern above) so `<nav class="nav-tabs">` is pushed to the right
+        edge of the bar instead of sitting immediately after the wallet HUD — see
+        docs/design-comp.html line 81 `<span style="flex:1;"></span>` between the gauges
+        and `<nav>`. --%>
       <nav class="nav-tabs">
         <.link navigate={~p"/"} class={["tab", @active == :hub && "tab--active"]}>HUB</.link>
         <.link

@@ -83,7 +83,24 @@ defmodule ShuntWeb.SkillsLive do
       <Chrome.ladder_track tree={@tree} current_tier={@current_tier} />
 
       <%= if @tree.key == "street_alchemy" do %>
+        <%!-- TODO: once Chrome.section_header gets its `secondary` attr, pass
+          secondary="⚠ DRAWS HEAT" here, colored amber (docs/design-comp.html line 257 —
+          this one secondary label uses var(--amber) instead of the usual muted color, so
+          the attr/component needs a way to flag that, e.g. `secondary_class="amber"` or
+          accept the secondary content as a slot instead of a plain string). --%>
         <Chrome.section_header>// SCAVENGE</Chrome.section_header>
+        <%!-- TODO: restructure this panel into a 2-column grid (docs/design-comp.html
+          lines 260-277): `<Chrome.panel class="scavenge-grid">` with CSS
+          `display:grid; grid-template-columns:240px 1fr; gap:22px;` added via the
+          existing `class` attr on Chrome.panel. Left column: a description paragraph
+          ("Comb the district gutters for raw stock. Every run trips a sensor — Heat
+          climbs."), the `[ SCAVENGE ]` button, and a "> output: 1 unit/run" status line
+          with a blinking `_` cursor. Right column: a "RAW MATERIALS · BIN" label above a
+          `display:grid; grid-template-columns:repeat(auto-fill, minmax(158px,1fr));
+          gap:7px;` grid of ALL raw materials (not just owned ones — comp always shows
+          every raw with its count, ×0 in muted color when not owned, ×N in cyan when
+          owned; the current `:if={... > 0}` filter that hides zero-count raws needs to
+          go, replaced with always rendering every `@raws` entry and coloring by count). --%>
         <Chrome.panel>
           <Chrome.btn id="scavenge-button" variant={:primary} phx-click="scavenge">
             [ SCAVENGE ]
@@ -95,7 +112,27 @@ defmodule ShuntWeb.SkillsLive do
           </div>
         </Chrome.panel>
 
+        <%!-- TODO: once Chrome.section_header gets its `secondary` attr, pass
+          secondary="DECRYPTED BY TIER" here (docs/design-comp.html line 282). --%>
         <Chrome.section_header>// RECIPES</Chrome.section_header>
+        <%!-- TODO: replace this `:for` + full-`Chrome.panel`-per-recipe block entirely
+          (docs/design-comp.html lines 285-311). Recipes must NOT be full panels — render
+          a `<div class="recipes-list">` (CSS: display:flex; flex-direction:column;
+          gap:7px;) containing one compact row per recipe:
+            - Unlocked (`@current_tier >= recipe.tier_required`): a single flex row
+              (align-items:center, gap:16px, padding:13px 16px, bordered) with a cyan
+              tier chip ("T{tier}"), the recipe name + requirement text
+              ("◇ 2× Cortex Gel   +   1× Coolant Salts", built from `recipe.inputs` +
+              `RawCatalog.fetch!/1`), the sell value right-aligned in cyan, and the
+              existing `[ ASSEMBLE ]`/dead-button logic unchanged (just re-laid-out
+              inline instead of stacked).
+            - Locked (`@current_tier < recipe.tier_required`): a visually distinct
+              redacted row (hatched background, muted tier chip, redacted name text e.g.
+              "█████ ███", amber "🔒 ENCRYPTED" label) that does NOT show the
+              requirement counts at all — this is a content change, not just styling:
+              currently every recipe shows its raw requirements even when locked.
+          Keep each row's `id={"recipe-\#{recipe.key}"}` and the
+          `id={"assemble-\#{recipe.key}-button"}` for test compatibility. --%>
         <div :for={recipe <- @recipes} id={"recipe-#{recipe.key}"}>
           <Chrome.panel>
             <p>
@@ -133,7 +170,19 @@ defmodule ShuntWeb.SkillsLive do
           </Chrome.panel>
         </div>
 
+        <%!-- TODO: once Chrome.section_header gets its `secondary` attr, pass
+          secondary="BENCH OUTPUT" here (docs/design-comp.html line 316). --%>
         <Chrome.section_header>// ASSEMBLED</Chrome.section_header>
+        <%!-- TODO: restructure assembled goods (docs/design-comp.html lines 319-336).
+          When at least one recipe has `Map.get(@player.inventory, recipe.key, 0) > 0`:
+          wrap the `:for` in a `<div class="assembled-grid">` (CSS: display:grid;
+          grid-template-columns:repeat(auto-fill, minmax(228px,1fr)); gap:9px;) and
+          replace the per-item `Chrome.panel` with a compact row (flex,
+          justify-content:space-between, padding:13px 15px, bordered) — name + "+{value}
+          cr" on the left, the existing `[ SELL ]` ghost button on the right. When NONE
+          of the recipes have inventory > 0, render the "BENCH CLEAN · no product
+          assembled" empty state (dashed border, hatched background) instead of nothing
+          — today this section just renders an empty area with no empty-state markup. --%>
         <div :for={recipe <- @recipes}>
           <div :if={Map.get(@player.inventory, recipe.key, 0) > 0} id={"assembled-#{recipe.key}"}>
             <Chrome.panel>
@@ -152,6 +201,18 @@ defmodule ShuntWeb.SkillsLive do
           </div>
         </div>
       <% else %>
+        <%!-- TODO: add stub-page chrome (docs/design-comp.html lines 340-349): amber
+          dashed accent bars along the top and bottom edges of the panel (absolute-
+          positioned spans, background:repeating-linear-gradient(90deg, var(--amber) 0
+          12px, ... 12px 24px)), restyle "⚠ DORMANT MODULE" as an amber bordered badge
+          (letter-spacing:0.32em, padding:5px 13px, box-shadow glow) instead of plain
+          text, center the content column with generous padding (54px 40px) and the
+          existing hatched background, and append a closing line
+          "// SIGNAL LOST · 0x00 · NO HANDSHAKE //" (muted/dim) after {@tree.stub} — plus
+          the comp's fixed second line "This subsystem only tracks progression..." which
+          isn't currently rendered at all (confirm with the user whether that generic
+          line should be added verbatim or is superseded by each tree's own `@tree.stub`
+          text). --%>
         <div id="skill-tree-stub">
           <Chrome.panel>
             <p>⚠ DORMANT MODULE</p>
