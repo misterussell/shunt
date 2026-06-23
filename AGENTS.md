@@ -209,6 +209,25 @@ custom classes must fully style the input
 - Remember anytime you use `phx-hook="MyHook"` and that js hook manages its own DOM, you **must** also set the `phx-update="ignore"` attribute
 - **Never** write embedded `<script>` tags in HEEx. Instead always write your scripts and hooks in the `assets/js` directory and integrate them with the `assets/js/app.js` file
 
+### LiveView presentation boundary
+
+LiveViews render state and dispatch commands. They must not interpret or recompute domain
+outcomes — that's the job of the context module the command was dispatched to.
+
+Red flags that domain logic has leaked into a LiveView:
+- Comparing or diffing player/resource state to infer what a command did (e.g. `Enum.find`/
+  `Enum.any?` over before/after snapshots, manual delta math like `after.field - before.field`)
+  instead of having the command's return value say what happened
+- Business rule checks in `handle_event` or in the template (e.g. checking quantities against
+  inventory to decide if an action is allowed) instead of calling a context function that
+  encodes the rule
+- Arithmetic on game/domain fields (scrip, heat, inventory counts, etc.) anywhere in
+  `lib/*_web/`
+
+When a command needs to tell the UI what happened, have it return that explicitly (extra
+metadata alongside `{:ok, effects}`, or a decorated value), rather than letting the LiveView
+reconstruct it from before/after state.
+
 ### LiveView streams
 
 - **Always** use LiveView streams for collections for assigning regular lists to avoid memory ballooning and runtime termination with the following operations:

@@ -146,11 +146,48 @@ defmodule Shunt.EffectsTest do
     end
   end
 
+  describe "apply/2 - :deltas" do
+    test "reports the requested delta when no clamping occurs" do
+      player = %Player{scrip: 10, cred: 2, heat: 0}
+
+      {_changes, meta} = Effects.apply(player, [{:scrip, 5}, {:cred, 3}, {:heat, 10}])
+
+      assert meta.deltas == %{scrip: 5, cred: 3, heat: 10}
+    end
+
+    test "reports the clamped delta, not the requested one, when scrip would go negative" do
+      player = %Player{scrip: 5}
+
+      {_changes, meta} = Effects.apply(player, [{:scrip, -20}])
+
+      assert meta.deltas == %{scrip: -5}
+    end
+
+    test "reports the post-discharge heat delta when a heat event fires" do
+      player = %Player{heat: 60, scrip: 100, cred: 20}
+
+      {changes, meta} = Effects.apply(player, [{:heat, 30}])
+
+      assert meta.deltas.heat == changes.heat - 60
+      assert meta.deltas.scrip == changes.scrip - 100
+      assert meta.deltas.cred == changes.cred - 20
+    end
+
+    test "omits fields that weren't touched by any effect" do
+      player = %Player{scrip: 10}
+
+      {_changes, meta} = Effects.apply(player, [{:scrip, 5}])
+
+      assert meta.deltas == %{scrip: 5}
+    end
+  end
+
   describe "apply/2 - ordering and folding" do
     test "an empty effect list returns no changes and default meta" do
       player = %Player{scrip: 10}
 
-      assert Effects.apply(player, []) == {%{}, %{heat_event: nil, loyalty_signals: []}}
+      assert Effects.apply(player, []) ==
+               {%{}, %{heat_event: nil, loyalty_signals: [], deltas: %{}}}
     end
 
     test "applies effects in list order, folding prepended heat-event effects ahead of later ones" do

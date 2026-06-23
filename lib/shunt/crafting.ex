@@ -7,7 +7,11 @@ defmodule Shunt.Crafting do
 
   def scavenge(%Player{}) do
     raw = Enum.random(RawCatalog.items())
-    {:ok, [{:inventory, raw.key, 1}, {:heat, 4}]}
+    {:ok, [{:inventory, raw.key, 1}, {:heat, 4}], %{gained_raw: raw.key}}
+  end
+
+  def craftable?(%Player{} = player, recipe) do
+    Enum.all?(recipe.inputs, fn {raw_key, qty} -> Map.get(player.inventory, raw_key, 0) >= qty end)
   end
 
   def assemble(%Player{} = player, recipe_key) do
@@ -18,9 +22,7 @@ defmodule Shunt.Crafting do
           recipe.tier_required ->
         {:error, :insufficient_tier}
 
-      Enum.any?(recipe.inputs, fn {raw_key, qty} ->
-        Map.get(player.inventory, raw_key, 0) < qty
-      end) ->
+      not craftable?(player, recipe) ->
         {:error, :insufficient_materials}
 
       true ->
