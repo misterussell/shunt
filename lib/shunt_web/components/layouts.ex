@@ -40,23 +40,26 @@ defmodule ShuntWeb.Layouts do
     values: [:hub, :ghostwork, :chrome_meat, :web, :street_alchemy],
     doc: "which nav tab to highlight"
 
-  # TODO: restyle the plain .footer-ticker div below into the brief's §4 footer ticker (fixed
-  # bottom:0): "&gt;" cyan caret before @status, truncated with ellipsis, a blinking cursor
-  # span, flex-1 spacer, "SHUNT_9 · NIGHT_CYCLE · <ticker>" on the right. Also still pending
-  # here (full atmosphere pass, per agreed scope — see Shunt.dc.html lines 30-35 for the
-  # reference markup):
-  #   - fixed noise-overlay / scanline / scanline-sweep / vignette divs (pointer-events:none)
-  #   - utility strip (sticky top:0): "root@shunt-9:~/<cwd>$" prompt with a blinking cursor,
-  #     "NET: DARKLINE", a blinking REC dot, and a live clock — `cwd` derives from @active
-  #     (e.g. :hub -> "blackmarket", :ghostwork -> "ghostwork")
-  #   - the LIGHTING toggle replacing .theme_toggle/1 below (street/corp, see that function's
-  #     own TODO)
   attr :status, :string, default: nil, doc: "footer-ticker status line set by handle_events"
 
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
+    <%!-- TODO: add fixed noise-overlay/scanline/scanline-sweep/vignette divs here
+    (pointer-events: none), per the brief's full atmosphere pass. Purely decorative
+    full-viewport overlays with no dynamic content — class names only (.noise-overlay,
+    .scanline, .scanline-sweep, .vignette); styling/animation lands in the already-staged
+    CSS pass (app.css). --%>
+    <%!-- TODO: add a sticky (top:0) utility strip here: a "root@shunt-9:~/<cwd>$" prompt with
+    a blinking cursor span, "NET: DARKLINE" text, a blinking REC dot, and a live clock. `cwd`
+    is a case/cond on @active: :hub -> "blackmarket", :ghostwork -> "ghostwork", :chrome_meat
+    -> "chrome-meat", :web -> "the-web", :street_alchemy -> "street-alchemy" (matches each
+    tab's route slug except :hub, which keeps the thematic "blackmarket"). The clock is a
+    client-side JS hook (phx-hook="Clock", phx-update="ignore" on its element) whose hook
+    calls setInterval and writes the time into its own textContent — no server round-trips.
+    Move the <.theme_toggle /> call out of <header> below and into this strip, under a
+    "LIGHTING" label, when this lands. --%>
     <header class="main-bar">
       <span class="wordmark">SHUNT</span>
       <Chrome.wallet_hud player={@player} />
@@ -93,6 +96,10 @@ defmodule ShuntWeb.Layouts do
 
     <.flash_group flash={@flash} />
 
+    <%!-- TODO: restyle this into the brief's footer ticker (fixed bottom:0): a cyan ">"
+    caret before @status, status text truncated with ellipsis, a blinking cursor span after
+    it, a flex-1 spacer, then "SHUNT_9 · NIGHT_CYCLE · ALL SYSTEMS NOMINAL" right-aligned
+    (static text — no live data source for the ticker segment yet). --%>
     <div class="footer-ticker">{@status || "SYSTEM ONLINE // DECK WARM"}</div>
     """
   end
