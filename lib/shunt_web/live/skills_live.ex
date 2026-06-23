@@ -86,26 +86,31 @@ defmodule ShuntWeb.SkillsLive do
         <Chrome.section_header secondary="⚠ DRAWS HEAT" secondary_amber>
           SCAVENGE
         </Chrome.section_header>
-        <%!-- TODO: restructure this panel into a 2-column grid (docs/design-comp.html
-          lines 260-277): `<Chrome.panel class="scavenge-grid">` with CSS
-          `display:grid; grid-template-columns:240px 1fr; gap:22px;` added via the
-          existing `class` attr on Chrome.panel. Left column: a description paragraph
-          ("Comb the district gutters for raw stock. Every run trips a sensor — Heat
-          climbs."), the `[ SCAVENGE ]` button, and a "> output: 1 unit/run" status line
-          with a blinking `_` cursor. Right column: a "RAW MATERIALS · BIN" label above a
-          `display:grid; grid-template-columns:repeat(auto-fill, minmax(158px,1fr));
-          gap:7px;` grid of ALL raw materials (not just owned ones — comp always shows
-          every raw with its count, ×0 in muted color when not owned, ×N in cyan when
-          owned; the current `:if={... > 0}` filter that hides zero-count raws needs to
-          go, replaced with always rendering every `@raws` entry and coloring by count). --%>
-        <Chrome.panel>
-          <Chrome.btn id="scavenge-button" variant={:primary} phx-click="scavenge">
-            [ SCAVENGE ]
-          </Chrome.btn>
-          <div :for={raw <- @raws}>
-            <p :if={Map.get(@player.inventory, raw.key, 0) > 0} id={"raw-#{raw.key}"}>
-              {raw.name} ({Map.get(@player.inventory, raw.key, 0)})
+        <Chrome.panel class="scavenge-grid">
+          <div class="scavenge-left">
+            <p class="scavenge-description">
+              Comb the district gutters for raw stock. Every run trips a sensor — Heat climbs.
             </p>
+            <Chrome.btn id="scavenge-button" variant={:primary} phx-click="scavenge">
+              [ SCAVENGE ]
+            </Chrome.btn>
+            <div class="scavenge-output">
+              &gt; output: 1 unit / run<span class="scavenge-output-cursor">_</span>
+            </div>
+          </div>
+          <div class="scavenge-right">
+            <div class="raw-materials-label">RAW MATERIALS · BIN</div>
+            <div class="raw-materials-grid">
+              <div :for={raw <- @raws} id={"raw-#{raw.key}"} class="raw-material-chip">
+                <span class="raw-material-name">{raw.name}</span>
+                <span class={[
+                  "raw-material-count",
+                  Map.get(@player.inventory, raw.key, 0) > 0 && "raw-material-count--owned"
+                ]}>
+                  ×{Map.get(@player.inventory, raw.key, 0)}
+                </span>
+              </div>
+            </div>
           </div>
         </Chrome.panel>
 

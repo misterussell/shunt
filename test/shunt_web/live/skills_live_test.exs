@@ -66,6 +66,26 @@ defmodule ShuntWeb.SkillsLiveTest do
     assert has_element?(view, "#recipe-patchwork_courier_drone", "Unlocked")
   end
 
+  test "the scavenge panel lays out the description/button column beside the raw materials bin",
+       %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    assert has_element?(view, ".scavenge-grid #scavenge-button")
+    assert has_element?(view, ".scavenge-grid .scavenge-output", "output: 1 unit / run")
+    assert has_element?(view, ".scavenge-grid .raw-materials-label", "RAW MATERIALS · BIN")
+  end
+
+  test "every raw material always shows its count, even at zero, for a fresh player", %{
+    conn: conn
+  } do
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    assert Enum.all?(
+             Shunt.Crafting.RawCatalog.items(),
+             &has_element?(view, "#raw-#{&1.key}", "×0")
+           )
+  end
+
   test "scavenging adds a raw material to the displayed inventory", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
 
