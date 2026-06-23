@@ -147,7 +147,10 @@
        .ladder-segment--unreached — the 5-segment horizontal track; unreached segments get
        the diagonal hatch texture (not just dimmed)
      .heat-bar, .heat-bar-fill — ramps color cyan/amber/red by fill %; .heat-bar--danger adds
-       the `heatpulse` animation once heat >= 75 (no animation below that threshold)
+       the `heatpulse` animation once heat >= 75 (no animation below that threshold).
+       chrome.ex's wallet_hud/1 sets `--heat: <0-100>` as a custom property on .heat-bar-fill
+       (not a literal width, to keep this out of inline styling) — .heat-bar-fill must consume
+       it via `width: calc(var(--heat) * 1%)`
      .wallet-chip — hairline-border, no-fill monospace chip for Cred/Scrip
      .hatch — reusable diagonal-stripe background for locked/disabled/redacted states
      .utility-strip, .footer-ticker — the sticky terminal-prompt strip and fixed footer line

@@ -21,11 +21,11 @@ defmodule ShuntWeb.Chrome do
   slot :inner_block, required: true
 
   def panel(assigns) do
-    # TODO: render a <div class={["panel", @active && "panel--active", @class]}> wrapping
-    # @inner_block. "panel" supplies the var(--p1)->var(--p2) gradient surface, 1px
-    # var(--border), and the inset top highlight; "panel--active" adds the small L-bracket
-    # corner accents via ::before/::after (see app.css TODO). Do not inline any style=.
-    raise "not implemented"
+    ~H"""
+    <div class={["panel", @active && "panel--active", @class]}>
+      {render_slot(@inner_block)}
+    </div>
+    """
   end
 
   @doc """
@@ -45,12 +45,11 @@ defmodule ShuntWeb.Chrome do
   slot :inner_block, required: true
 
   def btn(assigns) do
-    # TODO: render <button class={["btn-#{@variant}"]} {@rest}>{render_slot(@inner_block)}</button>.
-    # :dead should also force disabled="disabled" regardless of @rest, since a "dead" button
-    # is never clickable. Hover/active fill behavior lives entirely in the .btn-primary /
-    # .btn-ghost / .btn-dead CSS classes (app.css TODO) — no style-hover inline attrs like
-    # the prototype used.
-    raise "not implemented"
+    ~H"""
+    <button class={"btn-#{@variant}"} disabled={@variant == :dead || nil} {@rest}>
+      {render_slot(@inner_block)}
+    </button>
+    """
   end
 
   @doc """
@@ -64,11 +63,16 @@ defmodule ShuntWeb.Chrome do
   slot :inner_block, required: true
 
   def section_header(assigns) do
-    # TODO: render the "// LABEL ──────" small-caps HUD module header (see Shunt.dc.html's
-    # "┌─[ BLACK_MARKET ]" rows for the exact visual: label, flex-1 dashed rule, optional
-    # right-aligned subtext). Use a class like "section-header" — no inline styles.
-    raise "not implemented"
+    ~H"""
+    <div class="section-header">
+      {render_slot(@inner_block)}
+    </div>
+    """
   end
+
+  defp heat_label(heat) when heat >= 75, do: "⚠ AUTHORITY INBOUND"
+  defp heat_label(heat) when heat >= 40, do: "EYES ON YOU"
+  defp heat_label(_heat), do: "GHOST · LOW PROFILE"
 
   @doc """
   Horizontal 5-segment progression ladder track, reused on every skill page (brief §5
@@ -87,13 +91,27 @@ defmodule ShuntWeb.Chrome do
   attr :current_tier, :integer, required: true
 
   def ladder_track(assigns) do
-    # TODO: render the tree label + description header row, then a flex row of 5
-    # `.ladder-segment` divs (one per @tree.tiers entry plus an implicit tier-0 segment —
-    # confirm against Shunt.dc.html's segments mapping which iterates t.tiers directly with
-    # `reached = i < t.tier, current = i === t.tier`). Apply
-    # "ladder-segment--current"/"ladder-segment--reached"/"ladder-segment--unreached" per
-    # segment based on @current_tier, with each tier's name shown beneath it.
-    raise "not implemented"
+    ~H"""
+    <div>
+      <div>
+        <span>{@tree.name}</span>
+        <span>{@tree.description}</span>
+      </div>
+      <div class="ladder-track">
+        <div
+          :for={tier <- @tree.tiers}
+          class={[
+            "ladder-segment",
+            tier.tier <= @current_tier && "ladder-segment--reached",
+            tier.tier == @current_tier && "ladder-segment--current",
+            tier.tier > @current_tier && "ladder-segment--unreached"
+          ]}
+        >
+          {tier.name}
+        </div>
+      </div>
+    </div>
+    """
   end
 
   @doc """
@@ -110,12 +128,18 @@ defmodule ShuntWeb.Chrome do
   attr :player, :map, required: true
 
   def wallet_hud(assigns) do
-    # TODO: render the CRED chip (`@player.cred`), SCRIP chip (`@player.scrip`), and the
-    # HEAT module: numeric "HEAT NN/100" readout, a thin bar whose fill width is
-    # `@player.heat`% and color/animation depend on the threshold, and the small status
-    # label under the bar (e.g. "GHOST · LOW PROFILE" / "EYES ON YOU" / "⚠ AUTHORITY
-    # INBOUND" — reuse Shunt.dc.html's heatLabel logic, thresholds heat>=75 / heat>=40 /
-    # else). All via "wallet-chip"/"heat-bar"/"heat-bar-fill"/"heat-bar--danger" classes.
-    raise "not implemented"
+    ~H"""
+    <div>
+      <span class="wallet-chip">CRED {@player.cred}</span>
+      <span class="wallet-chip">SCRIP {@player.scrip}</span>
+      <div>
+        <span>HEAT {@player.heat}/100</span>
+        <div class={["heat-bar", @player.heat >= 75 && "heat-bar--danger"]}>
+          <div class="heat-bar-fill" style={"--heat: #{@player.heat}"} />
+        </div>
+        <span>{heat_label(@player.heat)}</span>
+      </div>
+    </div>
+    """
   end
 end
