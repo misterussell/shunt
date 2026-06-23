@@ -154,6 +154,10 @@
      .wallet-chip — hairline-border, no-fill monospace chip for Cred/Scrip
      .hatch — reusable diagonal-stripe background for locked/disabled/redacted states
      .utility-strip, .footer-ticker — the sticky terminal-prompt strip and fixed footer line
+     .theme-toggle, .theme-toggle-btn — the STREET/CORP power-switch (layouts.ex
+       theme_toggle/1): bordered strip wrapping two adjacent buttons; the button matching the
+       current [data-theme] fills with var(--cyan) background + #03100C text, the other stays
+       transparent with var(--muted) text/border
    Keyframes to add (copied 1:1 from the prototype's <style> block in Shunt.dc.html):
      @keyframes heatpulse { 0%,100%{opacity:1} 50%{opacity:.55} }
      @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
