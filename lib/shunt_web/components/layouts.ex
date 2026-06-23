@@ -46,11 +46,11 @@ defmodule ShuntWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <%!-- TODO: add fixed noise-overlay/scanline/scanline-sweep/vignette divs here
-    (pointer-events: none), per the brief's full atmosphere pass. Purely decorative
-    full-viewport overlays with no dynamic content — class names only (.noise-overlay,
-    .scanline, .scanline-sweep, .vignette); styling/animation lands in the already-staged
-    CSS pass (app.css). --%>
+    <div class="noise-overlay"></div>
+    <div class="scanline"></div>
+    <div class="scanline-sweep"></div>
+    <div class="vignette"></div>
+
     <%!-- TODO: add a sticky (top:0) utility strip here: a "root@shunt-9:~/<cwd>$" prompt with
     a blinking cursor span, "NET: DARKLINE" text, a blinking REC dot, and a live clock. `cwd`
     is a case/cond on @active: :hub -> "blackmarket", :ghostwork -> "ghostwork", :chrome_meat

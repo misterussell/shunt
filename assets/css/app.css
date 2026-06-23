@@ -158,6 +158,9 @@
        theme_toggle/1): bordered strip wrapping two adjacent buttons; the button matching the
        current [data-theme] fills with var(--cyan) background + #03100C text, the other stays
        transparent with var(--muted) text/border
+     .noise-overlay, .scanline, .scanline-sweep, .vignette — fixed full-viewport decorative
+       layers (layouts.ex app/1), pointer-events: none. .scanline-sweep uses the `drift`
+       keyframes below; .noise-overlay is the `crtflicker`-animated grain layer
    Keyframes to add (copied 1:1 from the prototype's <style> block in Shunt.dc.html):
      @keyframes heatpulse { 0%,100%{opacity:1} 50%{opacity:.55} }
      @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
