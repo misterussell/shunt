@@ -6,69 +6,182 @@ defmodule ShuntWeb.SkillsLive do
   alias Shunt.Crafting.RecipeCatalog
   alias Shunt.Players
   alias Shunt.Skills.Catalog, as: SkillsCatalog
+  alias ShuntWeb.Chrome
 
-  # TODO: mount/3 — same player-loading shape as HubLive (Players.get_player!().id,
-  # Players.current/1), but this LiveView is routed four ways with a shared live_action
-  # (:ghostwork | :chrome_meat | :web | :street_alchemy — see router.ex TODO). Resolve the
-  # active tree once via `SkillsCatalog.fetch!(Atom.to_string(socket.assigns.live_action))`
-  # (the live_action atoms match the tree `key` strings in priv/content/skills/trees.exs
-  # exactly, e.g. :chrome_meat -> "chrome_meat" -> Content.fetch!(:skill_trees, "chrome_meat")
-  # — confirm Atom.to_string/1 round-trips correctly for all four before relying on it).
-  # Assign :player_id, :tree, and call assign_player/2. No Npcs.Signals subscription needed
-  # here — NPC narrative flashes only matter on the Hub page.
   def mount(_params, _session, socket) do
-    raise "not implemented"
+    player_id = Players.get_player!().id
+    player = Players.current(player_id)
+    tree = SkillsCatalog.fetch!(Atom.to_string(socket.assigns.live_action))
+
+    {:ok,
+     socket
+     |> assign(player_id: player_id)
+     |> assign(:status, nil)
+     |> assign(:tree, tree)
+     |> assign_player(player)}
   end
 
-  # TODO: handle_event("scavenge", ...) — port Crafting.scavenge/1 dispatch from
-  # DashboardLive lines 77-80 (only reachable when @tree.key == "street_alchemy"; the route
-  # itself already guarantees this since scavenge/assemble/sell_assembled only render on the
-  # street-alchemy body, but don't skip a guard — pattern-match or guard on
-  # socket.assigns.live_action == :street_alchemy defensively). Status line: "SCAVENGED //
-  # 1x <RAW NAME> // HEAT +<heat delta>". Crafting.scavenge/1 picks a random raw internally
-  # and doesn't return which one in `meta`, so determine it by diffing
-  # socket.assigns.player.inventory (before) against the new player's inventory (after) —
-  # find the one raw key whose count increased by 1. Keep the existing flash_heat_event/2
-  # call for heat-threshold flashes.
+  def handle_event("scavenge", _params, socket) do
+    before_inventory = socket.assigns.player.inventory
+    {:ok, player, meta} = Players.dispatch(socket.assigns.player_id, &Crafting.scavenge/1)
 
-  # TODO: handle_event("assemble", %{"key" => recipe_key}, ...) — port from DashboardLive
-  # lines 82-87, dispatching Crafting.assemble(player, recipe_key). Status line: "ASSEMBLED
-  # // <RecipeCatalog.fetch!(recipe_key).name> // bench output +1". Crafting.assemble/2 does
-  # not change heat (only inventory), so no heat delta belongs in this status line — confirm
-  # against Shunt.Crafting.assemble/2's effects list before adding one.
+    {raw_key, _qty} =
+      Enum.find(player.inventory, fn {key, qty} ->
+        qty > Map.get(before_inventory, key, 0)
+      end)
 
-  # TODO: handle_event("sell_assembled", %{"key" => item_key}, ...) — port from DashboardLive
-  # lines 89-97, dispatching Crafting.sell_assembled(player, item_key). Look up
-  # `recipe = RecipeCatalog.fetch!(item_key)` before dispatch for the display name. Status
-  # line: "FENCED // <recipe.name> // +<scrip delta> SCRIP // HEAT +<heat delta>". Keep the
-  # existing flash_heat_event/2 call.
+    heat_delta = delta(socket.assigns.player, player, :heat)
+    raw_name = RawCatalog.fetch!(raw_key).name
+    status = "SCAVENGED // 1x #{raw_name} // HEAT +#{heat_delta}"
 
-  # TODO: build render/1 for the brief's §6 craft pages, using <Layouts.app flash={@flash}
-  # player={@player} active={socket.assigns.live_action} status={@status}>:
-  #   - <Chrome.ladder_track tree={@tree} current_tier={@current_tier} /> at the top on every
-  #     page (brief §4 "sub-header below the top bar" / §5 "Progression ladder track" —
-  #     ported from DashboardLive's per-tree rendering at lines 209-227, but using the shared
-  #     component instead of inline divs).
-  #   - When @tree.key == "street_alchemy": the full crafting body, porting DashboardLive
-  #     lines 295-374 (Scavenge action button id="scavenge-button", raw materials list ids
-  #     "raw-#{raw.key}", recipe list ids "recipe-#{recipe.key}"/"assemble-#{recipe.key}-button"
-  #     with Locked/Unlocked text and tier-gating exactly as today, assembled-goods list ids
-  #     "assembled-#{recipe.key}"/"sell-assembled-#{recipe.key}-button") rebuilt with
-  #     <Chrome.panel>/<Chrome.btn>/<Chrome.section_header> ("// SCAVENGE", "// RECIPES",
-  #     "// ASSEMBLED" per brief §6) instead of raw Tailwind markup.
-  #   - Otherwise (ghostwork/chrome_meat/web): a single dormant <Chrome.panel> with the
-  #     "⚠ DORMANT MODULE" label and @tree.stub flavor text (the field staged in
-  #     priv/content/skills/trees.exs) — no controls, per brief §6 ("a short flavor line and
-  #     no controls").
+    {:noreply,
+     socket
+     |> assign(:status, status)
+     |> flash_heat_event(meta.heat_event)
+     |> assign_player(player)}
+  end
+
+  def handle_event("assemble", %{"key" => recipe_key}, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Crafting.assemble(&1, recipe_key)) do
+      {:ok, player, _meta} ->
+        status = "ASSEMBLED // #{RecipeCatalog.fetch!(recipe_key).name} // bench output +1"
+        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("sell_assembled", %{"key" => item_key}, socket) do
+    recipe = RecipeCatalog.fetch!(item_key)
+
+    case Players.dispatch(socket.assigns.player_id, &Crafting.sell_assembled(&1, item_key)) do
+      {:ok, player, meta} ->
+        scrip_delta = delta(socket.assigns.player, player, :scrip)
+        heat_delta = delta(socket.assigns.player, player, :heat)
+        status = "FENCED // #{recipe.name} // +#{scrip_delta} SCRIP // HEAT +#{heat_delta}"
+
+        {:noreply,
+         socket
+         |> assign(:status, status)
+         |> flash_heat_event(meta.heat_event)
+         |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
   def render(assigns) do
-    raise "not implemented"
+    ~H"""
+    <Layouts.app
+      flash={@flash}
+      player={@player}
+      active={String.to_existing_atom(@tree.key)}
+      status={@status}
+    >
+      <Chrome.ladder_track tree={@tree} current_tier={@current_tier} />
+
+      <%= if @tree.key == "street_alchemy" do %>
+        <Chrome.section_header>// SCAVENGE</Chrome.section_header>
+        <Chrome.panel>
+          <Chrome.btn id="scavenge-button" variant={:primary} phx-click="scavenge">
+            [ SCAVENGE ]
+          </Chrome.btn>
+          <div :for={raw <- @raws}>
+            <p :if={Map.get(@player.inventory, raw.key, 0) > 0} id={"raw-#{raw.key}"}>
+              {raw.name} ({Map.get(@player.inventory, raw.key, 0)})
+            </p>
+          </div>
+        </Chrome.panel>
+
+        <Chrome.section_header>// RECIPES</Chrome.section_header>
+        <div :for={recipe <- @recipes} id={"recipe-#{recipe.key}"}>
+          <Chrome.panel>
+            <p>
+              <span>{recipe.name}</span>
+              <%= if @current_tier < recipe.tier_required do %>
+                Locked
+              <% else %>
+                Unlocked
+              <% end %>
+            </p>
+            <p :for={{raw_key, qty} <- recipe.inputs}>
+              {qty} x {RawCatalog.fetch!(raw_key).name} (owned: {Map.get(
+                @player.inventory,
+                raw_key,
+                0
+              )})
+            </p>
+            <Chrome.btn
+              id={"assemble-#{recipe.key}-button"}
+              variant={
+                if(
+                  @current_tier < recipe.tier_required or
+                    Enum.any?(recipe.inputs, fn {raw_key, qty} ->
+                      qty > Map.get(@player.inventory, raw_key, 0)
+                    end),
+                  do: :dead,
+                  else: :primary
+                )
+              }
+              phx-click="assemble"
+              phx-value-key={recipe.key}
+            >
+              [ ASSEMBLE ]
+            </Chrome.btn>
+          </Chrome.panel>
+        </div>
+
+        <Chrome.section_header>// ASSEMBLED</Chrome.section_header>
+        <div :for={recipe <- @recipes}>
+          <div :if={Map.get(@player.inventory, recipe.key, 0) > 0} id={"assembled-#{recipe.key}"}>
+            <Chrome.panel>
+              <p>
+                {recipe.name} ({Map.get(@player.inventory, recipe.key, 0)}) — {recipe.sell_value} Scrip
+              </p>
+              <Chrome.btn
+                id={"sell-assembled-#{recipe.key}-button"}
+                variant={:primary}
+                phx-click="sell_assembled"
+                phx-value-key={recipe.key}
+              >
+                [ SELL ]
+              </Chrome.btn>
+            </Chrome.panel>
+          </div>
+        </div>
+      <% else %>
+        <div id="skill-tree-stub">
+          <Chrome.panel>
+            <p>⚠ DORMANT MODULE</p>
+            <p>{@tree.stub}</p>
+          </Chrome.panel>
+        </div>
+      <% end %>
+    </Layouts.app>
+    """
   end
 
-  # TODO: assign_player/2 — narrower than HubLive's: assign :player, :tree (already resolved
-  # in mount/3), :current_tier (SkillsCatalog.current_tier(player, tree)), and, only relevant
-  # for street_alchemy, :raws (RawCatalog.items()) and :recipes (RecipeCatalog.recipes()).
-  # Port flash_heat_event/2 from DashboardLive lines 409-417 (identical to HubLive's copy —
-  # both LiveViews need their own private copy, this is small enough not to warrant a shared
-  # module). Add the same before/after Player-diff helper described in hub_live.ex's TODO for
-  # building @status lines.
+  defp assign_player(socket, player) do
+    tree = socket.assigns.tree
+
+    socket
+    |> assign(:player, player)
+    |> assign(:current_tier, SkillsCatalog.current_tier(player, tree))
+    |> assign(:raws, RawCatalog.items())
+    |> assign(:recipes, RecipeCatalog.recipes())
+  end
+
+  defp flash_heat_event(socket, nil), do: socket
+
+  defp flash_heat_event(socket, event) do
+    put_flash(
+      socket,
+      :error,
+      "#{event.name} — #{event.flavor_text} (-#{event.scrip_loss} Scrip, -#{event.cred_loss} Cred)"
+    )
+  end
+
+  defp delta(before, after_, field), do: Map.get(after_, field) - Map.get(before, field)
 end

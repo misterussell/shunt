@@ -8,26 +8,115 @@ defmodule ShuntWeb.SkillsLiveTest do
     :ok
   end
 
-  # TODO: replace dashboard_live_test.exs's single "renders the four skill trees as locked
-  # for a fresh player" test (lines 91-98, which checked one page for all four trees at once)
-  # with one test per route now that each tree is its own LiveView:
-  #   - visiting ~p"/skills/ghostwork" renders the dormant stub panel with the
-  #     priv/content/skills/trees.exs "ghostwork" stub text ("No backdoor cracked yet.")
-  #   - same for ~p"/skills/chrome-meat" and ~p"/skills/the-web" with their respective stubs
-  #   - visiting ~p"/skills/street-alchemy" does NOT render a stub — it renders the live
-  #     crafting body instead (assert refute has_element?(view, ...stub marker...) and assert
-  #     the scavenge button/recipe list are present)
-  # Keep an id like "#skill-tree-stub" (or similar, matching whatever id chrome.ex's dormant
-  # panel ends up using) so these assertions don't depend on exact stub copy.
+  test "ghostwork renders the dormant stub panel with its stub text", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
 
-  # TODO: port "renders recipes as locked for a fresh player" (dashboard_live_test.exs lines
-  # 229-233) and "crafting the Scrap-Forged Soldering Iron unlocks street_alchemy tier 1"
-  # (lines 235-245) against `live(conn, ~p"/skills/street-alchemy")` — same
-  # #recipe-patchwork_courier_drone / #assemble-scrap_forged_soldering_iron-button ids.
+    assert has_element?(view, "#skill-tree-stub", "No backdoor cracked yet.")
+  end
 
-  # TODO: port "scavenging adds a raw material to the displayed inventory" and "scavenging
-  # across a heat threshold flashes the fired event and drops heat" (dashboard_live_test.exs
-  # lines 171-195) against `live(conn, ~p"/skills/street-alchemy")` — same #scavenge-button /
-  # #raw-#{key} ids and #flash-error assertion. Additionally assert the new @status line
-  # mentions "SCAVENGED" for the non-threshold-crossing case, since that's new behavior.
+  test "chrome_meat renders the dormant stub panel with its stub text", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/chrome-meat")
+
+    assert has_element?(view, "#skill-tree-stub", "No table prepped. No hands steady enough yet.")
+  end
+
+  test "web renders the dormant stub panel with its stub text", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+    assert has_element?(
+             view,
+             "#skill-tree-stub",
+             "No threads pulled. The Web is listening, not talking."
+           )
+  end
+
+  test "street_alchemy does not render the dormant stub, renders the crafting body", %{
+    conn: conn
+  } do
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    refute has_element?(view, "#skill-tree-stub")
+    assert has_element?(view, "#scavenge-button")
+  end
+
+  test "renders recipes as locked for a fresh player", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    assert has_element?(view, "#recipe-patchwork_courier_drone", "Locked")
+  end
+
+  test "crafting the Scrap-Forged Soldering Iron unlocks street_alchemy tier 1", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    inputs = Shunt.Crafting.RecipeCatalog.fetch!("scrap_forged_soldering_iron").inputs
+    Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: inputs))
+
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    view |> element("#assemble-scrap_forged_soldering_iron-button") |> render_click()
+
+    assert has_element?(view, "#recipe-patchwork_courier_drone", "Unlocked")
+  end
+
+  test "scavenging adds a raw material to the displayed inventory", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    view |> element("#scavenge-button") |> render_click()
+
+    assert Enum.any?(
+             Shunt.Crafting.RawCatalog.items(),
+             &has_element?(view, "#raw-#{&1.key}")
+           )
+  end
+
+  test "scavenging sets a status line naming the raw material gained", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    html = view |> element("#scavenge-button") |> render_click()
+
+    assert html =~ "SCAVENGED"
+  end
+
+  test "scavenging across a heat threshold flashes the fired event and drops heat", %{
+    conn: conn
+  } do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, heat: 84))
+
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    html = view |> element("#scavenge-button") |> render_click()
+
+    assert html =~ "Scrip"
+    assert has_element?(view, "#flash-error")
+    assert Shunt.Players.get_player!().heat == 80
+  end
+
+  test "assembling a recipe shows the assembled good with a sell button", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    inputs = Shunt.Crafting.RecipeCatalog.fetch!("scrap_forged_soldering_iron").inputs
+    Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: inputs))
+
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    view |> element("#assemble-scrap_forged_soldering_iron-button") |> render_click()
+
+    assert has_element?(view, "#assembled-scrap_forged_soldering_iron")
+  end
+
+  test "selling an assembled good pays out scrip and clears the assembled listing", %{
+    conn: conn
+  } do
+    player = Shunt.Players.get_player!()
+
+    Shunt.Repo.update!(
+      Ecto.Changeset.change(player, inventory: %{"scrap_forged_soldering_iron" => 1})
+    )
+
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    view |> element("#sell-assembled-scrap_forged_soldering_iron-button") |> render_click()
+
+    refute has_element?(view, "#assembled-scrap_forged_soldering_iron")
+    assert Shunt.Players.get_player!().scrip > 0
+  end
 end
