@@ -279,7 +279,7 @@ defmodule ShuntWeb.HubLive do
         <Chrome.panel :for={npc <- @npcs} id={"npc-#{npc.key}"}>
           <span class={["npc-accent-bar", "npc-accent-bar--#{loyalty_band(npc.loyalty)}"]}></span>
           <p class="npc-name">{npc.name}</p>
-          <span class={["npc-faction-pill", "npc-faction-pill--#{loyalty_band(npc.loyalty)}"]}>
+          <span class={["npc-faction-pill", "npc-faction-pill--#{faction_color(npc.faction)}"]}>
             {humanize_faction(npc.faction)}
           </span>
           <div class="npc-trust-row">
@@ -394,6 +394,11 @@ defmodule ShuntWeb.HubLive do
   defp loyalty_band(loyalty) when loyalty >= 60, do: "cyan"
   defp loyalty_band(loyalty) when loyalty >= 35, do: "amber"
   defp loyalty_band(_loyalty), do: "red"
+
+  defp faction_color(:fleshless), do: "red"
+  defp faction_color(:latticework_collective), do: "green"
+  defp faction_color(:syndicate_of_closed_hands), do: "amber"
+  defp faction_color(:kaspav_authority), do: "cyan"
 
   defp loyalty_word(loyalty) when loyalty >= 70, do: "SOLID"
   defp loyalty_word(loyalty) when loyalty >= 45, do: "WARY"

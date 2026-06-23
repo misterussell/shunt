@@ -58,8 +58,6 @@ defmodule ShuntWeb.LayoutsTest do
       html = render_app()
 
       assert html =~ ~s(class="noise-overlay")
-      assert html =~ ~s(class="scanline")
-      assert html =~ ~s(class="scanline-sweep")
       assert html =~ ~s(class="vignette")
     end
 

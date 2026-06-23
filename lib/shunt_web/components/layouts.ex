@@ -47,8 +47,6 @@ defmodule ShuntWeb.Layouts do
   def app(assigns) do
     ~H"""
     <div class="noise-overlay"></div>
-    <div class="scanline"></div>
-    <div class="scanline-sweep"></div>
     <div class="vignette"></div>
 
     <div class="utility-strip">
