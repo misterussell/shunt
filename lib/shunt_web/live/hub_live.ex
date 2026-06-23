@@ -391,17 +391,20 @@ defmodule ShuntWeb.HubLive do
 
   defp offer_sku(key), do: key |> String.upcase() |> String.replace("_", "-")
 
-  defp loyalty_band(loyalty) when loyalty >= 60, do: "cyan"
-  defp loyalty_band(loyalty) when loyalty >= 35, do: "amber"
-  defp loyalty_band(_loyalty), do: "red"
+  defp loyalty_band(loyalty), do: Loyalty.band_for(loyalty) |> band_color()
+
+  defp band_color(:favored), do: "cyan"
+  defp band_color(:neutral), do: "amber"
+  defp band_color(:hostile), do: "red"
 
   defp faction_color(:fleshless), do: "red"
   defp faction_color(:latticework_collective), do: "green"
   defp faction_color(:syndicate_of_closed_hands), do: "amber"
   defp faction_color(:kaspav_authority), do: "cyan"
 
-  defp loyalty_word(loyalty) when loyalty >= 70, do: "SOLID"
-  defp loyalty_word(loyalty) when loyalty >= 45, do: "WARY"
-  defp loyalty_word(loyalty) when loyalty >= 25, do: "COLD"
-  defp loyalty_word(_loyalty), do: "BURNED"
+  defp loyalty_word(loyalty), do: Loyalty.band_for(loyalty) |> band_word()
+
+  defp band_word(:favored), do: "SOLID"
+  defp band_word(:neutral), do: "WARY"
+  defp band_word(:hostile), do: "BURNED"
 end
