@@ -155,28 +155,26 @@ defmodule ShuntWeb.Chrome do
   """
   attr :player, :map, required: true
 
-  # TODO: restyle as bordered "gauge" boxes per docs/design-comp.html lines 60-79.
-  # Cred/Scrip gauges: a bordered box (border:1px solid var(--border-c); background:
-  # var(--sunk); padding) containing a small muted label ("CRED"/"SCRIP", font-size:8px,
-  # letter-spacing:0.18em) stacked above a larger glowing colored number (font-size:15px,
-  # cyan for Cred, amber for Scrip, text-shadow glow) — replace the flat `.wallet-chip`
-  # span with this two-line box (`.gauge`/`.gauge-label`/`.gauge-value` classes in
-  # app.css). Heat gauge: same bordered box (min-width:152px) but three stacked rows —
-  # label+numeric readout on one line (justify-content:space-between), the existing
-  # `.heat-bar` below it, then the existing heat label text below that — keep the
-  # ramping cyan→amber→red color and the >=75 pulse, just nest them inside the new
-  # bordered box instead of the current bare `<div>`.
   def wallet_hud(assigns) do
     ~H"""
-    <div>
-      <span id="resource-cred" class="wallet-chip">CRED {@player.cred}</span>
-      <span id="resource-scrip" class="wallet-chip">SCRIP {@player.scrip}</span>
-      <div>
-        <span id="resource-heat">HEAT {@player.heat}/100</span>
+    <div class="wallet-hud">
+      <div id="resource-cred" class="gauge">
+        <span class="gauge-label">CRED</span>
+        <span class="gauge-value gauge-value--cyan">{@player.cred}</span>
+      </div>
+      <div id="resource-scrip" class="gauge">
+        <span class="gauge-label">SCRIP</span>
+        <span class="gauge-value gauge-value--amber">{@player.scrip}</span>
+      </div>
+      <div id="resource-heat" class="gauge gauge--heat">
+        <div class="gauge-heat-row">
+          <span class="gauge-label">HEAT</span>
+          <span class="gauge-heat-readout">{@player.heat}/100</span>
+        </div>
         <div class={["heat-bar", @player.heat >= 75 && "heat-bar--danger"]}>
           <div class="heat-bar-fill" style={"--heat: #{@player.heat}"} />
         </div>
-        <span>{heat_label(@player.heat)}</span>
+        <span class="gauge-heat-status">{heat_label(@player.heat)}</span>
       </div>
     </div>
     """

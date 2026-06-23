@@ -164,7 +164,8 @@ defmodule ShuntWeb.ChromeTest do
 
     assert html =~ "42"
     assert html =~ "7"
-    assert html =~ "HEAT 10/100"
+    assert html =~ "HEAT"
+    assert html =~ "10/100"
   end
 
   test "low heat shows the GHOST status label and no danger styling" do
@@ -186,5 +187,14 @@ defmodule ShuntWeb.ChromeTest do
 
     assert html =~ "AUTHORITY INBOUND"
     assert html =~ "heat-bar--danger"
+  end
+
+  test "cred, scrip, and heat each render as a bordered gauge box with label and value" do
+    html = render_component(&wallet_hud_wrapper/1, %{player: %{cred: 42, scrip: 7, heat: 10}})
+
+    assert Regex.scan(~r/class="gauge[" ]/, html) |> length() == 3
+    assert html =~ ~r/class="gauge-label">\s*CRED\s*</
+    assert html =~ ~r/class="gauge-label">\s*SCRIP\s*</
+    assert html =~ ~r/class="gauge-value[^"]*">\s*42\s*</
   end
 end
