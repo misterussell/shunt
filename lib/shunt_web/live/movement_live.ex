@@ -6,27 +6,52 @@ defmodule ShuntWeb.MovementLive do
   alias Shunt.World
   alias ShuntWeb.Chrome
 
-  # TODO: mount/3 — mirror HubLive.mount/3 (Players.get_player!().id, Players.current/1,
-  # assign :player_id and :status), then call assign_location/2 (defined below) instead of
-  # assign_player/2 to also populate :location and :exits
+  def mount(_params, _session, socket) do
+    player_id = Players.get_player!().id
+    player = Players.current(player_id)
 
-  # TODO: handle_event("move_to", %{"destination" => destination}, socket) —
-  # Players.dispatch(socket.assigns.player_id, &Movement.move(&1, destination)):
-  #   {:ok, player, meta} -> set :status to meta.narrative, re-run assign_location/2 with
-  #     the new player
-  #   {:error, :not_connected} -> {:noreply, socket} (defensive no-op, same pattern as every
-  #     other handle_event in HubLive — the UI only ever offers connected destinations)
+    {:ok,
+     socket |> assign(player_id: player_id) |> assign(:status, nil) |> assign_location(player)}
+  end
 
-  # TODO: render/1 — <Layouts.app flash={@flash} player={@player} active={:map} status={@status}>
-  # wrapping:
-  #   - Chrome.section_header (e.g. "MAP")
-  #   - Chrome.panel showing @location.name and @location.description
-  #   - a plain list of @exits, one Chrome.btn per exit
-  #     (phx-click="move_to" phx-value-destination={exit.to}, labeled with the destination
-  #     location's name resolved via World.get_location(exit.to).name) — no custom CSS, no
-  #     SVG graph (that's Phase 4)
+  def handle_event("move_to", %{"destination" => destination}, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Movement.move(&1, destination)) do
+      {:ok, player, meta} ->
+        {:noreply, socket |> assign(:status, meta.narrative) |> assign_location(player)}
 
-  # TODO: private assign_location(socket, player) — assign(:player, player),
-  # assign(:location, World.get_location(player.location_id)),
-  # assign(:exits, World.exits(player.location_id))
+      {:error, :not_connected} ->
+        {:noreply, socket}
+    end
+  end
+
+  def render(assigns) do
+    ~H"""
+    <Layouts.app flash={@flash} player={@player} active={:map} status={@status}>
+      <Chrome.section_header>MAP</Chrome.section_header>
+      <Chrome.panel id="current-location">
+        <p>{@location.name}</p>
+        <p>{@location.description}</p>
+      </Chrome.panel>
+      <ul>
+        <li :for={exit <- @exits}>
+          <Chrome.btn
+            id={"move-to-#{exit.to}"}
+            variant={:ghost}
+            phx-click="move_to"
+            phx-value-destination={exit.to}
+          >
+            {World.get_location(exit.to).name}
+          </Chrome.btn>
+        </li>
+      </ul>
+    </Layouts.app>
+    """
+  end
+
+  defp assign_location(socket, player) do
+    socket
+    |> assign(:player, player)
+    |> assign(:location, World.get_location(player.location_id))
+    |> assign(:exits, World.exits(player.location_id))
+  end
 end

@@ -18,7 +18,7 @@ defmodule ShuntWeb.Router do
     pipe_through :browser
 
     live "/", HubLive
-    # TODO: add `live "/map", MovementLive` here once ShuntWeb.MovementLive exists below
+    live "/map", MovementLive
     live "/skills/ghostwork", SkillsLive, :ghostwork
     live "/skills/chrome-meat", SkillsLive, :chrome_meat
     live "/skills/the-web", SkillsLive, :web

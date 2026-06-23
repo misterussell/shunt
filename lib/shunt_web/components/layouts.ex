@@ -35,11 +35,9 @@ defmodule ShuntWeb.Layouts do
 
   attr :player, :map, required: true, doc: "for the WalletHud (Cred/Scrip/Heat)"
 
-  # TODO: add :map to this values list for the new MAP nav tab (ShuntWeb.MovementLive at
-  # route "/map", nested right after :hub)
   attr :active, :atom,
     required: true,
-    values: [:hub, :ghostwork, :chrome_meat, :web, :street_alchemy],
+    values: [:hub, :map, :ghostwork, :chrome_meat, :web, :street_alchemy],
     doc: "which nav tab to highlight"
 
   attr :status, :string, default: nil, doc: "footer-ticker status line set by handle_events"
@@ -76,9 +74,7 @@ defmodule ShuntWeb.Layouts do
       <div class="flex-1"></div>
       <nav class="nav-tabs">
         <.link navigate={~p"/"} class={["tab", @active == :hub && "tab--active"]}>HUB</.link>
-        <%!-- TODO: add a MAP tab here, right after HUB:
-          <.link navigate={~p"/map"} class={["tab", @active == :map && "tab--active"]}>MAP</.link>
-        --%>
+        <.link navigate={~p"/map"} class={["tab", @active == :map && "tab--active"]}>MAP</.link>
         <.link
           navigate={~p"/skills/ghostwork"}
           class={["tab", @active == :ghostwork && "tab--active"]}
@@ -191,7 +187,7 @@ defmodule ShuntWeb.Layouts do
   end
 
   defp cwd(:hub), do: "blackmarket"
-  # TODO: add `defp cwd(:map), do: "map"` here
+  defp cwd(:map), do: "map"
   defp cwd(:ghostwork), do: "ghostwork"
   defp cwd(:chrome_meat), do: "chrome-meat"
   defp cwd(:web), do: "the-web"

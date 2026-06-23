@@ -8,12 +8,22 @@ defmodule ShuntWeb.MovementLiveTest do
     :ok
   end
 
-  # TODO: test "renders the current location's name and description" — live(conn, ~p"/map"),
-  # assert the rendered HTML includes the starting location's name ("Player Squat") and
-  # description text (Shunt.World.get_location("shunt9_player_squat"))
+  test "renders the current location's name and description", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/map")
 
-  # TODO: test "clicking a move button moves the player to that location" — live(conn,
-  # ~p"/map"), click the move button for "shunt9_maintenance_tunnel" (the starting
-  # location's only exit), then assert the rendered location updates to "Maintenance Tunnel"
-  # and that Shunt.Players.get_player!().location_id == "shunt9_maintenance_tunnel"
+    location = Shunt.World.get_location("shunt9_player_squat")
+
+    assert has_element?(view, "#current-location", location.name)
+    assert has_element?(view, "#current-location", location.description)
+  end
+
+  test "clicking a move button moves the player to that location", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+
+    destination = Shunt.World.get_location("shunt9_maintenance_tunnel")
+    assert has_element?(view, "#current-location", destination.name)
+    assert Shunt.Players.get_player!().location_id == "shunt9_maintenance_tunnel"
+  end
 end
