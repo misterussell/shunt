@@ -16,6 +16,13 @@ defmodule ShuntWeb.HubLiveTest do
     assert has_element?(view, "#resource-heat", "HEAT 0/100")
   end
 
+  test "section headers show their secondary labels", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert render(view) =~ "0x1A · FENCE_PROTOCOL"
+    assert render(view) =~ "5 DOSSIERS · USE WISELY"
+  end
+
   test "clicking Lay Low decreases displayed resources and sets the status line", %{conn: conn} do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, cred: 30, heat: 40))

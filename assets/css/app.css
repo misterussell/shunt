@@ -112,13 +112,15 @@
 [data-theme="street"] {
   --bg: #06080a;
   --panel: #0c1217;
-  --panel2: #080c10;
+  --panel2: #141a1f;
   --border-c: #27312f;
   --text: #c7d4ce;
   --muted: #5e6b66;
   --cyan: #3fe0c8;
   --amber: #d9913e;
   --red: #ff4d5e;
+  --p1: #0c1217;
+  --p2: #080c10;
   --sunk: #05090c;
   --bar1: #0a0f14;
   --bar2: #070b0f;
@@ -128,14 +130,16 @@
 
 [data-theme="corp"] {
   --bg: #0c1622;
-  --panel: #243a4d;
-  --panel2: #1b2c3b;
+  --panel: #223647;
+  --panel2: #2a4055;
   --border-c: #496781;
   --text: #ecf5fc;
   --muted: #94aabb;
   --cyan: #63d9ff;
   --amber: #f2b873;
   --red: #ff7186;
+  --p1: #243a4d;
+  --p2: #1b2c3b;
   --sunk: #0f1e2a;
   --bar1: #2e4861;
   --bar2: #1c2e3e;
@@ -156,50 +160,477 @@
 
 /* This file is for your main application CSS */
 
-/* TODO: add the cyberpunk component classes used by lib/shunt_web/components/chrome.ex and
-   layouts.ex — no inline `style="..."` attributes anywhere in the HEEx templates; every
-   visual rule the prototype expressed as inline styles must become a class here instead.
-   Needed classes (names are suggestions, keep them consistent with chrome.ex):
-     .panel          — surface gradient (var(--p1) to var(--p2)), 1px var(--border-c), no
-                       radius, inset top highlight (var(--hi)); .panel--active adds the
-                       small L-bracket corner accents (HUD-reticle corners, ::before/::after)
-     .section-header — small-caps label + thin horizontal rule (the "// WALLET" style)
-     .btn-primary, .btn-ghost, .btn-dead — rectangular, uppercase tracked-out label, thin
-       border, fills with var(--cyan) on hover/active for primary; .btn-dead is desaturated
-       + a repeating 45deg hatch background instead of opacity-50, cursor: not-allowed
-     .ladder-track, .ladder-segment, .ladder-segment--current, .ladder-segment--reached,
-       .ladder-segment--unreached — the 5-segment horizontal track; unreached segments get
-       the diagonal hatch texture (not just dimmed)
-     .heat-bar, .heat-bar-fill — ramps color cyan/amber/red by fill %; .heat-bar--danger adds
-       the `heatpulse` animation once heat >= 75 (no animation below that threshold).
-       chrome.ex's wallet_hud/1 sets `--heat: <0-100>` as a custom property on .heat-bar-fill
-       (not a literal width, to keep this out of inline styling) — .heat-bar-fill must consume
-       it via `width: calc(var(--heat) * 1%)`
-     .wallet-chip — hairline-border, no-fill monospace chip for Cred/Scrip
-     .hatch — reusable diagonal-stripe background for locked/disabled/redacted states
-     .utility-strip, .footer-ticker — the sticky terminal-prompt strip and fixed footer line
-     .theme-toggle, .theme-toggle-btn — the STREET/CORP power-switch (layouts.ex
-       theme_toggle/1): bordered strip wrapping two adjacent buttons; the button matching the
-       current [data-theme] fills with var(--cyan) background + #03100C text, the other stays
-       transparent with var(--muted) text/border
-     .noise-overlay, .scanline, .scanline-sweep, .vignette — fixed full-viewport decorative
-       layers (layouts.ex app/1), pointer-events: none. .scanline-sweep uses the `drift`
-       keyframes below; .noise-overlay is the `crtflicker`-animated grain layer
-     .footer-ticker — fixed bottom:0, flex row, var(--strip) background, var(--border-c) top
-       hairline. .footer-ticker-caret is var(--cyan). .footer-ticker-cursor is a thin var(--cyan)
-       block using the `blink` keyframes below. .footer-ticker-sysid is var(--muted), small-caps
-       tracked-out
-     .utility-strip — sticky top:0, flex row, var(--strip) background, var(--border-c) bottom
-       hairline (layouts.ex app/1). .utility-strip-cursor uses the `blink` keyframes below.
-       .utility-strip-rec is a small var(--red) circle using the `recblink` keyframes below.
-       .utility-strip-lighting-label is var(--muted), small-caps tracked-out (paired with the
-       .theme-toggle this strip now hosts)
-   Keyframes to add (copied 1:1 from the prototype's <style> block in Shunt.dc.html):
-     @keyframes heatpulse { 0%,100%{opacity:1} 50%{opacity:.55} }
-     @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-     @keyframes crtflicker { 0%,100%{opacity:.10} 8%{opacity:.16} 9%{opacity:.07} 40%{opacity:.12} 41%{opacity:.18} 70%{opacity:.09} }
-     @keyframes drift { from{background-position:0 0} to{background-position:0 -2400px} }
-     @keyframes recblink { 0%,60%{opacity:1} 61%,100%{opacity:.15} }
-   Apply var(--cyan)/var(--amber)/var(--red)/var(--text)/var(--muted)/var(--border-c) etc from
-   the per-theme custom properties staged above, not literal hex values, so switching
-   data-theme recolors everything. */
+/* Cyberpunk component classes used by lib/shunt_web/components/chrome.ex and layouts.ex.
+   All values reference the per-theme custom properties staged above (var(--cyan) etc), not
+   literal hex, so switching data-theme recolors everything. Font stacks are generic
+   placeholders pending the self-hosted-fonts TODO above — mono for data readouts, a tracked
+   uppercase sans for UI labels, matching the brief's eventual font assignment. */
+
+.hatch,
+.btn-dead,
+.ladder-segment--unreached {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--border-c) 0,
+    var(--border-c) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+}
+
+.panel {
+  position: relative;
+  background: linear-gradient(180deg, var(--p1), var(--p2));
+  border: 1px solid var(--border-c);
+  border-radius: 0;
+  box-shadow: inset 0 1px 0 0 var(--hi);
+}
+
+.black-market-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 14px;
+  margin-bottom: 36px;
+}
+
+.panel--active::before,
+.panel--active::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+}
+
+.panel--active::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--cyan);
+  border-left: 2px solid var(--cyan);
+}
+
+.panel--active::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--cyan);
+  border-right: 2px solid var(--cyan);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.section-header-bracket {
+  color: var(--cyan);
+  text-shadow: 0 0 6px var(--cyan);
+  text-transform: uppercase;
+}
+
+.section-header-rule {
+  flex: 1;
+  height: 0;
+  border-top: 1px dashed var(--border-c);
+}
+
+.section-header-secondary {
+  color: var(--muted);
+}
+
+.section-header-secondary--amber {
+  color: var(--amber);
+}
+
+.btn-primary,
+.btn-ghost,
+.btn-dead {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5625rem 1rem;
+  border: 1px solid var(--border-c);
+  border-radius: 0;
+  background: transparent;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 0 rgba(0, 0, 0, 0.55);
+  transition: transform 80ms ease, box-shadow 80ms ease, background-color 120ms ease,
+    color 120ms ease, border-color 120ms ease;
+}
+
+.btn-primary {
+  color: var(--text);
+}
+
+.btn-primary:hover,
+.btn-primary:active {
+  background: var(--cyan);
+  color: #03100c;
+  border-color: var(--cyan);
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.btn-ghost {
+  color: var(--muted);
+}
+
+.btn-ghost:hover,
+.btn-ghost:active {
+  color: var(--red);
+  border-color: var(--red);
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+
+.btn-dead {
+  background-color: var(--sunk);
+  color: var(--muted);
+  filter: saturate(0.5);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.ladder-track {
+  display: flex;
+  gap: 2px;
+}
+
+.ladder-segment {
+  flex: 1;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border-c);
+  background: var(--sunk);
+  color: var(--muted);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.7rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ladder-segment--reached {
+  background: var(--bar1);
+  color: var(--text);
+  border-color: var(--cyan);
+}
+
+.ladder-segment--current {
+  color: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+.heat-bar {
+  position: relative;
+  height: 6px;
+  background: var(--bar2);
+  border: 1px solid var(--border-c);
+  overflow: hidden;
+}
+
+.heat-bar-fill {
+  height: 100%;
+  width: calc(var(--heat) * 1%);
+  background-image: linear-gradient(90deg, var(--cyan), var(--amber), var(--red));
+  background-size: calc(10000% / var(--heat)) 100%;
+}
+
+.heat-bar--danger .heat-bar-fill {
+  animation: heatpulse 1s ease-in-out infinite;
+}
+
+.wallet-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-c);
+  background: transparent;
+  color: var(--text);
+  font-family: ui-monospace, "SFMono-Regular", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-c);
+}
+
+.theme-toggle-btn {
+  padding: 0.35rem 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+[data-theme="street"] .theme-toggle-btn[data-phx-theme="street"],
+[data-theme="corp"] .theme-toggle-btn[data-phx-theme="corp"] {
+  background: var(--cyan);
+  color: #03100c;
+}
+
+.main-content {
+  position: relative;
+  z-index: 10;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1.625rem 1.125rem 4.375rem;
+}
+
+.main-bar {
+  position: sticky;
+  top: 26px;
+  z-index: 38;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: 62px;
+  padding: 0 1.125rem;
+  background: linear-gradient(180deg, var(--bar1) 0%, var(--bar2) 100%);
+  border-bottom: 1px solid var(--border-c);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.wordmark {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.4375rem;
+  letter-spacing: 0.3em;
+  color: var(--text);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--cyan) 60%, transparent), 1px 1px 0 #000;
+}
+
+.nav-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border-left: 1px solid var(--border-c);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  height: 62px;
+  padding: 0 0.75rem;
+  background: transparent;
+  border-right: 1px solid var(--border-c);
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.65625rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.tab--active {
+  color: var(--cyan);
+  background: var(--sunk);
+  border-bottom-color: var(--cyan);
+  text-shadow: 0 0 8px var(--cyan);
+}
+
+.utility-strip {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  height: 26px;
+  padding: 0 1rem;
+  background: var(--strip);
+  border-bottom: 1px solid var(--border-c);
+  font-family: ui-monospace, "SFMono-Regular", monospace;
+  font-size: 0.65625rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.utility-strip-prompt {
+  color: var(--cyan);
+}
+
+.utility-strip-cursor,
+.footer-ticker-cursor {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  background: var(--cyan);
+  animation: blink 1s steps(1) infinite;
+}
+
+.utility-strip-rec {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: var(--red);
+  animation: recblink 2s steps(1) infinite;
+}
+
+.utility-strip-lighting-label,
+.footer-ticker-sysid {
+  color: var(--muted);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.footer-ticker {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 28px;
+  padding: 0 0.875rem;
+  background: var(--strip);
+  border-top: 1px solid var(--border-c);
+  font-family: ui-monospace, "SFMono-Regular", monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  overflow: hidden;
+}
+
+.footer-ticker-caret {
+  color: var(--cyan);
+}
+
+.footer-ticker-status {
+  min-width: 0;
+}
+
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: crtflicker 10s ease-in-out infinite;
+}
+
+.scanline {
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.03) 0,
+    rgba(255, 255, 255, 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.scanline-sweep {
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.05) 0,
+    transparent 2px,
+    transparent 40px
+  );
+  animation: drift 8s linear infinite;
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 48;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.5) 100%);
+}
+
+@keyframes heatpulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes crtflicker {
+  0%,
+  100% {
+    opacity: 0.1;
+  }
+  8% {
+    opacity: 0.16;
+  }
+  9% {
+    opacity: 0.07;
+  }
+  40% {
+    opacity: 0.12;
+  }
+  41% {
+    opacity: 0.18;
+  }
+  70% {
+    opacity: 0.09;
+  }
+}
+
+@keyframes drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 -2400px;
+  }
+}
+
+@keyframes recblink {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  61%,
+  100% {
+    opacity: 0.15;
+  }
+}

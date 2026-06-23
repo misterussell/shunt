@@ -83,12 +83,9 @@ defmodule ShuntWeb.SkillsLive do
       <Chrome.ladder_track tree={@tree} current_tier={@current_tier} />
 
       <%= if @tree.key == "street_alchemy" do %>
-        <%!-- TODO: once Chrome.section_header gets its `secondary` attr, pass
-          secondary="⚠ DRAWS HEAT" here, colored amber (docs/design-comp.html line 257 —
-          this one secondary label uses var(--amber) instead of the usual muted color, so
-          the attr/component needs a way to flag that, e.g. `secondary_class="amber"` or
-          accept the secondary content as a slot instead of a plain string). --%>
-        <Chrome.section_header>// SCAVENGE</Chrome.section_header>
+        <Chrome.section_header secondary="⚠ DRAWS HEAT" secondary_amber>
+          SCAVENGE
+        </Chrome.section_header>
         <%!-- TODO: restructure this panel into a 2-column grid (docs/design-comp.html
           lines 260-277): `<Chrome.panel class="scavenge-grid">` with CSS
           `display:grid; grid-template-columns:240px 1fr; gap:22px;` added via the
@@ -112,9 +109,7 @@ defmodule ShuntWeb.SkillsLive do
           </div>
         </Chrome.panel>
 
-        <%!-- TODO: once Chrome.section_header gets its `secondary` attr, pass
-          secondary="DECRYPTED BY TIER" here (docs/design-comp.html line 282). --%>
-        <Chrome.section_header>// RECIPES</Chrome.section_header>
+        <Chrome.section_header secondary="DECRYPTED BY TIER">RECIPES</Chrome.section_header>
         <%!-- TODO: replace this `:for` + full-`Chrome.panel`-per-recipe block entirely
           (docs/design-comp.html lines 285-311). Recipes must NOT be full panels — render
           a `<div class="recipes-list">` (CSS: display:flex; flex-direction:column;
@@ -170,9 +165,7 @@ defmodule ShuntWeb.SkillsLive do
           </Chrome.panel>
         </div>
 
-        <%!-- TODO: once Chrome.section_header gets its `secondary` attr, pass
-          secondary="BENCH OUTPUT" here (docs/design-comp.html line 316). --%>
-        <Chrome.section_header>// ASSEMBLED</Chrome.section_header>
+        <Chrome.section_header secondary="BENCH OUTPUT">ASSEMBLED</Chrome.section_header>
         <%!-- TODO: restructure assembled goods (docs/design-comp.html lines 319-336).
           When at least one recipe has `Map.get(@player.inventory, recipe.key, 0) > 0`:
           wrap the `:for` in a `<div class="assembled-grid">` (CSS: display:grid;

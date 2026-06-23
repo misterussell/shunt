@@ -61,23 +61,22 @@ defmodule ShuntWeb.Chrome do
 
       <.section_header>BLACK_MARKET</.section_header>
   """
+  attr :secondary, :string, default: nil
+  attr :secondary_amber, :boolean, default: false
   slot :inner_block, required: true
 
-  # TODO: add `attr :secondary, :string, default: nil` for the right-aligned secondary
-  # label (e.g. "0x1A · FENCE_PROTOCOL", "5 DOSSIERS · USE WISELY", "⚠ DRAWS HEAT",
-  # "DECRYPTED BY TIER", "BENCH OUTPUT" — each call site passes its own value, see
-  # docs/design-comp.html lines 106-110, 191-195, 255-259, 280-284, 314-318). Re-render
-  # the markup as: a cyan bracket-open span "┌─[ LABEL ]", a dashed rule (flex:1,
-  # border-top:1px dashed var(--border-c), not the current solid `.section-header::after`
-  # rule), the secondary label span (muted, or amber when the call site needs amber e.g.
-  # "⚠ DRAWS HEAT"), and a cyan bracket-close span "─┐". Replace the current
-  # `.section-header`/`::before`/`::after` CSS in app.css with rules for this new
-  # 4-part flex layout (drop the `// ` pseudo-element prefix, it's superseded by the
-  # bracket glyphs).
   def section_header(assigns) do
     ~H"""
     <div class="section-header">
-      {render_slot(@inner_block)}
+      <span class="section-header-bracket">┌─[ {render_slot(@inner_block)} ]</span>
+      <span class="section-header-rule"></span>
+      <span
+        :if={@secondary}
+        class={["section-header-secondary", @secondary_amber && "section-header-secondary--amber"]}
+      >
+        {@secondary}
+      </span>
+      <span class="section-header-bracket">─┐</span>
     </div>
     """
   end

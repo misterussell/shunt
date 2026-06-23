@@ -39,6 +39,15 @@ defmodule ShuntWeb.SkillsLiveTest do
     assert has_element?(view, "#scavenge-button")
   end
 
+  test "street_alchemy section headers show their secondary labels", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    html = render(view)
+    assert html =~ "⚠ DRAWS HEAT"
+    assert html =~ "DECRYPTED BY TIER"
+    assert html =~ "BENCH OUTPUT"
+  end
+
   test "renders recipes as locked for a fresh player", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
 

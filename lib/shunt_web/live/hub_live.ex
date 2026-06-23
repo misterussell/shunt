@@ -170,10 +170,7 @@ defmodule ShuntWeb.HubLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} player={@player} active={:hub} status={@status}>
-      <%!-- TODO: once Chrome.section_header gets its `secondary` attr (staged in
-        chrome.ex), pass secondary="0x1A · FENCE_PROTOCOL" here (docs/design-comp.html
-        line 108). --%>
-      <Chrome.section_header>BLACK_MARKET</Chrome.section_header>
+      <Chrome.section_header secondary="0x1A · FENCE_PROTOCOL">BLACK_MARKET</Chrome.section_header>
       <div class="black-market-grid">
         <%!-- TODO: offer panel chrome (docs/design-comp.html lines 115-164): a top amber
           dashed accent strip (absolute-positioned span, background:repeating-linear-
@@ -245,9 +242,7 @@ defmodule ShuntWeb.HubLive do
         </Chrome.panel>
       </div>
 
-      <%!-- TODO: once Chrome.section_header gets its `secondary` attr, pass
-        secondary="5 DOSSIERS · USE WISELY" here (docs/design-comp.html line 193). --%>
-      <Chrome.section_header>CONTACTS</Chrome.section_header>
+      <Chrome.section_header secondary="5 DOSSIERS · USE WISELY">CONTACTS</Chrome.section_header>
       <%!-- TODO: wrap this `:for` div in a grid container — change the outer element to
         `<div class="contacts-grid">` with CSS `display:grid;
         grid-template-columns:repeat(auto-fill, minmax(290px,1fr)); gap:12px;` in app.css

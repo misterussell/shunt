@@ -55,15 +55,51 @@ defmodule ShuntWeb.ChromeTest do
 
   defp section_header_wrapper(assigns) do
     ~H"""
-    <Chrome.section_header>BLACK_MARKET</Chrome.section_header>
+    <Chrome.section_header secondary={@secondary} secondary_amber={@secondary_amber}>
+      BLACK_MARKET
+    </Chrome.section_header>
     """
   end
 
   test "renders the label inside a .section-header element" do
-    html = render_component(&section_header_wrapper/1, %{})
+    html = render_component(&section_header_wrapper/1, %{secondary: nil, secondary_amber: false})
 
     assert html =~ ~r/class="section-header"/
     assert html =~ "BLACK_MARKET"
+  end
+
+  test "renders the bracket motif around the label" do
+    html = render_component(&section_header_wrapper/1, %{secondary: nil, secondary_amber: false})
+
+    assert html =~ ~r/┌─\[\s*BLACK_MARKET\s*\]/
+    assert html =~ "─┐"
+  end
+
+  test "renders a secondary label when given, without amber styling by default" do
+    html =
+      render_component(&section_header_wrapper/1, %{
+        secondary: "0x1A · FENCE_PROTOCOL",
+        secondary_amber: false
+      })
+
+    assert html =~ "0x1A · FENCE_PROTOCOL"
+    refute html =~ "section-header-secondary--amber"
+  end
+
+  test "omits the secondary label entirely when not given" do
+    html = render_component(&section_header_wrapper/1, %{secondary: nil, secondary_amber: false})
+
+    refute html =~ "section-header-secondary"
+  end
+
+  test "secondary_amber adds the amber modifier class to the secondary label" do
+    html =
+      render_component(&section_header_wrapper/1, %{
+        secondary: "⚠ DRAWS HEAT",
+        secondary_amber: true
+      })
+
+    assert html =~ "section-header-secondary--amber"
   end
 
   @tree %{
