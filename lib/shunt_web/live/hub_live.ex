@@ -35,10 +35,8 @@ defmodule ShuntWeb.HubLive do
 
   def handle_event("lay_low", _params, socket) do
     case Players.dispatch(socket.assigns.player_id, &Players.lay_low/1) do
-      {:ok, player, _meta} ->
-        status =
-          "LAY LOW // #{delta(socket.assigns.player, player, :cred)} CRED // HEAT #{delta(socket.assigns.player, player, :heat)}"
-
+      {:ok, player, meta} ->
+        status = "LAY LOW // #{meta.deltas.cred} CRED // HEAT #{meta.deltas.heat}"
         {:noreply, socket |> assign(:status, status) |> assign_player(player)}
 
       {:error, :insufficient_cred} ->
@@ -59,10 +57,9 @@ defmodule ShuntWeb.HubLive do
 
   def handle_event("take_offer", _params, socket) do
     case Players.dispatch(socket.assigns.player_id, &Fencing.take_offer/1) do
-      {:ok, player, _meta} ->
+      {:ok, player, meta} ->
         item = Catalog.fetch!(player.held_item_key)
-        scrip_delta = delta(socket.assigns.player, player, :scrip)
-        status = "STASHED // #{item.name} // #{scrip_delta} SCRIP"
+        status = "STASHED // #{item.name} // #{meta.deltas.scrip} SCRIP"
         {:noreply, socket |> assign(:status, status) |> assign_player(player)}
 
       {:error, _reason} ->
@@ -85,9 +82,7 @@ defmodule ShuntWeb.HubLive do
     case Players.dispatch(socket.assigns.player_id, &Fencing.sell_held_item/1) do
       {:ok, player, meta} ->
         name = Catalog.fetch!(socket.assigns.player.held_item_key).name
-        scrip_delta = delta(socket.assigns.player, player, :scrip)
-        heat_delta = delta(socket.assigns.player, player, :heat)
-        status = "FENCED // #{name} // +#{scrip_delta} SCRIP // HEAT +#{heat_delta}"
+        status = "FENCED // #{name} // +#{meta.deltas.scrip} SCRIP // HEAT +#{meta.deltas.heat}"
 
         {:noreply,
          socket
@@ -103,9 +98,8 @@ defmodule ShuntWeb.HubLive do
   def handle_event("flesh_tithe", _params, socket) do
     case Players.dispatch(socket.assigns.player_id, &Npcs.flesh_tithe/1) do
       {:ok, player, meta} ->
-        scrip_delta = delta(socket.assigns.player, player, :scrip)
-        heat_delta = delta(socket.assigns.player, player, :heat)
-        status = "MOTHER GRAFT // stitched a deal // +#{scrip_delta} SCRIP // HEAT +#{heat_delta}"
+        status =
+          "MOTHER GRAFT // stitched a deal // +#{meta.deltas.scrip} SCRIP // HEAT +#{meta.deltas.heat}"
 
         {:noreply,
          socket
@@ -120,10 +114,9 @@ defmodule ShuntWeb.HubLive do
 
   def handle_event("move_goods", _params, socket) do
     case Players.dispatch(socket.assigns.player_id, &Npcs.move_goods/1) do
-      {:ok, player, _meta} ->
+      {:ok, player, meta} ->
         name = Catalog.fetch!(socket.assigns.player.held_item_key).name
-        scrip_delta = delta(socket.assigns.player, player, :scrip)
-        status = "ROOK // moved #{name} // +#{scrip_delta} SCRIP"
+        status = "ROOK // moved #{name} // +#{meta.deltas.scrip} SCRIP"
         {:noreply, socket |> assign(:status, status) |> assign_player(player)}
 
       {:error, _reason} ->
@@ -133,9 +126,8 @@ defmodule ShuntWeb.HubLive do
 
   def handle_event("look_the_other_way", _params, socket) do
     case Players.dispatch(socket.assigns.player_id, &Npcs.look_the_other_way/1) do
-      {:ok, player, _meta} ->
-        heat_delta = delta(socket.assigns.player, player, :heat)
-        status = "NINE-IRON // sensor wiped // HEAT #{heat_delta}"
+      {:ok, player, meta} ->
+        status = "NINE-IRON // sensor wiped // HEAT #{meta.deltas.heat}"
         {:noreply, socket |> assign(:status, status) |> assign_player(player)}
 
       {:error, _reason} ->
@@ -145,9 +137,8 @@ defmodule ShuntWeb.HubLive do
 
   def handle_event("data_drop", _params, socket) do
     case Players.dispatch(socket.assigns.player_id, &Npcs.data_drop/1) do
-      {:ok, player, _meta} ->
-        cred_delta = delta(socket.assigns.player, player, :cred)
-        status = "SPLICE // data dropped // +#{cred_delta} CRED"
+      {:ok, player, meta} ->
+        status = "SPLICE // data dropped // +#{meta.deltas.cred} CRED"
         {:noreply, socket |> assign(:status, status) |> assign_player(player)}
 
       {:error, _reason} ->
@@ -157,9 +148,8 @@ defmodule ShuntWeb.HubLive do
 
   def handle_event("settle_the_books", _params, socket) do
     case Players.dispatch(socket.assigns.player_id, &Npcs.settle_the_books/1) do
-      {:ok, player, _meta} ->
-        scrip_delta = delta(socket.assigns.player, player, :scrip)
-        status = "TALLY // books settled // +#{scrip_delta} SCRIP"
+      {:ok, player, meta} ->
+        status = "TALLY // books settled // +#{meta.deltas.scrip} SCRIP"
         {:noreply, socket |> assign(:status, status) |> assign_player(player)}
 
       {:error, _reason} ->
@@ -371,8 +361,6 @@ defmodule ShuntWeb.HubLive do
       "#{event.name} — #{event.flavor_text} (-#{event.scrip_loss} Scrip, -#{event.cred_loss} Cred)"
     )
   end
-
-  defp delta(before, after_, field), do: Map.get(after_, field) - Map.get(before, field)
 
   defp humanize_faction(faction) do
     faction
