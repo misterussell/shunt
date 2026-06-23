@@ -219,12 +219,13 @@ defmodule ShuntWeb.HubLive do
                   </span>
                 </div>
               </div>
+              <% can_afford_offer = @player.scrip >= @offer.buy_cost %>
               <Chrome.btn
                 id="take-offer-button"
-                variant={if(@player.scrip < @offer.buy_cost, do: :dead, else: :primary)}
+                variant={if(can_afford_offer, do: :primary, else: :dead)}
                 phx-click="take_offer"
               >
-                [ TAKE IT ]
+                {action_label(can_afford_offer, "TAKE IT", "CRED SHORT")}
               </Chrome.btn>
               <Chrome.btn id="pass-offer-button" variant={:ghost} phx-click="pass_offer">
                 [ PASS ]
@@ -294,53 +295,53 @@ defmodule ShuntWeb.HubLive do
             />
           </div>
           <div :for={action <- npc.trade_actions}>
-            <p><span>{action.name}</span> — {action.description}</p>
+            <p class="npc-action-text"><span>{action.name}</span> — {action.description}</p>
           </div>
           <%= cond do %>
             <% npc.key == "mother_graft" -> %>
+              <% can_do = Map.get(@player.inventory, "cracked_bone_plate", 0) >= 1 %>
               <Chrome.btn
                 id="trade-flesh-tithe-button"
-                variant={
-                  if(Map.get(@player.inventory, "cracked_bone_plate", 0) < 1,
-                    do: :dead,
-                    else: :primary
-                  )
-                }
+                variant={if(can_do, do: :primary, else: :dead)}
                 phx-click="flesh_tithe"
               >
-                [ FLESH TITHE ]
+                {action_label(can_do, "FLESH TITHE", "CAN'T PAY")}
               </Chrome.btn>
             <% npc.key == "rook" -> %>
+              <% can_do = not is_nil(@player.held_item_key) %>
               <Chrome.btn
                 id="trade-move-goods-button"
-                variant={if(is_nil(@player.held_item_key), do: :dead, else: :primary)}
+                variant={if(can_do, do: :primary, else: :dead)}
                 phx-click="move_goods"
               >
-                [ MOVE GOODS ]
+                {action_label(can_do, "MOVE GOODS", "CAN'T PAY")}
               </Chrome.btn>
             <% npc.key == "nine_iron" -> %>
+              <% can_do = @player.scrip >= 20 %>
               <Chrome.btn
                 id="trade-look-the-other-way-button"
-                variant={if(@player.scrip < 20, do: :dead, else: :primary)}
+                variant={if(can_do, do: :primary, else: :dead)}
                 phx-click="look_the_other_way"
               >
-                [ LOOK THE OTHER WAY ]
+                {action_label(can_do, "LOOK THE OTHER WAY", "CAN'T PAY")}
               </Chrome.btn>
             <% npc.key == "splice" -> %>
+              <% can_do = @player.scrip >= 20 %>
               <Chrome.btn
                 id="trade-data-drop-button"
-                variant={if(@player.scrip < 20, do: :dead, else: :primary)}
+                variant={if(can_do, do: :primary, else: :dead)}
                 phx-click="data_drop"
               >
-                [ DATA DROP ]
+                {action_label(can_do, "DATA DROP", "CAN'T PAY")}
               </Chrome.btn>
             <% npc.key == "tally" -> %>
+              <% can_do = @player.cred >= 1 %>
               <Chrome.btn
                 id="trade-settle-the-books-button"
-                variant={if(@player.cred < 1, do: :dead, else: :primary)}
+                variant={if(can_do, do: :primary, else: :dead)}
                 phx-click="settle_the_books"
               >
-                [ SETTLE THE BOOKS ]
+                {action_label(can_do, "SETTLE THE BOOKS", "CAN'T PAY")}
               </Chrome.btn>
             <% true -> %>
           <% end %>
@@ -380,6 +381,9 @@ defmodule ShuntWeb.HubLive do
     |> String.split()
     |> Enum.map_join(" ", &String.capitalize/1)
   end
+
+  defp action_label(true, label, _disabled_label), do: "[ #{label} ]"
+  defp action_label(false, _label, disabled_label), do: "[ #{disabled_label} ]"
 
   defp tier_label(:hot), do: "HOT // HIGH RISK"
   defp tier_label(:warm), do: "WARM"

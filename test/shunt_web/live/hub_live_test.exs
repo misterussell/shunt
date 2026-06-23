@@ -254,11 +254,51 @@ defmodule ShuntWeb.HubLiveTest do
   end
 
   test "renders the NPC roster", %{conn: conn} do
+    item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.key))
+
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(view, "#npc-rook", "Rook")
     assert has_element?(view, "#npc-rook", "MOVE GOODS")
     assert has_element?(view, "#npc-tally", "Tally")
+  end
+
+  test "an NPC trade action description has a styled action-text class", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#npc-rook .npc-action-text", "fences whatever")
+  end
+
+  test "a disabled NPC trade button shows CAN'T PAY instead of its normal CTA label", %{
+    conn: conn
+  } do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#trade-flesh-tithe-button", "CAN'T PAY")
+    refute has_element?(view, "#trade-flesh-tithe-button", "FLESH TITHE")
+  end
+
+  test "an affordable NPC trade button keeps its normal CTA label", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: %{"cracked_bone_plate" => 1}))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#trade-flesh-tithe-button", "FLESH TITHE")
+    refute has_element?(view, "#trade-flesh-tithe-button", "CAN'T PAY")
+  end
+
+  test "a disabled take-offer button shows CRED SHORT instead of TAKE IT", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 0))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    view |> element("#find-lead-button") |> render_click()
+
+    assert has_element?(view, "#take-offer-button", "CRED SHORT")
+    refute has_element?(view, "#take-offer-button", "TAKE IT")
   end
 
   test "loyalty bar reflects Player.npc_loyalty, not a static NPC value", %{conn: conn} do
