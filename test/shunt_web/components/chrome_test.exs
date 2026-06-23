@@ -145,6 +145,20 @@ defmodule ShuntWeb.ChromeTest do
     assert Regex.scan(~r/ladder-segment--unreached/, html) |> length() == 4
   end
 
+  test "wraps the track in a ladder-panel and prefixes the name with PROGRESSION_LADDER //" do
+    html = render_component(&ladder_track_wrapper/1, %{tree: @tree, current_tier: 0})
+
+    assert html =~ "ladder-panel"
+    assert html =~ "PROGRESSION_LADDER //"
+  end
+
+  test "each segment shows its tier code beside the tier name" do
+    html = render_component(&ladder_track_wrapper/1, %{tree: @tree, current_tier: 0})
+
+    assert html =~ "T1"
+    assert html =~ "T5"
+  end
+
   defp wallet_hud_wrapper(assigns) do
     ~H"""
     <Chrome.wallet_hud player={@player} />

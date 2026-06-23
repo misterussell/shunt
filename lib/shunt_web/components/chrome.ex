@@ -101,41 +101,26 @@ defmodule ShuntWeb.Chrome do
   attr :tree, :map, required: true
   attr :current_tier, :integer, required: true
 
-  # TODO: wrap this whole component in a bordered/padded panel div (see
-  # docs/design-comp.html lines 233-250: `position:relative; margin-bottom:26px;
-  # background:linear-gradient(180deg, var(--p1), var(--p2)); border:1px solid
-  # var(--border); padding:18px 20px;`) and prefix the tree name/description row with a
-  # "PROGRESSION_LADDER //" label (muted, letter-spacing:0.18em) before {@tree.name} on
-  # the same line. Add a `.ladder-panel` class in app.css for the wrapper.
-  #
-  # TODO: change each `.ladder-segment` from a bordered box containing the tier name text
-  # to a thin bar (height:11px, no border, just background color per state) with a label
-  # row below it showing the tier code ("T0", "T1", ...) plus the tier name beside it (see
-  # docs/design-comp.html lines 239-249). Reached segments: solid cyan-tinted background.
-  # Current segment: solid cyan + glow. Unreached: keep the existing hatch background but
-  # move it onto the bar element instead of the text box. Update `.ladder-track`,
-  # `.ladder-segment`, `.ladder-segment--reached`, `.ladder-segment--current`,
-  # `.ladder-segment--unreached` in app.css accordingly — this changes the segment's
-  # internal structure (bar div + label row div) so the HEEx markup below needs restructuring,
-  # not just new CSS.
   def ladder_track(assigns) do
     ~H"""
-    <div>
-      <div>
-        <span>{@tree.name}</span>
-        <span>{@tree.description}</span>
+    <div class="ladder-panel">
+      <div class="ladder-panel-heading">
+        <span class="ladder-panel-prefix">PROGRESSION_LADDER //</span>
+        <span class="ladder-panel-name">{@tree.name}</span>
+        <span class="ladder-panel-description">{@tree.description}</span>
       </div>
       <div class="ladder-track">
-        <div
-          :for={tier <- @tree.tiers}
-          class={[
+        <div :for={tier <- @tree.tiers} class="ladder-segment-wrap">
+          <div class={[
             "ladder-segment",
             tier.tier <= @current_tier && "ladder-segment--reached",
             tier.tier == @current_tier && "ladder-segment--current",
             tier.tier > @current_tier && "ladder-segment--unreached"
-          ]}
-        >
-          {tier.name}
+          ]} />
+          <div class="ladder-segment-label">
+            <span class="ladder-segment-code">T{tier.tier}</span>
+            <span class="ladder-segment-name">{tier.name}</span>
+          </div>
         </div>
       </div>
     </div>
