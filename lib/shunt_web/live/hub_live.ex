@@ -172,31 +172,45 @@ defmodule ShuntWeb.HubLive do
     <Layouts.app flash={@flash} player={@player} active={:hub} status={@status}>
       <Chrome.section_header secondary="0x1A · FENCE_PROTOCOL">BLACK_MARKET</Chrome.section_header>
       <div class="black-market-grid">
-        <%!-- TODO: offer panel chrome (docs/design-comp.html lines 115-164): a top amber
-          dashed accent strip (absolute-positioned span, background:repeating-linear-
-          gradient(90deg, var(--amber) 0 9px, ... 9px 18px)), a ">> INTERCEPTED LEAD"
-          header row with a blinking red dot (reuse the `.utility-strip-rec`-style blink
-          animation) + a muted signal-strength glyph ("||||·|||·||||·|·|||"), and in the
-          `@offer != nil` branch a colored tier badge (cyan/amber/red border+text by
-          @offer.tier — CLEAN/WARM/HOT) plus a 3-up buy/fence/heat stat strip (each stat:
-          muted label above a value, divided by 1px gaps, background var(--sunk))
-          replacing the current bare `<p>Buy: {@offer.buy_cost} Scrip</p>`. In the
-          `@offer == nil` empty state, add the "awaiting handshake" line with a blinking
-          `_` cursor before the button (docs/design-comp.html line 161; the comp's button
-          reads "[ PULL LEAD ]" vs. this code's "[ FIND A LEAD ]" — confirm the copy
-          change with the user before renaming it, since hub_live_test.exs asserts on the
-          current label). --%>
         <Chrome.panel id="offer-panel">
+          <span class="offer-accent-strip"></span>
+          <div class="offer-header">
+            <span class="offer-header-dot"></span>
+            <span class="offer-header-label">&gt;&gt; INTERCEPTED LEAD</span>
+            <div class="flex-1"></div>
+            <span class="offer-header-signal">||||·|||·||||·|·|||</span>
+          </div>
+
           <%= if @offer == nil do %>
+            <div class="offer-handshake">
+              &gt; awaiting handshake<span class="offer-handshake-cursor">_</span>
+            </div>
             <Chrome.btn id="find-lead-button" variant={:primary} phx-click="find_lead">
               [ FIND A LEAD ]
             </Chrome.btn>
           <% else %>
             <div id="current-offer">
               <p>{@offer.name}</p>
-              <span>{@offer.tier}</span>
+              <span class={["offer-tier-badge", "offer-tier-badge--#{@offer.tier}"]}>
+                {@offer.tier}
+              </span>
               <p>{@offer.offer_text}</p>
-              <p>Buy: {@offer.buy_cost} Scrip</p>
+              <div class="offer-stat-strip">
+                <div class="offer-stat">
+                  <span class="offer-stat-label">BUY @</span>
+                  <span class="offer-stat-value">{@offer.buy_cost}</span>
+                </div>
+                <div class="offer-stat">
+                  <span class="offer-stat-label">FENCE @</span>
+                  <span class="offer-stat-value offer-stat-value--cyan">{@offer.sell_value}</span>
+                </div>
+                <div class="offer-stat">
+                  <span class="offer-stat-label">HEAT +</span>
+                  <span class={["offer-stat-value", "offer-stat-value--#{@offer.tier}"]}>
+                    {@offer.heat_cost}
+                  </span>
+                </div>
+              </div>
               <Chrome.btn
                 id="take-offer-button"
                 variant={if(@player.scrip < @offer.buy_cost, do: :dead, else: :primary)}

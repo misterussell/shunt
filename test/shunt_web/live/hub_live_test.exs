@@ -47,6 +47,30 @@ defmodule ShuntWeb.HubLiveTest do
     refute has_element?(view, "#find-lead-button")
   end
 
+  test "offer panel shows the intercepted-lead header chrome", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#offer-panel .offer-accent-strip")
+    assert has_element?(view, "#offer-panel .offer-header", ">> INTERCEPTED LEAD")
+  end
+
+  test "the empty offer state shows an awaiting-handshake cursor line", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#offer-panel", "awaiting handshake")
+  end
+
+  test "a revealed offer shows a tier badge and a buy/fence/heat stat strip", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view |> element("#find-lead-button") |> render_click()
+
+    assert has_element?(view, "#current-offer .offer-tier-badge")
+    assert has_element?(view, "#current-offer .offer-stat", "BUY @")
+    assert has_element?(view, "#current-offer .offer-stat", "FENCE @")
+    assert has_element?(view, "#current-offer .offer-stat", "HEAT +")
+  end
+
   test "taking an offer deducts scrip and shows the held item", %{conn: conn} do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100))
