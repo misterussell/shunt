@@ -5,6 +5,8 @@ defmodule ShuntWeb.Layouts do
   """
   use ShuntWeb, :html
 
+  alias ShuntWeb.Chrome
+
   # Embed all files in layouts/* within this module.
   # The default root.html.heex file contains the HTML
   # skeleton of your application, namely HTML headers
@@ -31,85 +33,71 @@ defmodule ShuntWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
-  # TODO: add the assigns the cyberpunk shell needs from every caller:
-  #   attr :player, :map, required: true  — for the WalletHud (Cred/Scrip/Heat)
-  #   attr :active, :atom, required: true — :hub | :ghostwork | :chrome_meat | :web |
-  #     :street_alchemy, used to highlight the current nav tab
-  #   attr :status, :string, default: nil — last action's status line for the footer ticker
-  #     (e.g. "STASHED // REFURB DECK // HEAT +8"); HubLive/SkillsLive set this in their
-  #     handle_events, distinct from @flash which stays for narrative beats (NPC met/loyalty
-  #     band changes, heat-event warnings)
+  # player/active default to nil so ShuntWeb.DashboardLive (pending deletion once HubLive and
+  # SkillsLive fully replace it — see that module's own deletion TODO) can keep calling
+  # <Layouts.app flash={@flash}> without colliding with Chrome.wallet_hud's
+  # #resource-cred/#resource-scrip/#resource-heat ids, which it already renders itself.
+  attr :player, :map, default: nil, doc: "for the WalletHud (Cred/Scrip/Heat)"
+
+  attr :active, :atom,
+    default: nil,
+    values: [nil, :hub, :ghostwork, :chrome_meat, :web, :street_alchemy],
+    doc: "which nav tab to highlight"
+
+  # TODO: restyle the plain .footer-ticker div below into the brief's §4 footer ticker (fixed
+  # bottom:0): "&gt;" cyan caret before @status, truncated with ellipsis, a blinking cursor
+  # span, flex-1 spacer, "SHUNT_9 · NIGHT_CYCLE · <ticker>" on the right. Also still pending
+  # here (full atmosphere pass, per agreed scope — see Shunt.dc.html lines 30-35 for the
+  # reference markup):
+  #   - fixed noise-overlay / scanline / scanline-sweep / vignette divs (pointer-events:none)
+  #   - utility strip (sticky top:0): "root@shunt-9:~/<cwd>$" prompt with a blinking cursor,
+  #     "NET: DARKLINE", a blinking REC dot, and a live clock — `cwd` derives from @active
+  #     (e.g. :hub -> "blackmarket", :ghostwork -> "ghostwork")
+  #   - the LIGHTING toggle replacing .theme_toggle/1 below (street/corp, see that function's
+  #     own TODO)
+  attr :status, :string, default: nil, doc: "footer-ticker status line set by handle_events"
+
   slot :inner_block, required: true
 
   def app(assigns) do
-    # TODO: replace this stock Phoenix navbar/main/flash shell with the brief's §4 layout —
-    # everything below is staged from Shunt.dc.html's structure (the UTILITY STRIP, MAIN BAR,
-    # and FOOTER TICKER blocks), translated from inline styles to CSS classes in app.css:
-    #
-    #   1. Atmosphere stack (full pass, per agreed scope): a fixed noise-overlay div, a
-    #      scanline div, a drifting scanline-sweep div, and a vignette div — all
-    #      pointer-events:none, stacked via z-index, ported from Shunt.dc.html lines 30-35.
-    #
-    #   2. Utility strip (sticky top:0): "root@shunt-9:~/<cwd>$" prompt with a blinking
-    #      cursor span, flex-1 spacer, "NET: DARKLINE", a blinking REC dot, and a live clock
-    #      (HH:MM:SS-ish — Shunt.dc.html only ticks seconds via a 1s setInterval-equivalent;
-    #      decide whether to drive this from a LiveView `:timer.send_interval/2` tick in each
-    #      LiveView's mount/2, or a client JS hook, and use that consistently). `cwd` should
-    #      derive from @active (e.g. :hub -> "blackmarket", :ghostwork -> "ghostwork").
-    #
-    #   3. Main bar (sticky top, below the strip): wordmark "SHUNT" + "NODE_9 · MAKESHIFT
-    #      DECK · v0.9.4" tag on the left, a vertical hairline divider, then
-    #      <Chrome.wallet_hud player={@player} />, a flex-1 spacer, the nav tabs (HUB,
-    #      GHOSTWORK, CHROME//MEAT, THE_WEB, ST_ALCHEMY — five <.link navigate={...}> styled
-    #      as tabs, highlighting whichever matches @active via a "tab--active" class instead
-    #      of inline style), and the LIGHTING toggle (replaces .theme_toggle/1 below).
-    #
-    #   4. <main> wrapping {render_slot(@inner_block)} at the brief's max-w-1240px.
-    #
-    #   5. <.flash_group flash={@flash} /> (keep — restyle its rendered markup via CSS, not
-    #      structure, since core_components.ex's flash/1 already handles client/server error
-    #      states this game still needs).
-    #
-    #   6. Footer ticker (fixed bottom:0): "&gt;" cyan caret, @status (or a sensible default
-    #      like "SYSTEM ONLINE // DECK WARM" when nil) truncated with ellipsis, a blinking
-    #      cursor span, flex-1 spacer, "SHUNT_9 · NIGHT_CYCLE · <ticker>" on the right (ticker
-    #      can be a static placeholder or derived from the clock tick from #2 — keep it
-    #      simple, it's pure flavor with no real data backing it).
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
-        </a>
-      </div>
-      <div class="flex-none">
-        <ul class="flex flex-column px-1 space-x-4 items-center">
-          <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
-          </li>
-          <li>
-            <.theme_toggle />
-          </li>
-          <li>
-            <a href="https://hexdocs.pm/phoenix/overview.html" class="btn btn-primary">
-              Get Started <span aria-hidden="true">&rarr;</span>
-            </a>
-          </li>
-        </ul>
-      </div>
+    <header class="main-bar">
+      <span class="wordmark">SHUNT</span>
+      <Chrome.wallet_hud :if={@player} player={@player} />
+      <nav class="nav-tabs">
+        <.link navigate={~p"/"} class={["tab", @active == :hub && "tab--active"]}>HUB</.link>
+        <.link
+          navigate={~p"/skills/ghostwork"}
+          class={["tab", @active == :ghostwork && "tab--active"]}
+        >
+          GHOSTWORK
+        </.link>
+        <.link
+          navigate={~p"/skills/chrome-meat"}
+          class={["tab", @active == :chrome_meat && "tab--active"]}
+        >
+          CHROME//MEAT
+        </.link>
+        <.link navigate={~p"/skills/the-web"} class={["tab", @active == :web && "tab--active"]}>
+          THE_WEB
+        </.link>
+        <.link
+          navigate={~p"/skills/street-alchemy"}
+          class={["tab", @active == :street_alchemy && "tab--active"]}
+        >
+          ST_ALCHEMY
+        </.link>
+      </nav>
+      <.theme_toggle />
     </header>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
-        {render_slot(@inner_block)}
-      </div>
+    <main class="main-content">
+      {render_slot(@inner_block)}
     </main>
 
     <.flash_group flash={@flash} />
+
+    <div class="footer-ticker">{@status || "SYSTEM ONLINE // DECK WARM"}</div>
     """
   end
 

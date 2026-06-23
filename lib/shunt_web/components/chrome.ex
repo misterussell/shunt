@@ -130,10 +130,10 @@ defmodule ShuntWeb.Chrome do
   def wallet_hud(assigns) do
     ~H"""
     <div>
-      <span class="wallet-chip">CRED {@player.cred}</span>
-      <span class="wallet-chip">SCRIP {@player.scrip}</span>
+      <span id="resource-cred" class="wallet-chip">CRED {@player.cred}</span>
+      <span id="resource-scrip" class="wallet-chip">SCRIP {@player.scrip}</span>
       <div>
-        <span>HEAT {@player.heat}/100</span>
+        <span id="resource-heat">HEAT {@player.heat}/100</span>
         <div class={["heat-bar", @player.heat >= 75 && "heat-bar--danger"]}>
           <div class="heat-bar-fill" style={"--heat: #{@player.heat}"} />
         </div>

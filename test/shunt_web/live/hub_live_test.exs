@@ -8,37 +8,191 @@ defmodule ShuntWeb.HubLiveTest do
     :ok
   end
 
-  # TODO: port "renders initial resource values" from
-  # test/shunt_web/live/dashboard_live_test.exs lines 11-17, against `live(conn, ~p"/")` —
-  # same #resource-cred/#resource-scrip/#resource-heat ids, HubLive keeps them via
-  # <Chrome.wallet_hud>.
+  # HubLive isn't routed yet (router.ex still points "/" at DashboardLive — see that file's
+  # TODO), so these tests mount it directly via live_isolated/3 instead of live(conn, ~p"/").
 
-  # TODO: port "clicking Lay Low decreases displayed resources" (dashboard_live_test.exs
-  # lines 19-29) — same #lay-low-button id, now rendered on the Hub page next to Black
-  # Market per the agreed placement.
+  test "renders initial resource values", %{conn: conn} do
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
 
-  # TODO: port the Black Market offer flow as 4 tests (dashboard_live_test.exs lines 31-89):
-  # "clicking Find a Lead reveals an offer", "taking an offer deducts scrip and shows the
-  # held item", "passing an offer returns to idle", "passing an offer when there is no
-  # pending offer doesn't crash the view", "find a lead, take it, and sell it updates
-  # resources and returns to idle" — same #find-lead-button/#current-offer/#take-offer-button
-  # /#pass-offer-button/#held-item/#sell-item-button ids.
+    assert has_element?(view, "#resource-cred", "CRED 0")
+    assert has_element?(view, "#resource-scrip", "SCRIP 0")
+    assert has_element?(view, "#resource-heat", "HEAT 0/100")
+  end
 
-  # TODO: port "renders the NPC roster" (dashboard_live_test.exs lines 100-106) and "loyalty
-  # bar reflects Player.npc_loyalty, not a static NPC value" (lines 197-202) — same
-  # #npc-#{key} ids.
+  test "clicking Lay Low decreases displayed resources and sets the status line", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, cred: 30, heat: 40))
 
-  # TODO: port the 5 NPC trade-action tests (dashboard_live_test.exs lines 108-169): "Flesh
-  # Tithe consumes a cracked_bone_plate and grants scrip", "Move Goods pays out for the held
-  # item and clears it", "Look the Other Way spends scrip and reduces heat", "Data Drop
-  # converts scrip into cred", "Settle the Books converts cred into scrip" — same
-  # #trade-flesh-tithe-button/#trade-move-goods-button/#trade-look-the-other-way-button/
-  # #trade-data-drop-button/#trade-settle-the-books-button ids. Additionally assert the new
-  # @status footer-ticker line renders the expected text for at least one of these (e.g.
-  # flesh tithe -> assert render(view) =~ "MOTHER GRAFT"), since that's new behavior not
-  # covered by the ported assertions alone.
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
 
-  # TODO: port "meeting an NPC for the first time flashes a met message" and "crossing a
-  # loyalty band flashes a band-changed message" (dashboard_live_test.exs lines 204-227)
-  # verbatim — these narrative flashes are unchanged by the redesign.
+    view |> element("#lay-low-button") |> render_click()
+
+    assert has_element?(view, "#resource-cred", "CRED 20")
+    assert has_element?(view, "#resource-heat", "HEAT 20/100")
+    assert render(view) =~ "LAY LOW"
+  end
+
+  test "clicking Find a Lead reveals an offer", %{conn: conn} do
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+
+    refute has_element?(view, "#current-offer")
+
+    view |> element("#find-lead-button") |> render_click()
+
+    assert has_element?(view, "#current-offer")
+    refute has_element?(view, "#find-lead-button")
+  end
+
+  test "taking an offer deducts scrip and shows the held item", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100))
+
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    view |> element("#find-lead-button") |> render_click()
+    view |> element("#take-offer-button") |> render_click()
+
+    assert has_element?(view, "#held-item")
+    refute has_element?(view, "#current-offer")
+  end
+
+  test "passing an offer returns to idle", %{conn: conn} do
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    view |> element("#find-lead-button") |> render_click()
+    view |> element("#pass-offer-button") |> render_click()
+
+    assert has_element?(view, "#find-lead-button")
+    refute has_element?(view, "#current-offer")
+  end
+
+  test "passing an offer when there is no pending offer doesn't crash the view", %{conn: conn} do
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    refute has_element?(view, "#current-offer")
+
+    render_click(view, "pass_offer")
+
+    assert has_element?(view, "#find-lead-button")
+  end
+
+  test "find a lead, take it, and sell it updates resources and returns to idle", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100))
+
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+
+    view |> element("#find-lead-button") |> render_click()
+    view |> element("#take-offer-button") |> render_click()
+    view |> element("#sell-item-button") |> render_click()
+
+    assert has_element?(view, "#find-lead-button")
+    refute has_element?(view, "#held-item")
+
+    player = Shunt.Players.get_player!()
+    assert player.scrip > 0
+    assert player.cred > 0
+    assert player.heat > 0
+  end
+
+  test "renders the NPC roster", %{conn: conn} do
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+
+    assert has_element?(view, "#npc-rook", "Rook")
+    assert has_element?(view, "#npc-rook", "MOVE GOODS")
+    assert has_element?(view, "#npc-tally", "Tally")
+  end
+
+  test "loyalty bar reflects Player.npc_loyalty, not a static NPC value", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, npc_loyalty: %{"mother_graft" => 80}))
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    assert has_element?(view, "#npc-mother_graft", "Loyalty: 80/100")
+  end
+
+  test "Flesh Tithe consumes a cracked_bone_plate and grants scrip", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+
+    Shunt.Repo.update!(
+      Ecto.Changeset.change(player, inventory: %{"cracked_bone_plate" => 1}, scrip: 0)
+    )
+
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+
+    view |> element("#trade-flesh-tithe-button") |> render_click()
+
+    assert has_element?(view, "#resource-scrip", "SCRIP 15")
+    assert render(view) =~ "MOTHER GRAFT"
+  end
+
+  test "Move Goods pays out for the held item and clears it", %{conn: conn} do
+    item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.key, scrip: 0))
+
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+
+    view |> element("#trade-move-goods-button") |> render_click()
+
+    assert has_element?(view, "#resource-scrip", "SCRIP #{floor(item.sell_value * 0.5)}")
+    refute has_element?(view, "#held-item")
+  end
+
+  test "Look the Other Way spends scrip and reduces heat", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 20, heat: 20))
+
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+
+    view |> element("#trade-look-the-other-way-button") |> render_click()
+
+    assert has_element?(view, "#resource-scrip", "SCRIP 0")
+    assert has_element?(view, "#resource-heat", "HEAT 5/100")
+  end
+
+  test "Data Drop converts scrip into cred", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 20, cred: 0))
+
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+
+    view |> element("#trade-data-drop-button") |> render_click()
+
+    assert has_element?(view, "#resource-scrip", "SCRIP 0")
+    assert has_element?(view, "#resource-cred", "CRED 1")
+  end
+
+  test "Settle the Books converts cred into scrip", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, cred: 1, scrip: 0))
+
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+
+    view |> element("#trade-settle-the-books-button") |> render_click()
+
+    assert has_element?(view, "#resource-cred", "CRED 0")
+    assert has_element?(view, "#resource-scrip", "SCRIP 10")
+  end
+
+  test "meeting an NPC for the first time flashes a met message", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: %{"cracked_bone_plate" => 1}))
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    view |> element("#trade-flesh-tithe-button") |> render_click()
+    # render(view) again to let the LiveView's own self-broadcast (sent via Phoenix.PubSub
+    # in the same handle_event) land and get processed by handle_info before asserting:
+    assert render(view) =~ "met Mother Graft"
+  end
+
+  test "crossing a loyalty band flashes a band-changed message", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+
+    Shunt.Repo.update!(
+      Ecto.Changeset.change(player,
+        inventory: %{"cracked_bone_plate" => 1},
+        npc_loyalty: %{"mother_graft" => 73}
+      )
+    )
+
+    {:ok, view, _html} = live_isolated(conn, ShuntWeb.HubLive)
+    view |> element("#trade-flesh-tithe-button") |> render_click()
+    assert render(view) =~ "trust you"
+  end
 end

@@ -7,97 +7,307 @@ defmodule ShuntWeb.HubLive do
   alias Shunt.Npcs.Loyalty
   alias Shunt.Npcs.Signals
   alias Shunt.Players
+  alias ShuntWeb.Chrome
 
-  # TODO: port mount/3 verbatim from ShuntWeb.DashboardLive (lib/shunt_web/live/dashboard_live.ex
-  # lines 15-20): subscribe to Signals when connected, load the player, assign :player_id and
-  # call assign_player/2.
   def mount(_params, _session, socket) do
-    raise "not implemented"
+    if connected?(socket), do: Signals.subscribe()
+    player_id = Players.get_player!().id
+    player = Players.current(player_id)
+    {:ok, socket |> assign(player_id: player_id) |> assign(:status, nil) |> assign_player(player)}
   end
 
-  # TODO: port handle_info/2 for {:npc_met, npc_key} and {:loyalty_band_changed, ...} verbatim
-  # from DashboardLive lines 22-37 (put_flash narrative beats — these stay on @flash, they are
-  # NOT the footer-ticker @status mechanism added below).
+  def handle_info({:npc_met, npc_key}, socket) do
+    {:noreply, put_flash(socket, :info, "You've met #{Npcs.get!(npc_key).name}.")}
+  end
 
-  # TODO: port handle_event("lay_low", ...) from DashboardLive lines 39-44, dispatching
-  # Players.lay_low/1. On success, before calling assign_player/2, compute the status line
-  # from the cred/heat deltas between socket.assigns.player (before) and the new player
-  # (after): e.g. "LAY LOW // -10 CRED // HEAT -20". Render this on the Hub page in a new
-  # small panel next to Black Market (brief gap noted in design discussion — Lay Low has no
-  # home in the written brief's page map, agreed placement is here).
+  def handle_info({:loyalty_band_changed, npc_key, _old_band, new_band}, socket) do
+    name = Npcs.get!(npc_key).name
 
-  # TODO: port handle_event("find_lead", ...) from DashboardLive lines 46-51, dispatching
-  # Fencing.find_lead/1. Status line on success: "LEAD ACQUIRED // <new offer item's
-  # .name>" (look up via Catalog.fetch!(player.current_offer_key) on the *new* player).
+    message =
+      case new_band do
+        :favored -> "#{name} has come to trust you."
+        :hostile -> "#{name} no longer trusts you."
+        :neutral -> "#{name}'s trust in you has steadied."
+      end
 
-  # TODO: port handle_event("take_offer", ...) from DashboardLive lines 53-58, dispatching
-  # Fencing.take_offer/1. Status line on success: "STASHED // <item.name> // -<scrip delta>
-  # SCRIP" — item is Catalog.fetch!(key) using the *new* player's held_item_key; scrip delta
-  # is socket.assigns.player.scrip - new_player.scrip (take_offer only spends scrip, it does
-  # not change heat — confirm against Shunt.Fencing.take_offer/1's effects list before
-  # assuming otherwise).
+    {:noreply, put_flash(socket, :info, message)}
+  end
 
-  # TODO: port handle_event("pass_offer", ...) from DashboardLive lines 60-65, dispatching
-  # Fencing.pass_offer/1. Status line on success is static: "LEAD BURNED // nothing changes
-  # hands".
+  def handle_event("lay_low", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Players.lay_low/1) do
+      {:ok, player, _meta} ->
+        status =
+          "LAY LOW // #{delta(socket.assigns.player, player, :cred)} CRED // HEAT #{delta(socket.assigns.player, player, :heat)}"
 
-  # TODO: port handle_event("sell_item", ...) from DashboardLive lines 67-75, dispatching
-  # Fencing.sell_held_item/1. Capture the held item's name from socket.assigns.player (the
-  # *before* player, since held_item_key becomes nil after) via
-  # Catalog.fetch!(socket.assigns.player.held_item_key) before dispatching. Status line:
-  # "FENCED // <name> // +<scrip delta> SCRIP // HEAT +<heat delta>". Keep the existing
-  # flash_heat_event/2 call for heat-threshold-crossing flashes — that's a separate, already-
-  # correct mechanism layered on top of the new status line, not a replacement for it.
+        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
 
-  # TODO: port handle_event("flesh_tithe", ...) from DashboardLive lines 99-107, dispatching
-  # Npcs.flesh_tithe/1. Status line: "MOTHER GRAFT // stitched a deal // +<scrip delta>
-  # SCRIP // HEAT +<heat delta>".
+      {:error, :insufficient_cred} ->
+        {:noreply, socket}
+    end
+  end
 
-  # TODO: port handle_event("move_goods", ...) from DashboardLive lines 109-114, dispatching
-  # Npcs.move_goods/1. Capture the held item's name from socket.assigns.player *before*
-  # dispatch (same reasoning as sell_item above). Status line: "ROOK // moved <name> //
-  # +<scrip delta> SCRIP".
+  def handle_event("find_lead", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Fencing.find_lead/1) do
+      {:ok, player, _meta} ->
+        status = "LEAD ACQUIRED // #{Catalog.fetch!(player.current_offer_key).name}"
+        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
 
-  # TODO: port handle_event("look_the_other_way", ...) from DashboardLive lines 116-121,
-  # dispatching Npcs.look_the_other_way/1. Status line: "NINE-IRON // sensor wiped // HEAT
-  # <heat delta, signed>".
+      {:error, :offer_in_progress} ->
+        {:noreply, socket}
+    end
+  end
 
-  # TODO: port handle_event("data_drop", ...) from DashboardLive lines 123-128, dispatching
-  # Npcs.data_drop/1. Status line: "SPLICE // data dropped // +<cred delta> CRED".
+  def handle_event("take_offer", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Fencing.take_offer/1) do
+      {:ok, player, _meta} ->
+        item = Catalog.fetch!(player.held_item_key)
+        scrip_delta = delta(socket.assigns.player, player, :scrip)
+        status = "STASHED // #{item.name} // #{scrip_delta} SCRIP"
+        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
 
-  # TODO: port handle_event("settle_the_books", ...) from DashboardLive lines 130-135,
-  # dispatching Npcs.settle_the_books/1. Status line: "TALLY // books settled // +<scrip
-  # delta> SCRIP".
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
 
-  # TODO: build render/1 for the brief's §6 Hub page, using <Layouts.app flash={@flash}
-  # player={@player} active={:hub} status={@status}>:
-  #   - <Chrome.section_header>BLACK_MARKET</Chrome.section_header> then a two-column grid
-  #     (brief's "OFFER / intercepted transmission" + "HELD / stash") panel pair, porting the
-  #     cond branches from DashboardLive's render (lines 152-207) but using <Chrome.panel>,
-  #     <Chrome.btn variant={:primary|:ghost|:dead}> instead of raw Tailwind divs/buttons with
-  #     inline classes — keep the existing element ids (#find-lead-button, #current-offer,
-  #     #take-offer-button, #pass-offer-button, #held-item, #sell-item-button) since tests key
-  #     off them.
-  #   - A small Lay Low panel next to/below Black Market: a single <.btn> with id
-  #     "lay-low-button", disabled={@player.cred < 10} (mirrors DashboardLive line 381's
-  #     disabled condition), showing the lay-low cost/effect as static flavor text (10 Cred /
-  #     -20 Heat — these constants are private to Shunt.Players, so hardcode the copy here
-  #     rather than reaching into the module's @attributes).
-  #   - <Chrome.section_header>CONTACTS</Chrome.section_header> then the NPC panel grid,
-  #     porting DashboardLive's render lines 229-293 (one <Chrome.panel> per NPC with name,
-  #     faction chip, loyalty bar, trade_actions description, and the per-npc.key cond for
-  #     which trade button to show) — keep existing ids (#npc-#{npc.key},
-  #     #trade-flesh-tithe-button, #trade-move-goods-button, #trade-look-the-other-way-button,
-  #     #trade-data-drop-button, #trade-settle-the-books-button).
+  def handle_event("pass_offer", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Fencing.pass_offer/1) do
+      {:ok, player, _meta} ->
+        status = "LEAD BURNED // nothing changes hands"
+        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("sell_item", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Fencing.sell_held_item/1) do
+      {:ok, player, meta} ->
+        name = Catalog.fetch!(socket.assigns.player.held_item_key).name
+        scrip_delta = delta(socket.assigns.player, player, :scrip)
+        heat_delta = delta(socket.assigns.player, player, :heat)
+        status = "FENCED // #{name} // +#{scrip_delta} SCRIP // HEAT +#{heat_delta}"
+
+        {:noreply,
+         socket
+         |> assign(:status, status)
+         |> flash_heat_event(meta.heat_event)
+         |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("flesh_tithe", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Npcs.flesh_tithe/1) do
+      {:ok, player, meta} ->
+        scrip_delta = delta(socket.assigns.player, player, :scrip)
+        heat_delta = delta(socket.assigns.player, player, :heat)
+        status = "MOTHER GRAFT // stitched a deal // +#{scrip_delta} SCRIP // HEAT +#{heat_delta}"
+
+        {:noreply,
+         socket
+         |> assign(:status, status)
+         |> flash_heat_event(meta.heat_event)
+         |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("move_goods", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Npcs.move_goods/1) do
+      {:ok, player, _meta} ->
+        name = Catalog.fetch!(socket.assigns.player.held_item_key).name
+        scrip_delta = delta(socket.assigns.player, player, :scrip)
+        status = "ROOK // moved #{name} // +#{scrip_delta} SCRIP"
+        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("look_the_other_way", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Npcs.look_the_other_way/1) do
+      {:ok, player, _meta} ->
+        heat_delta = delta(socket.assigns.player, player, :heat)
+        status = "NINE-IRON // sensor wiped // HEAT #{heat_delta}"
+        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("data_drop", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Npcs.data_drop/1) do
+      {:ok, player, _meta} ->
+        cred_delta = delta(socket.assigns.player, player, :cred)
+        status = "SPLICE // data dropped // +#{cred_delta} CRED"
+        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("settle_the_books", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Npcs.settle_the_books/1) do
+      {:ok, player, _meta} ->
+        scrip_delta = delta(socket.assigns.player, player, :scrip)
+        status = "TALLY // books settled // +#{scrip_delta} SCRIP"
+        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
   def render(assigns) do
-    raise "not implemented"
+    ~H"""
+    <Layouts.app flash={@flash} player={@player} active={:hub} status={@status}>
+      <Chrome.section_header>BLACK_MARKET</Chrome.section_header>
+      <Chrome.panel>
+        <%= cond do %>
+          <% @offer == nil and @held == nil -> %>
+            <Chrome.btn id="find-lead-button" variant={:primary} phx-click="find_lead">
+              [ FIND A LEAD ]
+            </Chrome.btn>
+          <% @offer != nil -> %>
+            <div id="current-offer">
+              <p>{@offer.name}</p>
+              <span>{@offer.tier}</span>
+              <p>{@offer.offer_text}</p>
+              <p>Buy: {@offer.buy_cost} Scrip</p>
+              <Chrome.btn
+                id="take-offer-button"
+                variant={if(@player.scrip < @offer.buy_cost, do: :dead, else: :primary)}
+                phx-click="take_offer"
+              >
+                [ TAKE IT ]
+              </Chrome.btn>
+              <Chrome.btn id="pass-offer-button" variant={:ghost} phx-click="pass_offer">
+                [ PASS ]
+              </Chrome.btn>
+            </div>
+          <% true -> %>
+            <div id="held-item">
+              <p>{@held.name}</p>
+              <p>{@held.sell_text}</p>
+              <p>Sell: {@held.sell_value} Scrip · +{@held.heat_cost} Heat</p>
+              <Chrome.btn id="sell-item-button" variant={:primary} phx-click="sell_item">
+                [ MOVE IT ]
+              </Chrome.btn>
+            </div>
+        <% end %>
+      </Chrome.panel>
+
+      <Chrome.panel>
+        <p>Lay Low — 10 Cred, -20 Heat</p>
+        <Chrome.btn
+          id="lay-low-button"
+          variant={if(@player.cred < 10, do: :dead, else: :ghost)}
+          phx-click="lay_low"
+        >
+          [ LAY LOW ]
+        </Chrome.btn>
+      </Chrome.panel>
+
+      <Chrome.section_header>CONTACTS</Chrome.section_header>
+      <div :for={npc <- @npcs} id={"npc-#{npc.key}"}>
+        <Chrome.panel>
+          <p>{npc.name}</p>
+          <p>{humanize_faction(npc.faction)}</p>
+          <p>Loyalty: {npc.loyalty}/100</p>
+          <div :for={action <- npc.trade_actions}>
+            <p><span>{action.name}</span> — {action.description}</p>
+          </div>
+          <%= cond do %>
+            <% npc.key == "mother_graft" -> %>
+              <Chrome.btn
+                id="trade-flesh-tithe-button"
+                variant={
+                  if(Map.get(@player.inventory, "cracked_bone_plate", 0) < 1,
+                    do: :dead,
+                    else: :primary
+                  )
+                }
+                phx-click="flesh_tithe"
+              >
+                [ FLESH TITHE ]
+              </Chrome.btn>
+            <% npc.key == "rook" -> %>
+              <Chrome.btn
+                id="trade-move-goods-button"
+                variant={if(is_nil(@player.held_item_key), do: :dead, else: :primary)}
+                phx-click="move_goods"
+              >
+                [ MOVE GOODS ]
+              </Chrome.btn>
+            <% npc.key == "nine_iron" -> %>
+              <Chrome.btn
+                id="trade-look-the-other-way-button"
+                variant={if(@player.scrip < 20, do: :dead, else: :primary)}
+                phx-click="look_the_other_way"
+              >
+                [ LOOK THE OTHER WAY ]
+              </Chrome.btn>
+            <% npc.key == "splice" -> %>
+              <Chrome.btn
+                id="trade-data-drop-button"
+                variant={if(@player.scrip < 20, do: :dead, else: :primary)}
+                phx-click="data_drop"
+              >
+                [ DATA DROP ]
+              </Chrome.btn>
+            <% npc.key == "tally" -> %>
+              <Chrome.btn
+                id="trade-settle-the-books-button"
+                variant={if(@player.cred < 1, do: :dead, else: :primary)}
+                phx-click="settle_the_books"
+              >
+                [ SETTLE THE BOOKS ]
+              </Chrome.btn>
+            <% true -> %>
+          <% end %>
+        </Chrome.panel>
+      </div>
+    </Layouts.app>
+    """
   end
 
-  # TODO: port assign_player/2, catalog_item/1, flash_heat_event/2, humanize_faction/1 from
-  # DashboardLive lines 391-425 verbatim (Hub only needs the offer/held/npcs slice of what
-  # DashboardLive assigned — drop skill_trees/street_alchemy_tier/raws/recipes, those move to
-  # SkillsLive). Add a small private helper for building the @status string from a
-  # before/after Player diff, since every handle_event above needs the same
-  # cred/scrip/heat-delta pattern — e.g. `defp delta(before, after_, field) do
-  # Map.get(after_, field) - Map.get(before, field) end`.
+  defp assign_player(socket, player) do
+    socket
+    |> assign(:player, player)
+    |> assign(:offer, catalog_item(player.current_offer_key))
+    |> assign(:held, catalog_item(player.held_item_key))
+    |> assign(:npcs, Enum.map(Npcs.list(), &Map.put(&1, :loyalty, Loyalty.value(player, &1.key))))
+  end
+
+  defp catalog_item(nil), do: nil
+  defp catalog_item(key), do: Catalog.fetch!(key)
+
+  defp flash_heat_event(socket, nil), do: socket
+
+  defp flash_heat_event(socket, event) do
+    put_flash(
+      socket,
+      :error,
+      "#{event.name} — #{event.flavor_text} (-#{event.scrip_loss} Scrip, -#{event.cred_loss} Cred)"
+    )
+  end
+
+  defp delta(before, after_, field), do: Map.get(after_, field) - Map.get(before, field)
+
+  defp humanize_faction(faction) do
+    faction
+    |> Atom.to_string()
+    |> String.replace("_", " ")
+    |> String.split()
+    |> Enum.map_join(" ", &String.capitalize/1)
+  end
 end

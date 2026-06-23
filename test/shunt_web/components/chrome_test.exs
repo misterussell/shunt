@@ -115,6 +115,14 @@ defmodule ShuntWeb.ChromeTest do
     """
   end
 
+  test "exposes #resource-cred/#resource-scrip/#resource-heat ids for tests to target" do
+    html = render_component(&wallet_hud_wrapper/1, %{player: %{cred: 42, scrip: 7, heat: 10}})
+
+    assert html =~ ~s(id="resource-cred")
+    assert html =~ ~s(id="resource-scrip")
+    assert html =~ ~s(id="resource-heat")
+  end
+
   test "renders cred, scrip, and the numeric heat readout" do
     html = render_component(&wallet_hud_wrapper/1, %{player: %{cred: 42, scrip: 7, heat: 10}})
 
