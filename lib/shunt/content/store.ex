@@ -8,7 +8,8 @@ defmodule Shunt.Content.Store do
     {:raws, "priv/content/raws"},
     {:recipes, "priv/content/recipes"},
     {:heat_events, "priv/content/heat_events"},
-    {:skill_trees, "priv/content/skills"}
+    {:skill_trees, "priv/content/skills"},
+    {:locations, "priv/content/locations"}
   ]
 
   def start_link(_opts) do

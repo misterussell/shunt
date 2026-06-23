@@ -208,4 +208,22 @@ defmodule Shunt.EffectsTest do
       assert changes.held_item_key == nil
     end
   end
+
+  describe "apply/2 - :discover_location" do
+    test "appends a new key to a player's discovered_locations" do
+      player = %Player{discovered_locations: []}
+
+      {changes, _meta} = Effects.apply(player, [{:discover_location, "shunt9_bazaar"}])
+
+      assert changes.discovered_locations == ["shunt9_bazaar"]
+    end
+
+    test "does not duplicate a key already present in discovered_locations" do
+      player = %Player{discovered_locations: ["shunt9_bazaar"]}
+
+      {changes, _meta} = Effects.apply(player, [{:discover_location, "shunt9_bazaar"}])
+
+      assert changes.discovered_locations == ["shunt9_bazaar"]
+    end
+  end
 end

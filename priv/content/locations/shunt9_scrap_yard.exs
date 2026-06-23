@@ -1,0 +1,21 @@
+%{
+  key: "shunt9_scrap_yard",
+  name: "Scrap Yard",
+
+  short_description:
+    "Mountains of twisted metal loom overhead.",
+
+  description:
+    "Stripped chassis and dead drones are stacked in rusting heaps, picked over by scavvers with magnet rigs and cutting torches.",
+
+  tags: [
+    :salvage,
+    :underbelly
+  ],
+
+  graph_position: {300, 300},
+
+  exits: [
+    %{to: "shunt9_bazaar", requirements: []}
+  ]
+}

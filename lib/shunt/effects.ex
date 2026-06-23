@@ -73,6 +73,19 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, field, value), meta)
   end
 
+  defp do_apply([{:discover_location, location_key} | rest], player, acc, meta) do
+    current_discovered = Map.get(acc, :discovered_locations, player.discovered_locations)
+
+    new_discovered =
+      if location_key in current_discovered do
+        current_discovered
+      else
+        current_discovered ++ [location_key]
+      end
+
+    do_apply(rest, player, Map.put(acc, :discovered_locations, new_discovered), meta)
+  end
+
   defp maybe_append(list, true, item), do: list ++ [item]
   defp maybe_append(list, false, _item), do: list
 

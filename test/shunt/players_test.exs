@@ -28,6 +28,13 @@ defmodule Shunt.PlayersTest do
       assert player.web_tier == 0
       assert player.street_alchemy_tier == 0
     end
+
+    test "creates a player starting at the player squat with no discovered locations" do
+      player = Players.create_player!()
+
+      assert player.location_id == "shunt9_player_squat"
+      assert player.discovered_locations == []
+    end
   end
 
   describe "get_player!/0" do

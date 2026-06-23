@@ -16,6 +16,9 @@ defmodule Shunt.Players.Player do
     field :inventory, :map, default: %{}
     field :npc_loyalty, :map, default: %{}
 
+    field :location_id, :string, default: "shunt9_player_squat"
+    field :discovered_locations, {:array, :string}, default: []
+
     timestamps()
   end
 end
