@@ -38,6 +38,20 @@ defmodule Shunt.PlayersTest do
     end
   end
 
+  describe "can_lay_low?/1" do
+    test "returns true when cred covers the cost" do
+      player = %Player{cred: 10}
+
+      assert Players.can_lay_low?(player)
+    end
+
+    test "returns false when cred is below the cost" do
+      player = %Player{cred: 9}
+
+      refute Players.can_lay_low?(player)
+    end
+  end
+
   describe "lay_low/1" do
     test "returns an effect list reducing cred and heat" do
       player = %Player{cred: 30, heat: 40}

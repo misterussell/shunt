@@ -24,6 +24,88 @@ defmodule Shunt.NpcsTest do
     end
   end
 
+  describe "can_flesh_tithe?/1" do
+    test "returns true when the player holds at least 1 cracked_bone_plate" do
+      player = %Player{inventory: %{"cracked_bone_plate" => 1}}
+
+      assert Npcs.can_flesh_tithe?(player)
+    end
+
+    test "returns false when the player holds none" do
+      player = %Player{inventory: %{}}
+
+      refute Npcs.can_flesh_tithe?(player)
+    end
+  end
+
+  describe "can_move_goods?/1" do
+    test "returns true when the player holds an item" do
+      player = %Player{held_item_key: "scrap_dermal_plating"}
+
+      assert Npcs.can_move_goods?(player)
+    end
+
+    test "returns false when the player holds nothing" do
+      player = %Player{held_item_key: nil}
+
+      refute Npcs.can_move_goods?(player)
+    end
+  end
+
+  describe "can_look_the_other_way?/1" do
+    test "returns true when scrip covers the base cost" do
+      player = %Player{scrip: 20}
+
+      assert Npcs.can_look_the_other_way?(player)
+    end
+
+    test "returns false when scrip is below the base cost" do
+      player = %Player{scrip: 19}
+
+      refute Npcs.can_look_the_other_way?(player)
+    end
+
+    test "returns false when scrip covers the base cost but not the hostile-scaled cost" do
+      player = %Player{scrip: 20, npc_loyalty: %{"nine_iron" => 0}}
+
+      refute Npcs.can_look_the_other_way?(player)
+    end
+
+    test "returns true when scrip is below the base cost but a favored-scaled discount covers it" do
+      player = %Player{scrip: 17, npc_loyalty: %{"nine_iron" => 80}}
+
+      assert Npcs.can_look_the_other_way?(player)
+    end
+  end
+
+  describe "can_data_drop?/1" do
+    test "returns true when scrip covers the base cost" do
+      player = %Player{scrip: 20}
+
+      assert Npcs.can_data_drop?(player)
+    end
+
+    test "returns false when scrip covers the base cost but not the hostile-scaled cost" do
+      player = %Player{scrip: 20, npc_loyalty: %{"splice" => 0}}
+
+      refute Npcs.can_data_drop?(player)
+    end
+  end
+
+  describe "can_settle_the_books?/1" do
+    test "returns true when cred covers the base cost" do
+      player = %Player{cred: 1}
+
+      assert Npcs.can_settle_the_books?(player)
+    end
+
+    test "returns false when cred covers the base cost but not the hostile-scaled cost" do
+      player = %Player{cred: 1, npc_loyalty: %{"tally" => 0}}
+
+      refute Npcs.can_settle_the_books?(player)
+    end
+  end
+
   describe "flesh_tithe/1" do
     test "returns effects for consuming 1 cracked_bone_plate, heat, scrip, and npc_loyalty" do
       player = %Player{inventory: %{"cracked_bone_plate" => 1}}

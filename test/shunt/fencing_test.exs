@@ -22,6 +22,28 @@ defmodule Shunt.FencingTest do
     end
   end
 
+  describe "can_take_offer?/1" do
+    test "returns true when scrip covers the offer's buy_cost" do
+      item = Catalog.fetch!("cracked_latticework_relay_key")
+      player = %Player{current_offer_key: item.key, scrip: item.buy_cost}
+
+      assert Fencing.can_take_offer?(player)
+    end
+
+    test "returns false when scrip is below the offer's buy_cost" do
+      item = Catalog.fetch!("cracked_latticework_relay_key")
+      player = %Player{current_offer_key: item.key, scrip: item.buy_cost - 1}
+
+      refute Fencing.can_take_offer?(player)
+    end
+
+    test "returns false when there is no pending offer" do
+      player = %Player{current_offer_key: nil, scrip: 1_000}
+
+      refute Fencing.can_take_offer?(player)
+    end
+  end
+
   describe "take_offer/1" do
     test "deducts buy_cost from scrip and moves the offer to held_item_key" do
       item = Catalog.fetch!("cracked_latticework_relay_key")

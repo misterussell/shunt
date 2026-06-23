@@ -10,6 +10,12 @@ defmodule Shunt.Fencing do
 
   def find_lead(%Player{}), do: {:error, :offer_in_progress}
 
+  def can_take_offer?(%Player{current_offer_key: nil}), do: false
+
+  def can_take_offer?(%Player{current_offer_key: key, scrip: scrip}) do
+    scrip >= Catalog.fetch!(key).buy_cost
+  end
+
   def take_offer(%Player{current_offer_key: nil}), do: {:error, :no_offer}
 
   def take_offer(%Player{current_offer_key: key, scrip: scrip}) do

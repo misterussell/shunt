@@ -219,7 +219,7 @@ defmodule ShuntWeb.HubLive do
                   </span>
                 </div>
               </div>
-              <% can_afford_offer = @player.scrip >= @offer.buy_cost %>
+              <% can_afford_offer = Fencing.can_take_offer?(@player) %>
               <Chrome.btn
                 id="take-offer-button"
                 variant={if(can_afford_offer, do: :primary, else: :dead)}
@@ -266,7 +266,7 @@ defmodule ShuntWeb.HubLive do
           <p>Lay Low — 10 Cred, -20 Heat</p>
           <Chrome.btn
             id="lay-low-button"
-            variant={if(@player.cred < 10, do: :dead, else: :ghost)}
+            variant={if(Players.can_lay_low?(@player), do: :ghost, else: :dead)}
             phx-click="lay_low"
           >
             [ LAY LOW ]
@@ -299,7 +299,7 @@ defmodule ShuntWeb.HubLive do
           </div>
           <%= cond do %>
             <% npc.key == "mother_graft" -> %>
-              <% can_do = Map.get(@player.inventory, "cracked_bone_plate", 0) >= 1 %>
+              <% can_do = Npcs.can_flesh_tithe?(@player) %>
               <Chrome.btn
                 id="trade-flesh-tithe-button"
                 variant={if(can_do, do: :primary, else: :dead)}
@@ -308,7 +308,7 @@ defmodule ShuntWeb.HubLive do
                 {action_label(can_do, "FLESH TITHE", "CAN'T PAY")}
               </Chrome.btn>
             <% npc.key == "rook" -> %>
-              <% can_do = not is_nil(@player.held_item_key) %>
+              <% can_do = Npcs.can_move_goods?(@player) %>
               <Chrome.btn
                 id="trade-move-goods-button"
                 variant={if(can_do, do: :primary, else: :dead)}
@@ -317,7 +317,7 @@ defmodule ShuntWeb.HubLive do
                 {action_label(can_do, "MOVE GOODS", "CAN'T PAY")}
               </Chrome.btn>
             <% npc.key == "nine_iron" -> %>
-              <% can_do = @player.scrip >= 20 %>
+              <% can_do = Npcs.can_look_the_other_way?(@player) %>
               <Chrome.btn
                 id="trade-look-the-other-way-button"
                 variant={if(can_do, do: :primary, else: :dead)}
@@ -326,7 +326,7 @@ defmodule ShuntWeb.HubLive do
                 {action_label(can_do, "LOOK THE OTHER WAY", "CAN'T PAY")}
               </Chrome.btn>
             <% npc.key == "splice" -> %>
-              <% can_do = @player.scrip >= 20 %>
+              <% can_do = Npcs.can_data_drop?(@player) %>
               <Chrome.btn
                 id="trade-data-drop-button"
                 variant={if(can_do, do: :primary, else: :dead)}
@@ -335,7 +335,7 @@ defmodule ShuntWeb.HubLive do
                 {action_label(can_do, "DATA DROP", "CAN'T PAY")}
               </Chrome.btn>
             <% npc.key == "tally" -> %>
-              <% can_do = @player.cred >= 1 %>
+              <% can_do = Npcs.can_settle_the_books?(@player) %>
               <Chrome.btn
                 id="trade-settle-the-books-button"
                 variant={if(can_do, do: :primary, else: :dead)}

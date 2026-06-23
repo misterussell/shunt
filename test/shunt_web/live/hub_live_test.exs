@@ -280,6 +280,19 @@ defmodule ShuntWeb.HubLiveTest do
     refute has_element?(view, "#trade-flesh-tithe-button", "FLESH TITHE")
   end
 
+  test "a hostile-loyalty player sees CAN'T PAY even though scrip covers the base cost", %{
+    conn: conn
+  } do
+    player = Shunt.Players.get_player!()
+
+    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 20, npc_loyalty: %{"nine_iron" => 0}))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#trade-look-the-other-way-button", "CAN'T PAY")
+    refute has_element?(view, "#trade-look-the-other-way-button", "LOOK THE OTHER WAY")
+  end
+
   test "an affordable NPC trade button keeps its normal CTA label", %{conn: conn} do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: %{"cracked_bone_plate" => 1}))
