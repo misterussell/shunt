@@ -11,28 +11,15 @@
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
     <script>
-      // TODO: cut this down to the game's two-mode toggle: only "street" and "corp" are
-      // valid values (no "system" — the brief specifies no light mode), and the default
-      // when nothing is stored yet must be "street" (per design decision). Concretely:
-      //   - drop the `theme === "system"` branch and the `removeAttribute`/`removeItem` path
-      //   - change `localStorage.getItem("phx:theme") || "system"` to default to "street"
-      //   - the storage-event listener's `|| "system"` fallback becomes `|| "street"`
-      // The dispatch mechanism itself (phx:set-theme custom event + data-phx-theme attr,
-      // read in layouts.ex's theme_toggle/1) stays as-is per the brief.
       (() => {
         const setTheme = (theme) => {
-          if (theme === "system") {
-            localStorage.removeItem("phx:theme");
-            document.documentElement.removeAttribute("data-theme");
-          } else {
-            localStorage.setItem("phx:theme", theme);
-            document.documentElement.setAttribute("data-theme", theme);
-          }
+          localStorage.setItem("phx:theme", theme);
+          document.documentElement.setAttribute("data-theme", theme);
         };
         if (!document.documentElement.hasAttribute("data-theme")) {
-          setTheme(localStorage.getItem("phx:theme") || "system");
+          setTheme(localStorage.getItem("phx:theme") || "street");
         }
-        window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
+        window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "street"));
 
         window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
       })();
