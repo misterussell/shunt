@@ -52,6 +52,42 @@ defmodule ShuntWeb.HubLiveTest do
     refute has_element?(view, "#current-offer")
   end
 
+  test "the offer and stash panels render side by side in a grid, independent of each other",
+       %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, ".black-market-grid #offer-panel")
+    assert has_element?(view, ".black-market-grid #stash-panel")
+    assert has_element?(view, "#offer-panel #find-lead-button")
+
+    view |> element("#find-lead-button") |> render_click()
+    view |> element("#take-offer-button") |> render_click()
+
+    # taking an offer clears @offer (back to the empty state) but fills @held —
+    # the two panels must update independently of one another
+    assert has_element?(view, "#offer-panel #find-lead-button")
+    assert has_element?(view, "#stash-panel #held-item")
+  end
+
+  test "Lay Low stays available in the stash panel regardless of held-item state", %{
+    conn: conn
+  } do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100, cred: 30))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    assert has_element?(view, "#stash-panel #lay-low-button")
+
+    view |> element("#find-lead-button") |> render_click()
+    view |> element("#take-offer-button") |> render_click()
+
+    assert has_element?(view, "#stash-panel #held-item")
+    assert has_element?(view, "#stash-panel #lay-low-button")
+  end
+
   test "passing an offer returns to idle", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     view |> element("#find-lead-button") |> render_click()

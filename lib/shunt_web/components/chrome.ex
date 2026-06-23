@@ -16,13 +16,14 @@ defmodule ShuntWeb.Chrome do
       <.panel><p>content</p></.panel>
       <.panel active><p>focused content</p></.panel>
   """
+  attr :id, :string, default: nil
   attr :active, :boolean, default: false
   attr :class, :string, default: nil
   slot :inner_block, required: true
 
   def panel(assigns) do
     ~H"""
-    <div class={["panel", @active && "panel--active", @class]}>
+    <div id={@id} class={["panel", @active && "panel--active", @class]}>
       {render_slot(@inner_block)}
     </div>
     """
