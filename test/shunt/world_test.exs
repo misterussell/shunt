@@ -14,6 +14,10 @@ defmodule Shunt.WorldTest do
   end
 
   describe "exits/1" do
+    test "returns Shunt.World.Exit structs" do
+      assert [%World.Exit{} | _] = World.exits("shunt9_bazaar")
+    end
+
     test "returns the exit destinations for a known location key" do
       destinations = Enum.map(World.exits("shunt9_bazaar"), & &1.to)
 

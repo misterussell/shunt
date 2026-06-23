@@ -1,3 +1,5 @@
+alias Shunt.World.Exit
+
 %{
   key: "shunt9_power_relay",
   name: "Power Relay",
@@ -15,9 +17,7 @@
 
   graph_position: {500, 100},
 
-  # TODO: alias Shunt.World.Exit and convert the map below to %Exit{to: ...},
-  # dropping requirements: [] (matches the struct default).
   exits: [
-    %{to: "shunt9_bazaar", requirements: []}
+    %Exit{to: "shunt9_bazaar"}
   ]
 }

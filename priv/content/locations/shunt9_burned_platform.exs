@@ -1,3 +1,5 @@
+alias Shunt.World.Exit
+
 %{
   key: "shunt9_burned_platform",
   name: "Burned Platform",
@@ -15,10 +17,8 @@
 
   graph_position: {500, 500},
 
-  # TODO: alias Shunt.World.Exit and convert each map below to %Exit{to: ...},
-  # dropping requirements: [] (matches the struct default).
   exits: [
-    %{to: "shunt9_bazaar", requirements: []},
-    %{to: "shunt9_maintenance_tunnel", requirements: []}
+    %Exit{to: "shunt9_bazaar"},
+    %Exit{to: "shunt9_maintenance_tunnel"}
   ]
 }
