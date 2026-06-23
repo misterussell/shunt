@@ -4,11 +4,18 @@ defmodule Shunt.Effects do
   alias Shunt.Heat
   alias Shunt.Npcs.Loyalty
 
-  @initial_meta %{heat_event: nil, loyalty_signals: []}
+  @initial_meta %{heat_event: nil, loyalty_signals: [], deltas: %{}}
 
   def apply(player, effects) do
     {acc, meta} = do_apply(effects, player, %{}, @initial_meta)
-    {clamp_money(acc), meta}
+    changes = clamp_money(acc)
+    {changes, %{meta | deltas: deltas(player, changes)}}
+  end
+
+  defp deltas(player, changes) do
+    changes
+    |> Map.take([:scrip, :cred, :heat])
+    |> Map.new(fn {field, new_value} -> {field, new_value - Map.fetch!(player, field)} end)
   end
 
   defp do_apply([], _player, acc, meta), do: {acc, meta}

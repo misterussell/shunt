@@ -7,13 +7,30 @@ defmodule Shunt.CraftingTest do
   alias Shunt.Players.Player
 
   describe "scavenge/1" do
-    test "returns effects for a random raw and a heat increase of 4" do
+    test "returns effects for a random raw and a heat increase of 4, naming the raw gained" do
       player = %Player{}
 
-      assert {:ok, [{:inventory, key, 1}, {:heat, 4}]} = Crafting.scavenge(player)
+      assert {:ok, [{:inventory, key, 1}, {:heat, 4}], %{gained_raw: key}} =
+               Crafting.scavenge(player)
 
       raw_keys = Enum.map(RawCatalog.items(), & &1.key)
       assert key in raw_keys
+    end
+  end
+
+  describe "craftable?/2" do
+    test "returns true when the player has at least the required quantity of every input" do
+      recipe = RecipeCatalog.fetch!("patchwork_courier_drone")
+      player = %Player{inventory: Map.put(recipe.inputs, "scrap_forged_soldering_iron", 1)}
+
+      assert Crafting.craftable?(player, recipe)
+    end
+
+    test "returns false when an input quantity is missing" do
+      recipe = RecipeCatalog.fetch!("patchwork_courier_drone")
+      player = %Player{inventory: %{"scrap_forged_soldering_iron" => 1}}
+
+      refute Crafting.craftable?(player, recipe)
     end
   end
 

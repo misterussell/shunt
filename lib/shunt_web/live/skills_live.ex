@@ -22,17 +22,10 @@ defmodule ShuntWeb.SkillsLive do
   end
 
   def handle_event("scavenge", _params, socket) do
-    before_inventory = socket.assigns.player.inventory
     {:ok, player, meta} = Players.dispatch(socket.assigns.player_id, &Crafting.scavenge/1)
 
-    {raw_key, _qty} =
-      Enum.find(player.inventory, fn {key, qty} ->
-        qty > Map.get(before_inventory, key, 0)
-      end)
-
-    heat_delta = delta(socket.assigns.player, player, :heat)
-    raw_name = RawCatalog.fetch!(raw_key).name
-    status = "SCAVENGED // 1x #{raw_name} // HEAT +#{heat_delta}"
+    raw_name = RawCatalog.fetch!(meta.gained_raw).name
+    status = "SCAVENGED // 1x #{raw_name} // HEAT +#{meta.deltas.heat}"
 
     {:noreply,
      socket
@@ -57,9 +50,8 @@ defmodule ShuntWeb.SkillsLive do
 
     case Players.dispatch(socket.assigns.player_id, &Crafting.sell_assembled(&1, item_key)) do
       {:ok, player, meta} ->
-        scrip_delta = delta(socket.assigns.player, player, :scrip)
-        heat_delta = delta(socket.assigns.player, player, :heat)
-        status = "FENCED // #{recipe.name} // +#{scrip_delta} SCRIP // HEAT +#{heat_delta}"
+        status =
+          "FENCED // #{recipe.name} // +#{meta.deltas.scrip} SCRIP // HEAT +#{meta.deltas.heat}"
 
         {:noreply,
          socket
@@ -138,15 +130,7 @@ defmodule ShuntWeb.SkillsLive do
                 <span class="recipe-value">+{recipe.sell_value}cr</span>
                 <Chrome.btn
                   id={"assemble-#{recipe.key}-button"}
-                  variant={
-                    if(
-                      Enum.any?(recipe.inputs, fn {raw_key, qty} ->
-                        qty > Map.get(@player.inventory, raw_key, 0)
-                      end),
-                      do: :dead,
-                      else: :primary
-                    )
-                  }
+                  variant={if(recipe.craftable?, do: :primary, else: :dead)}
                   phx-click="assemble"
                   phx-value-key={recipe.key}
                 >
@@ -206,11 +190,17 @@ defmodule ShuntWeb.SkillsLive do
   defp assign_player(socket, player) do
     tree = socket.assigns.tree
 
+    recipes =
+      Enum.map(
+        RecipeCatalog.recipes(),
+        &Map.put(&1, :craftable?, Crafting.craftable?(player, &1))
+      )
+
     socket
     |> assign(:player, player)
     |> assign(:current_tier, SkillsCatalog.current_tier(player, tree))
     |> assign(:raws, RawCatalog.items())
-    |> assign(:recipes, RecipeCatalog.recipes())
+    |> assign(:recipes, recipes)
   end
 
   defp flash_heat_event(socket, nil), do: socket
@@ -222,6 +212,4 @@ defmodule ShuntWeb.SkillsLive do
       "#{event.name} — #{event.flavor_text} (-#{event.scrip_loss} Scrip, -#{event.cred_loss} Cred)"
     )
   end
-
-  defp delta(before, after_, field), do: Map.get(after_, field) - Map.get(before, field)
 end
