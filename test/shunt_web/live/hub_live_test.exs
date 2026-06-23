@@ -71,6 +71,56 @@ defmodule ShuntWeb.HubLiveTest do
     assert has_element?(view, "#current-offer .offer-stat", "HEAT +")
   end
 
+  test "a revealed offer shows the item name, SKU line, and flavor text with styled classes", %{
+    conn: conn
+  } do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, current_offer_key: "bootleg_credchip_stack"))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#current-offer .offer-name", "Bootleg Credchip Stack")
+    assert has_element?(view, "#current-offer .offer-sku", "SKU://")
+
+    assert has_element?(
+             view,
+             "#current-offer .offer-flavor",
+             "Counterfeit chips"
+           )
+  end
+
+  test "a clean-tier offer shows a formatted CLEAN tier label and a cyan-glowing heat stat", %{
+    conn: conn
+  } do
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, current_offer_key: "bootleg_credchip_stack"))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#current-offer .offer-tier-badge", "CLEAN")
+    assert has_element?(view, "#current-offer .offer-stat-value--clean")
+  end
+
+  test "a hot-tier offer shows the HOT // HIGH RISK tier label", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+
+    Shunt.Repo.update!(
+      Ecto.Changeset.change(player, current_offer_key: "burned_netrunners_memory_core")
+    )
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#current-offer .offer-tier-badge", "HOT // HIGH RISK")
+  end
+
+  test "the empty offer state shows a flavor line above the awaiting-handshake cursor", %{
+    conn: conn
+  } do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#offer-panel .offer-flavor-empty", "The wire's dead air")
+  end
+
   test "stash panel shows a STASH // 1 SLOT header", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
@@ -82,6 +132,22 @@ defmodule ShuntWeb.HubLiveTest do
 
     assert has_element?(view, "#stash-panel .stash-empty", "EMPTY")
     assert has_element?(view, "#stash-panel .stash-empty", "take a lead to hold stock")
+  end
+
+  test "a held item shows its name, tier badge, flavor text, and a STREET VALUE readout", %{
+    conn: conn
+  } do
+    item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
+    player = Shunt.Players.get_player!()
+    Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.key))
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#held-item .held-name", item.name)
+    assert has_element?(view, "#held-item .held-tier-badge", "CLEAN")
+    assert has_element?(view, "#held-item .held-flavor", item.sell_text)
+    assert has_element?(view, "#held-item .held-value-label", "STREET VALUE")
+    assert has_element?(view, "#held-item .held-value", "+#{item.sell_value}")
   end
 
   test "NPC panels sit in a contacts-grid wrapper", %{conn: conn} do

@@ -182,6 +182,9 @@ defmodule ShuntWeb.HubLive do
           </div>
 
           <%= if @offer == nil do %>
+            <p class="offer-flavor-empty">
+              The wire's dead air. Tap the darkline and see what's moving through Shunt 9 tonight.
+            </p>
             <div class="offer-handshake">
               &gt; awaiting handshake<span class="offer-handshake-cursor">_</span>
             </div>
@@ -190,11 +193,16 @@ defmodule ShuntWeb.HubLive do
             </Chrome.btn>
           <% else %>
             <div id="current-offer">
-              <p>{@offer.name}</p>
-              <span class={["offer-tier-badge", "offer-tier-badge--#{@offer.tier}"]}>
-                {@offer.tier}
-              </span>
-              <p>{@offer.offer_text}</p>
+              <div class="offer-header-row">
+                <div>
+                  <p class="offer-name">{@offer.name}</p>
+                  <p class="offer-sku">SKU://{offer_sku(@offer.key)}</p>
+                </div>
+                <span class={["offer-tier-badge", "offer-tier-badge--#{@offer.tier}"]}>
+                  {tier_label(@offer.tier)}
+                </span>
+              </div>
+              <p class="offer-flavor">{@offer.offer_text}</p>
               <div class="offer-stat-strip">
                 <div class="offer-stat">
                   <span class="offer-stat-label">BUY @</span>
@@ -234,9 +242,20 @@ defmodule ShuntWeb.HubLive do
             </div>
           <% else %>
             <div id="held-item">
-              <p>{@held.name}</p>
-              <p>{@held.sell_text}</p>
-              <p>Sell: {@held.sell_value} Scrip · +{@held.heat_cost} Heat</p>
+              <div class="held-header-row">
+                <p class="held-name">{@held.name}</p>
+                <span class={["held-tier-badge", "held-tier-badge--#{@held.tier}"]}>
+                  {tier_label(@held.tier)}
+                </span>
+              </div>
+              <p class="held-flavor">{@held.sell_text}</p>
+              <div class="held-value-row">
+                <span class="held-value-label">STREET VALUE</span>
+                <span class="held-value">
+                  +{@held.sell_value} <span class="held-value-suffix">cr</span>
+                </span>
+                <span class="held-heat-note">+{@held.heat_cost} Heat</span>
+              </div>
               <Chrome.btn id="sell-item-button" variant={:primary} phx-click="sell_item">
                 [ MOVE IT ]
               </Chrome.btn>
@@ -361,6 +380,12 @@ defmodule ShuntWeb.HubLive do
     |> String.split()
     |> Enum.map_join(" ", &String.capitalize/1)
   end
+
+  defp tier_label(:hot), do: "HOT // HIGH RISK"
+  defp tier_label(:warm), do: "WARM"
+  defp tier_label(:clean), do: "CLEAN"
+
+  defp offer_sku(key), do: key |> String.upcase() |> String.replace("_", "-")
 
   defp loyalty_band(loyalty) when loyalty >= 60, do: "cyan"
   defp loyalty_band(loyalty) when loyalty >= 35, do: "amber"

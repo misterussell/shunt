@@ -193,6 +193,11 @@
   margin-bottom: 36px;
 }
 
+#offer-panel,
+#stash-panel {
+  padding: 20px;
+}
+
 .offer-accent-strip {
   position: absolute;
   top: 0;
@@ -231,6 +236,15 @@
   color: var(--border-c);
 }
 
+.offer-flavor-empty {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+  opacity: 0.7;
+  margin: 0 0 6px;
+  max-width: 46ch;
+}
+
 .offer-handshake {
   font-size: 10px;
   color: var(--muted);
@@ -240,6 +254,38 @@
 .offer-handshake-cursor {
   display: inline-block;
   animation: blink 1s steps(1) infinite;
+}
+
+.offer-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.offer-name {
+  font-weight: 600;
+  font-size: 23px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--cyan) 30%, transparent);
+}
+
+.offer-sku {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+.offer-flavor {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+  opacity: 0.78;
+  margin: 14px 0 18px;
+  max-width: 48ch;
 }
 
 .offer-tier-badge {
@@ -301,9 +347,85 @@
   color: var(--red);
 }
 
+.offer-stat-value--clean {
+  color: var(--cyan);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 50%, transparent);
+}
+
 #stash-panel {
   display: flex;
   flex-direction: column;
+}
+
+.held-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.held-name {
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.held-tier-badge {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 3px 8px;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+}
+
+.held-tier-badge--warm {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.held-tier-badge--hot {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.held-flavor {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text);
+  opacity: 0.72;
+  margin: 12px 0 18px;
+}
+
+.held-value-row {
+  margin-bottom: 16px;
+}
+
+.held-value-label {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+.held-value {
+  font-size: 18px;
+  color: var(--cyan);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 50%, transparent);
+}
+
+.held-value-suffix {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.held-heat-note {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 8px;
 }
 
 .stash-header {
