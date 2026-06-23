@@ -84,6 +84,24 @@ defmodule ShuntWeb.HubLiveTest do
     assert has_element?(view, "#stash-panel .stash-empty", "take a lead to hold stock")
   end
 
+  test "NPC panels sit in a contacts-grid wrapper", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, ".contacts-grid #npc-mother_graft")
+  end
+
+  test "each NPC panel shows a loyalty accent bar, a faction pill, and a trust bar", %{
+    conn: conn
+  } do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#npc-mother_graft .npc-accent-bar")
+    assert has_element?(view, "#npc-mother_graft .npc-faction-pill")
+    assert has_element?(view, "#npc-mother_graft .npc-trust-row", "TRUST")
+    assert has_element?(view, "#npc-mother_graft .npc-trust-row", "50/100 · WARY")
+    assert has_element?(view, "#npc-mother_graft .npc-trust-fill")
+  end
+
   test "taking an offer deducts scrip and shows the held item", %{conn: conn} do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100))
@@ -181,7 +199,7 @@ defmodule ShuntWeb.HubLiveTest do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, npc_loyalty: %{"mother_graft" => 80}))
     {:ok, view, _html} = live(conn, ~p"/")
-    assert has_element?(view, "#npc-mother_graft", "Loyalty: 80/100")
+    assert has_element?(view, "#npc-mother_graft", "80/100 · SOLID")
   end
 
   test "Flesh Tithe consumes a cracked_bone_plate and grants scrip", %{conn: conn} do

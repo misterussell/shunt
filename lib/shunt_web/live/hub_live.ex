@@ -255,27 +255,25 @@ defmodule ShuntWeb.HubLive do
       </div>
 
       <Chrome.section_header secondary="5 DOSSIERS · USE WISELY">CONTACTS</Chrome.section_header>
-      <%!-- TODO: wrap this `:for` div in a grid container — change the outer element to
-        `<div class="contacts-grid">` with CSS `display:grid;
-        grid-template-columns:repeat(auto-fill, minmax(290px,1fr)); gap:12px;` in app.css
-        (docs/design-comp.html line 197 — this is the second instance of the
-        originally-reported bug: NPC panels currently stack full-width). The `:for` can
-        move onto this same div (Phoenix allows `:for` directly on the grid container) or
-        stay on a child — keep whichever keeps `id={"npc-\#{npc.key}"}` on each panel. --%>
-      <div :for={npc <- @npcs} id={"npc-#{npc.key}"}>
-        <%!-- TODO: add NPC panel chrome (docs/design-comp.html lines 199-217): a
-          left-edge accent bar (absolute-positioned 3px-wide span, height:100%, colored by
-          loyalty band — cyan >=60, amber >=35, red below) replacing the plain `<p>` name;
-          the faction text rendered as a small colored pill (background = the loyalty
-          color, dark text) instead of plain text; and a trust bar — a label row
-          ("TRUST" / "{loyalty}/100 · {word}") above a thin colored fill bar (height:5px,
-          border, background var(--sunk)) — replacing the bare
-          `<p>Loyalty: {npc.loyalty}/100</p>`. Reuse the heat-bar's color-ramp pattern
-          (cyan/amber/red) for both the accent bar and the trust-bar fill. --%>
-        <Chrome.panel>
-          <p>{npc.name}</p>
-          <p>{humanize_faction(npc.faction)}</p>
-          <p>Loyalty: {npc.loyalty}/100</p>
+      <div class="contacts-grid">
+        <Chrome.panel :for={npc <- @npcs} id={"npc-#{npc.key}"}>
+          <span class={["npc-accent-bar", "npc-accent-bar--#{loyalty_band(npc.loyalty)}"]}></span>
+          <p class="npc-name">{npc.name}</p>
+          <span class={["npc-faction-pill", "npc-faction-pill--#{loyalty_band(npc.loyalty)}"]}>
+            {humanize_faction(npc.faction)}
+          </span>
+          <div class="npc-trust-row">
+            <span>TRUST</span>
+            <span class={"npc-trust-value--#{loyalty_band(npc.loyalty)}"}>
+              {npc.loyalty}/100 · {loyalty_word(npc.loyalty)}
+            </span>
+          </div>
+          <div class="npc-trust-bar">
+            <div
+              class={["npc-trust-fill", "npc-trust-fill--#{loyalty_band(npc.loyalty)}"]}
+              style={"width: #{npc.loyalty}%"}
+            />
+          </div>
           <div :for={action <- npc.trade_actions}>
             <p><span>{action.name}</span> — {action.description}</p>
           </div>
@@ -363,4 +361,13 @@ defmodule ShuntWeb.HubLive do
     |> String.split()
     |> Enum.map_join(" ", &String.capitalize/1)
   end
+
+  defp loyalty_band(loyalty) when loyalty >= 60, do: "cyan"
+  defp loyalty_band(loyalty) when loyalty >= 35, do: "amber"
+  defp loyalty_band(_loyalty), do: "red"
+
+  defp loyalty_word(loyalty) when loyalty >= 70, do: "SOLID"
+  defp loyalty_word(loyalty) when loyalty >= 45, do: "WARY"
+  defp loyalty_word(loyalty) when loyalty >= 25, do: "COLD"
+  defp loyalty_word(_loyalty), do: "BURNED"
 end
