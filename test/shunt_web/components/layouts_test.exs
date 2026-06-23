@@ -107,6 +107,28 @@ defmodule ShuntWeb.LayoutsTest do
       assert html =~ ~s(phx-update="ignore")
     end
 
+    test "wordmark shows a subtitle line under SHUNT" do
+      html = render_app()
+
+      assert html =~ ~s(class="wordmark-sub")
+      assert html =~ "NODE_9 · MAKESHIFT DECK · v0.9.4"
+    end
+
+    test "a divider sits between the wordmark and the wallet HUD" do
+      html = render_app()
+
+      assert html =~ ~s(class="main-bar-divider")
+    end
+
+    test "a spacer pushes the nav tabs to the right edge of the main bar" do
+      html = render_app()
+      [_, header_section] = String.split(html, "<header", parts: 2)
+      [header_only, _] = String.split(header_section, "</header>", parts: 2)
+      [before_nav, _] = String.split(header_only, ~s(class="nav-tabs"), parts: 2)
+
+      assert before_nav =~ ~s(class="flex-1")
+    end
+
     test "theme toggle moves out of <header> and into the utility strip under a LIGHTING label" do
       html = render_app()
       [before_header, _rest] = String.split(html, "<header", parts: 2)
