@@ -73,6 +73,13 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, field, value), meta)
   end
 
+  # TODO: add a {:discover_location, location_key} clause here, mirroring the
+  # {:inventory, key, delta} clause above (lines 47-52): read the current
+  # discovered_locations list out of `acc` (falling back to player.discovered_locations),
+  # append location_key only if not already present (Enum.member?/2 — no MapSet, see
+  # priv/docs/SHUNT_location_and_movement.md "Player Aggregate" notes), and Map.put it
+  # back into acc under :discovered_locations.
+
   defp maybe_append(list, true, item), do: list ++ [item]
   defp maybe_append(list, false, _item), do: list
 

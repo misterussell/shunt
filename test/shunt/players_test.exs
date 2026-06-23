@@ -28,6 +28,12 @@ defmodule Shunt.PlayersTest do
       assert player.web_tier == 0
       assert player.street_alchemy_tier == 0
     end
+
+    # TODO: add a test asserting Players.create_player!() starts with
+    # location_id == "shunt9_player_squat" and discovered_locations == [] —
+    # this is the migration round-trip test called for in Phase 1 (proves the
+    # new players.location_id/discovered_locations columns and their defaults
+    # actually persist through Repo.insert!/1 + the new migration).
   end
 
   describe "get_player!/0" do

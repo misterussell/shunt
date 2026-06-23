@@ -208,4 +208,11 @@ defmodule Shunt.EffectsTest do
       assert changes.held_item_key == nil
     end
   end
+
+  # TODO: add a "apply/2 - :discover_location" describe block testing the new
+  # {:discover_location, location_key} clause (lib/shunt/effects.ex, after the
+  # {:set, field, value} clause):
+  #   - appends a new key to a player's discovered_locations when not already present
+  #   - does not duplicate a key already present in discovered_locations
+  #   - starting from %Player{discovered_locations: []} (the empty case)
 end
