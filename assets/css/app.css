@@ -29,29 +29,17 @@
   themes: false;
 }
 
-/* TODO: replace these two daisyUI theme blocks (currently "dark" and "light") with two new
-   ones named "street" (default: true) and "corp" (default: false) — matching the two
-   data-theme values the toggle now writes (see root.html.heex, layouts.ex theme_toggle/1).
-   We are NOT using daisyUI's component classes (btn/card/etc — forbidden by the brief for
-   this game-specific look) or its OKLch color machinery for our palette; per the agreed
-   design, lift the concrete hex values straight from the prototype's own runtime CSS
-   variables (Shunt.dc.html renderVals(), STREET/CORP consts) rather than the brief's single
-   palette table, since the two conflict and the prototype is what was actually built:
-     STREET: --bg:#06080A --panel(p1):#0C1217 --panel2(p2):#080C10 --border:#27312F
-       --text:#C7D4CE --muted:#5E6B66 --cyan:#3FE0C8 --amber:#D9913E --red:#FF4D5E
-       --sunk:#05090C --bar1:#0A0F14 --bar2:#070B0F --strip:#03060A --hi:rgba(255,255,255,0.03)
-     CORP:   --bg:#0C1622 --panel(p1):#243A4D --panel2(p2):#1B2C3B --border:#496781
-       --text:#ECF5FC --muted:#94AABB --cyan:#63D9FF --amber:#F2B873 --red:#FF7186
-       --sunk:#0F1E2A --bar1:#2E4861 --bar2:#1C2E3E --strip:#15242F --hi:rgba(255,255,255,0.12)
-   Define these as plain CSS custom properties scoped to [data-theme="street"] and
-   [data-theme="corp"] (not daisyUI --color-* tokens), since all our components below
-   reference var(--bg)/var(--panel)/etc directly. Keep the @plugin daisyui-theme blocks only
-   if daisyUI's base reset is still needed elsewhere; otherwise this whole pair of blocks can
-   become two plain `[data-theme="street"] { ... }` / `[data-theme="corp"] { ... }` rule sets
-   instead of @plugin blocks. */
+/* daisyUI's base reset still backs the generic components in core_components.ex (flash
+   toasts/alerts, table, checkbox, select-error, text-base-content/text-error) via its
+   --color-* tokens, so both daisyUI theme blocks stay — renamed to street/corp, both kept
+   dark per the brief's "both stay dark-cyberpunk... No light mode." The game-specific chrome
+   (chrome.ex/layouts.ex) ignores these tokens entirely and uses the plain custom properties
+   below instead, lifted from the prototype's own runtime CSS variables (Shunt.dc.html
+   renderVals(), STREET/CORP consts) rather than the brief's single palette table, since the
+   two conflict and the prototype is what was actually built. */
 @plugin "../vendor/daisyui-theme" {
-  name: "dark";
-  default: false;
+  name: "street";
+  default: true;
   prefersdark: true;
   color-scheme: "dark";
   --color-base-100: oklch(30.33% 0.016 252.42);
@@ -85,25 +73,25 @@
 }
 
 @plugin "../vendor/daisyui-theme" {
-  name: "light";
-  default: true;
+  name: "corp";
+  default: false;
   prefersdark: false;
-  color-scheme: "light";
-  --color-base-100: oklch(98% 0 0);
-  --color-base-200: oklch(96% 0.001 286.375);
-  --color-base-300: oklch(92% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
-  --color-primary: oklch(70% 0.213 47.604);
-  --color-primary-content: oklch(98% 0.016 73.684);
-  --color-secondary: oklch(55% 0.027 264.364);
-  --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(44% 0.017 285.786);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(62% 0.214 259.815);
-  --color-info-content: oklch(97% 0.014 254.604);
-  --color-success: oklch(70% 0.14 182.503);
+  color-scheme: "dark";
+  --color-base-100: oklch(30.33% 0.016 252.42);
+  --color-base-200: oklch(25.26% 0.014 253.1);
+  --color-base-300: oklch(20.15% 0.012 254.09);
+  --color-base-content: oklch(97.807% 0.029 256.847);
+  --color-primary: oklch(58% 0.233 277.117);
+  --color-primary-content: oklch(96% 0.018 272.314);
+  --color-secondary: oklch(58% 0.233 277.117);
+  --color-secondary-content: oklch(96% 0.018 272.314);
+  --color-accent: oklch(60% 0.25 292.717);
+  --color-accent-content: oklch(96% 0.016 293.756);
+  --color-neutral: oklch(37% 0.044 257.287);
+  --color-neutral-content: oklch(98% 0.003 247.858);
+  --color-info: oklch(58% 0.158 241.966);
+  --color-info-content: oklch(97% 0.013 236.62);
+  --color-success: oklch(60% 0.118 184.704);
   --color-success-content: oklch(98% 0.014 180.72);
   --color-warning: oklch(66% 0.179 58.318);
   --color-warning-content: oklch(98% 0.022 95.277);
@@ -117,6 +105,42 @@
   --border: 1.5px;
   --depth: 1;
   --noise: 0;
+}
+
+/* Named --border-c (not --border) to avoid colliding with daisyUI's own --border: 1.5px
+   border-width token set in the @plugin blocks above for the same [data-theme] selectors. */
+[data-theme="street"] {
+  --bg: #06080a;
+  --panel: #0c1217;
+  --panel2: #080c10;
+  --border-c: #27312f;
+  --text: #c7d4ce;
+  --muted: #5e6b66;
+  --cyan: #3fe0c8;
+  --amber: #d9913e;
+  --red: #ff4d5e;
+  --sunk: #05090c;
+  --bar1: #0a0f14;
+  --bar2: #070b0f;
+  --strip: #03060a;
+  --hi: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="corp"] {
+  --bg: #0c1622;
+  --panel: #243a4d;
+  --panel2: #1b2c3b;
+  --border-c: #496781;
+  --text: #ecf5fc;
+  --muted: #94aabb;
+  --cyan: #63d9ff;
+  --amber: #f2b873;
+  --red: #ff7186;
+  --sunk: #0f1e2a;
+  --bar1: #2e4861;
+  --bar2: #1c2e3e;
+  --strip: #15242f;
+  --hi: rgba(255, 255, 255, 0.12);
 }
 
 /* Add variants based on LiveView classes */
@@ -136,7 +160,7 @@
    layouts.ex — no inline `style="..."` attributes anywhere in the HEEx templates; every
    visual rule the prototype expressed as inline styles must become a class here instead.
    Needed classes (names are suggestions, keep them consistent with chrome.ex):
-     .panel          — surface gradient (var(--p1) to var(--p2)), 1px var(--border), no
+     .panel          — surface gradient (var(--p1) to var(--p2)), 1px var(--border-c), no
                        radius, inset top highlight (var(--hi)); .panel--active adds the
                        small L-bracket corner accents (HUD-reticle corners, ::before/::after)
      .section-header — small-caps label + thin horizontal rule (the "// WALLET" style)
@@ -161,11 +185,11 @@
      .noise-overlay, .scanline, .scanline-sweep, .vignette — fixed full-viewport decorative
        layers (layouts.ex app/1), pointer-events: none. .scanline-sweep uses the `drift`
        keyframes below; .noise-overlay is the `crtflicker`-animated grain layer
-     .footer-ticker — fixed bottom:0, flex row, var(--strip) background, var(--border) top
+     .footer-ticker — fixed bottom:0, flex row, var(--strip) background, var(--border-c) top
        hairline. .footer-ticker-caret is var(--cyan). .footer-ticker-cursor is a thin var(--cyan)
        block using the `blink` keyframes below. .footer-ticker-sysid is var(--muted), small-caps
        tracked-out
-     .utility-strip — sticky top:0, flex row, var(--strip) background, var(--border) bottom
+     .utility-strip — sticky top:0, flex row, var(--strip) background, var(--border-c) bottom
        hairline (layouts.ex app/1). .utility-strip-cursor uses the `blink` keyframes below.
        .utility-strip-rec is a small var(--red) circle using the `recblink` keyframes below.
        .utility-strip-lighting-label is var(--muted), small-caps tracked-out (paired with the
@@ -176,6 +200,6 @@
      @keyframes crtflicker { 0%,100%{opacity:.10} 8%{opacity:.16} 9%{opacity:.07} 40%{opacity:.12} 41%{opacity:.18} 70%{opacity:.09} }
      @keyframes drift { from{background-position:0 0} to{background-position:0 -2400px} }
      @keyframes recblink { 0%,60%{opacity:1} 61%,100%{opacity:.15} }
-   Apply var(--cyan)/var(--amber)/var(--red)/var(--text)/var(--muted)/var(--border) etc from
+   Apply var(--cyan)/var(--amber)/var(--red)/var(--text)/var(--muted)/var(--border-c) etc from
    the per-theme custom properties staged above, not literal hex values, so switching
    data-theme recolors everything. */
