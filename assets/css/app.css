@@ -1384,10 +1384,39 @@
   }
 }
 
-/* TODO: add styles for MovementLive's Phase 3 narrative feed + discovered-locations
-   indicator (lib/shunt_web/live/movement_live.ex):
-   - #narrative-feed / #narrative-entries: simple panel + stacked text lines, matching the
-     plain Chrome.panel + <p> treatment already used for #current-location (no heavy chrome
-     like .offer-panel/.stash-panel needs).
-   - .exit-badge--visited / .exit-badge--new: small badges next to each exit button in the
-     exits <ul>, styled like .offer-tier-badge above (border + colored text, no fill). */
+#narrative-feed {
+  padding: 16px 20px;
+}
+
+#narrative-entries p {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+  opacity: 0.78;
+  margin: 0 0 10px;
+}
+
+#narrative-entries p:last-child {
+  margin-bottom: 0;
+}
+
+.exit-badge {
+  display: inline-block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 2px 7px;
+  margin-left: 8px;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+}
+
+.exit-badge--new {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.exit-badge--visited {
+  border-color: var(--border-c);
+  color: var(--muted);
+}
