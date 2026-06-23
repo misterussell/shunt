@@ -139,6 +139,29 @@ defmodule ShuntWeb.SkillsLiveTest do
     assert Shunt.Players.get_player!().heat == 80
   end
 
+  test "the assembled section shows a BENCH CLEAN empty state when nothing is assembled", %{
+    conn: conn
+  } do
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    assert has_element?(view, "#assembled-empty-state", "BENCH CLEAN")
+    assert has_element?(view, "#assembled-empty-state", "no product assembled")
+  end
+
+  test "assembled goods sit in a grid and the empty state disappears once something is assembled",
+       %{conn: conn} do
+    player = Shunt.Players.get_player!()
+
+    Shunt.Repo.update!(
+      Ecto.Changeset.change(player, inventory: %{"scrap_forged_soldering_iron" => 1})
+    )
+
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    refute has_element?(view, "#assembled-empty-state")
+    assert has_element?(view, ".assembled-grid #assembled-scrap_forged_soldering_iron")
+  end
+
   test "assembling a recipe shows the assembled good with a sell button", %{conn: conn} do
     player = Shunt.Players.get_player!()
     inputs = Shunt.Crafting.RecipeCatalog.fetch!("scrap_forged_soldering_iron").inputs

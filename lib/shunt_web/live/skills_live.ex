@@ -158,33 +158,33 @@ defmodule ShuntWeb.SkillsLive do
         </div>
 
         <Chrome.section_header secondary="BENCH OUTPUT">ASSEMBLED</Chrome.section_header>
-        <%!-- TODO: restructure assembled goods (docs/design-comp.html lines 319-336).
-          When at least one recipe has `Map.get(@player.inventory, recipe.key, 0) > 0`:
-          wrap the `:for` in a `<div class="assembled-grid">` (CSS: display:grid;
-          grid-template-columns:repeat(auto-fill, minmax(228px,1fr)); gap:9px;) and
-          replace the per-item `Chrome.panel` with a compact row (flex,
-          justify-content:space-between, padding:13px 15px, bordered) — name + "+{value}
-          cr" on the left, the existing `[ SELL ]` ghost button on the right. When NONE
-          of the recipes have inventory > 0, render the "BENCH CLEAN · no product
-          assembled" empty state (dashed border, hatched background) instead of nothing
-          — today this section just renders an empty area with no empty-state markup. --%>
-        <div :for={recipe <- @recipes}>
-          <div :if={Map.get(@player.inventory, recipe.key, 0) > 0} id={"assembled-#{recipe.key}"}>
-            <Chrome.panel>
-              <p>
-                {recipe.name} ({Map.get(@player.inventory, recipe.key, 0)}) — {recipe.sell_value} Scrip
-              </p>
+        <%= if Enum.any?(@recipes, &(Map.get(@player.inventory, &1.key, 0) > 0)) do %>
+          <div class="assembled-grid">
+            <div
+              :for={recipe <- @recipes}
+              :if={Map.get(@player.inventory, recipe.key, 0) > 0}
+              id={"assembled-#{recipe.key}"}
+              class="assembled-row"
+            >
+              <div>
+                <div class="assembled-name">{recipe.name}</div>
+                <div class="assembled-value">+{recipe.sell_value} cr</div>
+              </div>
               <Chrome.btn
                 id={"sell-assembled-#{recipe.key}-button"}
-                variant={:primary}
+                variant={:ghost}
                 phx-click="sell_assembled"
                 phx-value-key={recipe.key}
               >
                 [ SELL ]
               </Chrome.btn>
-            </Chrome.panel>
+            </div>
           </div>
-        </div>
+        <% else %>
+          <div id="assembled-empty-state">
+            <span>BENCH CLEAN · no product assembled</span>
+          </div>
+        <% end %>
       <% else %>
         <%!-- TODO: add stub-page chrome (docs/design-comp.html lines 340-349): amber
           dashed accent bars along the top and bottom edges of the panel (absolute-
