@@ -115,59 +115,46 @@ defmodule ShuntWeb.SkillsLive do
         </Chrome.panel>
 
         <Chrome.section_header secondary="DECRYPTED BY TIER">RECIPES</Chrome.section_header>
-        <%!-- TODO: replace this `:for` + full-`Chrome.panel`-per-recipe block entirely
-          (docs/design-comp.html lines 285-311). Recipes must NOT be full panels — render
-          a `<div class="recipes-list">` (CSS: display:flex; flex-direction:column;
-          gap:7px;) containing one compact row per recipe:
-            - Unlocked (`@current_tier >= recipe.tier_required`): a single flex row
-              (align-items:center, gap:16px, padding:13px 16px, bordered) with a cyan
-              tier chip ("T{tier}"), the recipe name + requirement text
-              ("◇ 2× Cortex Gel   +   1× Coolant Salts", built from `recipe.inputs` +
-              `RawCatalog.fetch!/1`), the sell value right-aligned in cyan, and the
-              existing `[ ASSEMBLE ]`/dead-button logic unchanged (just re-laid-out
-              inline instead of stacked).
-            - Locked (`@current_tier < recipe.tier_required`): a visually distinct
-              redacted row (hatched background, muted tier chip, redacted name text e.g.
-              "█████ ███", amber "🔒 ENCRYPTED" label) that does NOT show the
-              requirement counts at all — this is a content change, not just styling:
-              currently every recipe shows its raw requirements even when locked.
-          Keep each row's `id={"recipe-\#{recipe.key}"}` and the
-          `id={"assemble-\#{recipe.key}-button"}` for test compatibility. --%>
-        <div :for={recipe <- @recipes} id={"recipe-#{recipe.key}"}>
-          <Chrome.panel>
-            <p>
-              <span>{recipe.name}</span>
-              <%= if @current_tier < recipe.tier_required do %>
-                Locked
-              <% else %>
-                Unlocked
-              <% end %>
-            </p>
-            <p :for={{raw_key, qty} <- recipe.inputs}>
-              {qty} x {RawCatalog.fetch!(raw_key).name} (owned: {Map.get(
-                @player.inventory,
-                raw_key,
-                0
-              )})
-            </p>
-            <Chrome.btn
-              id={"assemble-#{recipe.key}-button"}
-              variant={
-                if(
-                  @current_tier < recipe.tier_required or
-                    Enum.any?(recipe.inputs, fn {raw_key, qty} ->
-                      qty > Map.get(@player.inventory, raw_key, 0)
-                    end),
-                  do: :dead,
-                  else: :primary
-                )
-              }
-              phx-click="assemble"
-              phx-value-key={recipe.key}
-            >
-              [ ASSEMBLE ]
-            </Chrome.btn>
-          </Chrome.panel>
+        <div class="recipes-list">
+          <div :for={recipe <- @recipes} id={"recipe-#{recipe.key}"}>
+            <%= if @current_tier < recipe.tier_required do %>
+              <div class="recipe-row recipe-row--locked">
+                <span class="recipe-tier-chip recipe-tier-chip--locked">T{recipe.tier_required}</span>
+                <span class="recipe-redacted-name">█████ ███</span>
+                <span class="recipe-encrypted-label">🔒 ENCRYPTED</span>
+              </div>
+            <% else %>
+              <div class="recipe-row">
+                <span class="recipe-tier-chip">T{recipe.tier_required}</span>
+                <div class="recipe-info">
+                  <div class="recipe-name">{recipe.name}</div>
+                  <div class="recipe-req">
+                    {recipe.inputs
+                    |> Enum.map_join("   +   ", fn {raw_key, qty} ->
+                      "◇ #{qty}× #{RawCatalog.fetch!(raw_key).name}"
+                    end)}
+                  </div>
+                </div>
+                <span class="recipe-value">+{recipe.sell_value}cr</span>
+                <Chrome.btn
+                  id={"assemble-#{recipe.key}-button"}
+                  variant={
+                    if(
+                      Enum.any?(recipe.inputs, fn {raw_key, qty} ->
+                        qty > Map.get(@player.inventory, raw_key, 0)
+                      end),
+                      do: :dead,
+                      else: :primary
+                    )
+                  }
+                  phx-click="assemble"
+                  phx-value-key={recipe.key}
+                >
+                  [ ASSEMBLE ]
+                </Chrome.btn>
+              </div>
+            <% end %>
+          </div>
         </div>
 
         <Chrome.section_header secondary="BENCH OUTPUT">ASSEMBLED</Chrome.section_header>

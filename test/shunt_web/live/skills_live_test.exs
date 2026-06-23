@@ -51,7 +51,9 @@ defmodule ShuntWeb.SkillsLiveTest do
   test "renders recipes as locked for a fresh player", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
 
-    assert has_element?(view, "#recipe-patchwork_courier_drone", "Locked")
+    assert has_element?(view, "#recipe-patchwork_courier_drone", "ENCRYPTED")
+    refute has_element?(view, "#recipe-patchwork_courier_drone", "Patchwork Courier Drone")
+    refute has_element?(view, "#assemble-patchwork_courier_drone-button")
   end
 
   test "crafting the Scrap-Forged Soldering Iron unlocks street_alchemy tier 1", %{conn: conn} do
@@ -63,7 +65,24 @@ defmodule ShuntWeb.SkillsLiveTest do
 
     view |> element("#assemble-scrap_forged_soldering_iron-button") |> render_click()
 
-    assert has_element?(view, "#recipe-patchwork_courier_drone", "Unlocked")
+    assert has_element?(view, "#recipe-patchwork_courier_drone", "Patchwork Courier Drone")
+    refute has_element?(view, "#recipe-patchwork_courier_drone", "ENCRYPTED")
+  end
+
+  test "an unlocked recipe shows a tier chip, requirement text, and the sell value", %{
+    conn: conn
+  } do
+    {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+    recipe = Shunt.Crafting.RecipeCatalog.fetch!("scrap_forged_soldering_iron")
+    assert has_element?(view, "#recipe-scrap_forged_soldering_iron .recipe-tier-chip", "T0")
+    assert has_element?(view, "#recipe-scrap_forged_soldering_iron .recipe-req", "×")
+
+    assert has_element?(
+             view,
+             "#recipe-scrap_forged_soldering_iron .recipe-value",
+             "+#{recipe.sell_value}cr"
+           )
   end
 
   test "the scavenge panel lays out the description/button column beside the raw materials bin",
