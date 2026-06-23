@@ -78,5 +78,44 @@ defmodule ShuntWeb.LayoutsTest do
 
       assert html =~ "SYSTEM ONLINE // DECK WARM"
     end
+
+    test "utility strip prompt's cwd matches each active tab's route slug" do
+      for {active, cwd} <- [
+            hub: "blackmarket",
+            ghostwork: "ghostwork",
+            chrome_meat: "chrome-meat",
+            web: "the-web",
+            street_alchemy: "street-alchemy"
+          ] do
+        html = render_app(%{active: active})
+
+        assert html =~ "root@shunt-9:~/#{cwd}$"
+      end
+    end
+
+    test "utility strip shows NET: DARKLINE and a REC dot" do
+      html = render_app()
+
+      assert html =~ "NET: DARKLINE"
+      assert html =~ ~s(class="utility-strip-rec")
+    end
+
+    test "utility strip includes a client-side clock hook that LiveView won't manage the DOM of" do
+      html = render_app()
+
+      assert html =~ ~s(phx-hook="Clock")
+      assert html =~ ~s(phx-update="ignore")
+    end
+
+    test "theme toggle moves out of <header> and into the utility strip under a LIGHTING label" do
+      html = render_app()
+      [before_header, _rest] = String.split(html, "<header", parts: 2)
+      [_, header_section] = String.split(html, "<header", parts: 2)
+      [header_only, _] = String.split(header_section, "</header>", parts: 2)
+
+      assert before_header =~ "theme-toggle"
+      assert before_header =~ "LIGHTING"
+      refute header_only =~ "theme-toggle"
+    end
   end
 end

@@ -51,15 +51,17 @@ defmodule ShuntWeb.Layouts do
     <div class="scanline-sweep"></div>
     <div class="vignette"></div>
 
-    <%!-- TODO: add a sticky (top:0) utility strip here: a "root@shunt-9:~/<cwd>$" prompt with
-    a blinking cursor span, "NET: DARKLINE" text, a blinking REC dot, and a live clock. `cwd`
-    is a case/cond on @active: :hub -> "blackmarket", :ghostwork -> "ghostwork", :chrome_meat
-    -> "chrome-meat", :web -> "the-web", :street_alchemy -> "street-alchemy" (matches each
-    tab's route slug except :hub, which keeps the thematic "blackmarket"). The clock is a
-    client-side JS hook (phx-hook="Clock", phx-update="ignore" on its element) whose hook
-    calls setInterval and writes the time into its own textContent — no server round-trips.
-    Move the <.theme_toggle /> call out of <header> below and into this strip, under a
-    "LIGHTING" label, when this lands. --%>
+    <div class="utility-strip">
+      <span class="utility-strip-prompt">root@shunt-9:~/{cwd(@active)}$</span>
+      <span class="utility-strip-cursor"></span>
+      <span class="utility-strip-net">NET: DARKLINE</span>
+      <span class="utility-strip-rec"></span>
+      <span id="utility-strip-clock" phx-hook="Clock" phx-update="ignore"></span>
+      <div class="flex-1"></div>
+      <span class="utility-strip-lighting-label">LIGHTING</span>
+      <.theme_toggle />
+    </div>
+
     <header class="main-bar">
       <span class="wordmark">SHUNT</span>
       <Chrome.wallet_hud player={@player} />
@@ -87,7 +89,6 @@ defmodule ShuntWeb.Layouts do
           ST_ALCHEMY
         </.link>
       </nav>
-      <.theme_toggle />
     </header>
 
     <main class="main-content">
@@ -176,4 +177,10 @@ defmodule ShuntWeb.Layouts do
     </div>
     """
   end
+
+  defp cwd(:hub), do: "blackmarket"
+  defp cwd(:ghostwork), do: "ghostwork"
+  defp cwd(:chrome_meat), do: "chrome-meat"
+  defp cwd(:web), do: "the-web"
+  defp cwd(:street_alchemy), do: "street-alchemy"
 end
