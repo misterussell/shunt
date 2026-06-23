@@ -20,6 +20,25 @@ defmodule ShuntWeb.SkillsLiveTest do
     assert has_element?(view, "#skill-tree-stub", "No table prepped. No hands steady enough yet.")
   end
 
+  test "stub page shows a DORMANT MODULE badge, the generic subsystem line, and the signal-lost footer",
+       %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+
+    assert has_element?(view, "#skill-tree-stub .stub-badge", "DORMANT MODULE")
+
+    assert has_element?(
+             view,
+             "#skill-tree-stub .stub-generic-line",
+             "This subsystem only tracks progression"
+           )
+
+    assert has_element?(
+             view,
+             "#skill-tree-stub .stub-footer",
+             "SIGNAL LOST · 0x00 · NO HANDSHAKE"
+           )
+  end
+
   test "web renders the dormant stub panel with its stub text", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/skills/the-web")
 

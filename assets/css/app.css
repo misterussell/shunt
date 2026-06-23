@@ -765,6 +765,65 @@
   letter-spacing: 0.06em;
 }
 
+.stub-panel {
+  padding: 54px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.stub-accent-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: repeating-linear-gradient(90deg, var(--amber) 0 12px, #0a0d0f 12px 24px);
+  opacity: 0.5;
+}
+
+.stub-accent-bar--top {
+  top: 0;
+}
+
+.stub-accent-bar--bottom {
+  bottom: 0;
+}
+
+.stub-badge {
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  padding: 5px 13px;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--amber) 30%, transparent);
+}
+
+.stub-tree-text {
+  font-weight: 500;
+  font-size: 19px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  opacity: 0.92;
+  margin: 0;
+}
+
+.stub-generic-line {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 44ch;
+  margin: 0;
+}
+
+.stub-footer {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--border-c);
+  margin-top: 4px;
+}
+
 .ladder-panel-heading {
   display: flex;
   align-items: baseline;

@@ -186,22 +186,16 @@ defmodule ShuntWeb.SkillsLive do
           </div>
         <% end %>
       <% else %>
-        <%!-- TODO: add stub-page chrome (docs/design-comp.html lines 340-349): amber
-          dashed accent bars along the top and bottom edges of the panel (absolute-
-          positioned spans, background:repeating-linear-gradient(90deg, var(--amber) 0
-          12px, ... 12px 24px)), restyle "⚠ DORMANT MODULE" as an amber bordered badge
-          (letter-spacing:0.32em, padding:5px 13px, box-shadow glow) instead of plain
-          text, center the content column with generous padding (54px 40px) and the
-          existing hatched background, and append a closing line
-          "// SIGNAL LOST · 0x00 · NO HANDSHAKE //" (muted/dim) after {@tree.stub} — plus
-          the comp's fixed second line "This subsystem only tracks progression..." which
-          isn't currently rendered at all (confirm with the user whether that generic
-          line should be added verbatim or is superseded by each tree's own `@tree.stub`
-          text). --%>
         <div id="skill-tree-stub">
-          <Chrome.panel>
-            <p>⚠ DORMANT MODULE</p>
-            <p>{@tree.stub}</p>
+          <Chrome.panel class="hatch stub-panel">
+            <span class="stub-accent-bar stub-accent-bar--top"></span>
+            <span class="stub-accent-bar stub-accent-bar--bottom"></span>
+            <span class="stub-badge">⚠ DORMANT MODULE</span>
+            <p class="stub-tree-text">{@tree.stub}</p>
+            <p class="stub-generic-line">
+              This subsystem only tracks progression. No gameplay is wired to the tree yet — the deck's still missing parts. Crack the first tier and check back.
+            </p>
+            <span class="stub-footer">// SIGNAL LOST · 0x00 · NO HANDSHAKE //</span>
           </Chrome.panel>
         </div>
       <% end %>
