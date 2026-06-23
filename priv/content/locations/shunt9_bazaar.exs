@@ -15,6 +15,8 @@
 
   graph_position: {500, 300},
 
+  # TODO: alias Shunt.World.Exit and convert each map below to %Exit{to: ...},
+  # dropping requirements: [] (matches the struct default).
   exits: [
     %{to: "shunt9_scrap_yard", requirements: []},
     %{to: "shunt9_food_stalls", requirements: []},
