@@ -8,10 +8,8 @@ defmodule Shunt.Content.Store do
     {:raws, "priv/content/raws"},
     {:recipes, "priv/content/recipes"},
     {:heat_events, "priv/content/heat_events"},
-    {:skill_trees, "priv/content/skills"}
-    # TODO: add {:locations, "priv/content/locations"} once the location content
-    # files exist (see lib/shunt/world.ex), so Shunt.World can read them via the
-    # generic Content.all/1 / Content.fetch!/2 the same way Shunt.Npcs does.
+    {:skill_trees, "priv/content/skills"},
+    {:locations, "priv/content/locations"}
   ]
 
   def start_link(_opts) do
