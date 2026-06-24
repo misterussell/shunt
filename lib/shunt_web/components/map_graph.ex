@@ -23,7 +23,10 @@ defmodule ShuntWeb.Components.MapGraph do
       |> assign(:y, min_y - 50)
       |> assign(:width, max_x - min_x + 100)
       |> assign(:height, max_y - min_y + 100)
-      |> assign(:view_box, "#{min_x - 50} #{min_y - 50} #{max_x - min_x + 100} #{max_y - min_y + 100}")
+      |> assign(
+        :view_box,
+        "#{min_x - 50} #{min_y - 50} #{max_x - min_x + 100} #{max_y - min_y + 100}"
+      )
 
     ~H"""
     <svg viewBox={@view_box} class="map-graph">
@@ -35,11 +38,29 @@ defmodule ShuntWeb.Components.MapGraph do
           </feMerge>
         </filter>
         <filter id="map-rough" x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="7" result="turb" />
-          <feDisplacementMap in="SourceGraphic" in2="turb" scale="4" xChannelSelector="R" yChannelSelector="G" />
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.06"
+            numOctaves="2"
+            seed="7"
+            result="turb"
+          />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="turb"
+            scale="4"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
         </filter>
         <filter id="map-grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="n" />
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.85"
+            numOctaves="2"
+            stitchTiles="stitch"
+            result="n"
+          />
           <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0" />
         </filter>
         <pattern id="map-dots" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -47,10 +68,22 @@ defmodule ShuntWeb.Components.MapGraph do
           <circle cx="6" cy="33" r="0.8" fill="var(--border-c)" opacity="0.3" />
           <circle cx="33" cy="9" r="0.6" fill="var(--border-c)" opacity="0.25" />
         </pattern>
-        <pattern id="map-hatch-amber" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <pattern
+          id="map-hatch-amber"
+          width="6"
+          height="6"
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(45)"
+        >
           <line x1="0" y1="0" x2="0" y2="6" stroke="var(--amber)" stroke-width="1.4" />
         </pattern>
-        <pattern id="map-hatch-undiscovered" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <pattern
+          id="map-hatch-undiscovered"
+          width="8"
+          height="8"
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(45)"
+        >
           <line x1="0" y1="0" x2="0" y2="8" stroke="var(--border-c)" stroke-width="2" />
         </pattern>
         <radialGradient id="map-burn" cx="50%" cy="50%" r="50%">
@@ -93,7 +126,11 @@ defmodule ShuntWeb.Components.MapGraph do
   defp edge(assigns) do
     style = edge_style(assigns.state_a, assigns.state_b)
     grates = if style == :unknown, do: [0.5], else: [0.35, 0.65]
-    points = [assigns.point_a | break_points(grates, assigns.point_a, assigns.point_b)] ++ [assigns.point_b]
+
+    points =
+      [assigns.point_a | break_points(grates, assigns.point_a, assigns.point_b)] ++
+        [assigns.point_b]
+
     segments = Enum.chunk_every(points, 2, 1, :discard)
     break_xy = break_points(grates, assigns.point_a, assigns.point_b)
 
@@ -104,7 +141,8 @@ defmodule ShuntWeb.Components.MapGraph do
         :unknown -> {"var(--border-c)", "2", "3 6", nil}
       end
 
-    hatch = if style == :unknown, do: "url(#map-hatch-undiscovered)", else: "url(#map-hatch-amber)"
+    hatch =
+      if style == :unknown, do: "url(#map-hatch-undiscovered)", else: "url(#map-hatch-amber)"
 
     assigns =
       assigns
@@ -131,7 +169,15 @@ defmodule ShuntWeb.Components.MapGraph do
       />
     </g>
     <g :for={{x, y} <- @break_xy} filter={@filter}>
-      <rect x={x - 4.5} y={y - 4.5} width="9" height="9" fill={@hatch} stroke={@stroke} stroke-width="1" />
+      <rect
+        x={x - 4.5}
+        y={y - 4.5}
+        width="9"
+        height="9"
+        fill={@hatch}
+        stroke={@stroke}
+        stroke-width="1"
+      />
     </g>
     """
   end
