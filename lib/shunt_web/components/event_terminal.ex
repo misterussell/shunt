@@ -45,7 +45,8 @@ defmodule ShuntWeb.Components.EventTerminal do
                 class="event-step-text"
                 phx-hook="EventTerminal"
                 data-text={entry.text}
-              ></p>
+              >
+              </p>
               <div class="event-choices">
                 <button
                   :for={choice <- entry.choices}
