@@ -3,88 +3,274 @@ defmodule ShuntWeb.Components.MapGraph do
 
   use Phoenix.Component
 
-  # TODO: implement `node_state(location, player)` returning one of
-  # `:current | :connected | :discovered | :undiscovered`:
-  #   - :current      when location.key == player.location_id
-  #   - :connected    when Shunt.World.connected?(player.location_id, location.key) — this
-  #                   wins over :discovered regardless of whether location.key is already in
-  #                   player.discovered_locations, because a reachable neighbor is always
-  #                   shown bright/clickable even before the player has ever been there
-  #   - :discovered   when location.key in player.discovered_locations (and neither of the
-  #                   above matched)
-  #   - :undiscovered otherwise
-  # Add `alias Shunt.World` at the top of this module when implementing.
+  attr :player, :map, required: true
+  attr :locations, :list, required: true
 
-  # TODO: implement `edges(locations)` returning a deduped list of `{location_a, location_b}`
-  # tuples (full location structs, not just keys) covering every connection in the graph
-  # exactly once, even though each connection is stored as two one-directional
-  # `Shunt.World.Exit` structs (one in each location's `exits` list). Dedupe by sorting each
-  # pair's keys before uniq-ing:
-  #   by_key = Map.new(locations, &{&1.key, &1})
-  #   locations
-  #   |> Enum.flat_map(fn loc -> Enum.map(loc.exits, &{loc.key, &1.to}) end)
-  #   |> Enum.uniq_by(fn {a, b} -> Enum.sort([a, b]) end)
-  #   |> Enum.map(fn {a, b} -> {by_key[a], by_key[b]} end)
+  def map_graph(assigns) do
+    current = Enum.find(assigns.locations, &(&1.key == assigns.player.location_id))
+    connected_keys = MapSet.new(current.exits, & &1.to)
+    states = Map.new(assigns.locations, &{&1.key, node_state(&1, assigns.player, connected_keys)})
+    edges = edges(assigns.locations)
 
-  # TODO: implement `edge_style(state_a, state_b)` returning `:active | :known | :unknown`:
-  #   - :active  when :current is one of the two states (this edge is a literal move option
-  #              from where the player is standing right now)
-  #   - :unknown when :undiscovered is one of the two states and :current is not
-  #   - :known   otherwise (both ends at least discovered, neither end is current)
+    {min_x, max_x, min_y, max_y} = bounds(assigns.locations)
 
-  # TODO: implement `break_points(t_fractions, {x1, y1}, {x2, y2})` — given a list of
-  # fractions along the edge (e.g. `[0.35, 0.65]` for a 2-grate edge, `[0.5]` for a 1-grate
-  # edge) and the two endpoint graph_position tuples, return the lerped `{x, y}` center point
-  # for each fraction: `{x1 + (x2 - x1) * t, y1 + (y2 - y1) * t}`. This places the
-  # broken-hatch grate icons generically along any edge angle, not just the axis-aligned ones
-  # in the current 7-location graph.
+    assigns =
+      assigns
+      |> assign(:states, states)
+      |> assign(:edges, edges)
+      |> assign(:current, current)
+      |> assign(:x, min_x - 50)
+      |> assign(:y, min_y - 50)
+      |> assign(:width, max_x - min_x + 100)
+      |> assign(:height, max_y - min_y + 100)
+      |> assign(:view_box, "#{min_x - 50} #{min_y - 50} #{max_x - min_x + 100} #{max_y - min_y + 100}")
 
-  # TODO: implement the `map_graph/1` function component.
-  # Attrs: `:player` (required, the current %Shunt.Players.Player{}), `:locations` (required,
-  # list of all locations from `Shunt.World.all_locations/0`).
-  #
-  # Renders, porting the visual treatment 1:1 from the approved mockup at
-  # .superpowers/brainstorm/162690-1782257871/content/visual-style-a-gritty-v2.html:
-  #   - an outer <svg viewBox="..."> sized to bound every location's graph_position with a
-  #     ~50px margin on each side — compute min/max x/y across `@locations` rather than
-  #     hardcoding the current 7-location bounding box, so new locations don't get clipped
-  #   - <defs>: PCB dot-grid pattern, grain filter (feTurbulence + feColorMatrix), the "rough"
-  #     hand-etched wobble filter (feTurbulence + feDisplacementMap), a radial burn-smudge
-  #     gradient, and hatch patterns (amber-stroked for grates on :active/:known edges and the
-  #     pad fill on :undiscovered nodes' "blank" look needs its own dimmer muted hatch)
-  #   - background: dot-grid rect, grain overlay rect, 2 grime-streak lines
-  #   - one burn-smudge rect centered on the current location's graph_position
-  #   - for each `{loc_a, loc_b}` in `edges(locations)`: split into 2 segments (1 grate, via
-  #     `break_points([0.5], ...)`) or 3 segments (2 grates, via `break_points([0.35, 0.65],
-  #     ...)`) depending on `edge_style(node_state(loc_a, player), node_state(loc_b, player))`
-  #     — :active/:known edges get 2 grates, :unknown edges get 1 — with a small hatch-filled
-  #     square centered on each break point; stroke color/width/glow driven by edge style
-  #     (:active = bright cyan + glow filter, :known = muted solid, :unknown = dim dashed)
-  #   - for each location: a rotated-45° diamond pad styled per `node_state/2`:
-  #       :current      — filled cyan + glow filter + corner-bracket reticle (4 corner ticks)
-  #       :connected    — hollow cyan outline, "rough" wobble filter applied
-  #       :discovered   — hollow muted outline, opacity 0.7, "rough" wobble filter applied
-  #       :undiscovered — hatch-filled outline (dimmer muted hatch) + a bold ✕ path overlay
-  #     plus a small solder-blob ellipse at the node center for :current/:connected only
-  #   - a name label below each node: the real `location.name` for :current/:connected/
-  #     :discovered, the literal string "???" for :undiscovered
-  #   - for `:connected` nodes only: a transparent oversized hit-circle (r ~20) layered on top
-  #     with `id={"move-to-#{location.key}"}` and `phx-click="move_to"
-  #     phx-value-destination={location.key}` — reuses MovementLive's existing
-  #     `handle_event("move_to", ...)` unchanged
-  #
-  # Keep all colors as the existing CSS custom properties (var(--cyan), var(--amber),
-  # var(--muted), var(--border-c)) via inline SVG style/stroke/fill attribute values, not
-  # literal hex, so theme switching (street/corp) still recolors the map.
-  #
-  # attr :player, :map, required: true
-  # attr :locations, :list, required: true
-  #
-  # def map_graph(assigns)
+    ~H"""
+    <svg viewBox={@view_box} class="map-graph">
+      <defs>
+        <filter id="map-glow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="6" result="b" />
+          <feMerge>
+            <feMergeNode in="b" /><feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="map-rough" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="7" result="turb" />
+          <feDisplacementMap in="SourceGraphic" in2="turb" scale="4" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id="map-grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="n" />
+          <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0" />
+        </filter>
+        <pattern id="map-dots" width="40" height="40" patternUnits="userSpaceOnUse">
+          <circle cx="20" cy="20" r="1.4" fill="var(--border-c)" opacity="0.55" />
+          <circle cx="6" cy="33" r="0.8" fill="var(--border-c)" opacity="0.3" />
+          <circle cx="33" cy="9" r="0.6" fill="var(--border-c)" opacity="0.25" />
+        </pattern>
+        <pattern id="map-hatch-amber" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="6" stroke="var(--amber)" stroke-width="1.4" />
+        </pattern>
+        <pattern id="map-hatch-undiscovered" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="8" stroke="var(--border-c)" stroke-width="2" />
+        </pattern>
+        <radialGradient id="map-burn" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="var(--amber)" stop-opacity="0.35" />
+          <stop offset="55%" stop-color="#1a1108" stop-opacity="0.35" />
+          <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+        </radialGradient>
+      </defs>
 
-  # TODO: implement `map_legend/1` (no attrs) — a static 4-row key, one row per node state:
-  # "●  CURRENT LOCATION" (cyan), "○  CONNECTED" (bright cyan), "○  DISCOVERED" (dim muted),
-  # "✕  UNDISCOVERED" (dim muted). Rendered alongside `map_graph/1` in MovementLive.
-  #
-  # def map_legend(assigns)
+      <rect x={@x} y={@y} width={@width} height={@height} fill="url(#map-dots)" />
+      <rect x={@x} y={@y} width={@width} height={@height} filter="url(#map-grain)" opacity="0.18" />
+
+      <rect
+        :if={@current}
+        x={elem(@current.graph_position, 0) - 120}
+        y={elem(@current.graph_position, 1) - 120}
+        width="240"
+        height="240"
+        fill="url(#map-burn)"
+      />
+
+      <.edge
+        :for={{loc_a, loc_b} <- @edges}
+        state_a={@states[loc_a.key]}
+        state_b={@states[loc_b.key]}
+        point_a={loc_a.graph_position}
+        point_b={loc_b.graph_position}
+      />
+
+      <.map_node :for={location <- @locations} location={location} state={@states[location.key]} />
+    </svg>
+    """
+  end
+
+  attr :state_a, :atom, required: true
+  attr :state_b, :atom, required: true
+  attr :point_a, :any, required: true
+  attr :point_b, :any, required: true
+
+  defp edge(assigns) do
+    style = edge_style(assigns.state_a, assigns.state_b)
+    grates = if style == :unknown, do: [0.5], else: [0.35, 0.65]
+    points = [assigns.point_a | break_points(grates, assigns.point_a, assigns.point_b)] ++ [assigns.point_b]
+    segments = Enum.chunk_every(points, 2, 1, :discard)
+    break_xy = break_points(grates, assigns.point_a, assigns.point_b)
+
+    {stroke, width, dash, filter} =
+      case style do
+        :active -> {"var(--cyan)", "3", nil, "url(#map-glow)"}
+        :known -> {"var(--muted)", "2", nil, nil}
+        :unknown -> {"var(--border-c)", "2", "3 6", nil}
+      end
+
+    hatch = if style == :unknown, do: "url(#map-hatch-undiscovered)", else: "url(#map-hatch-amber)"
+
+    assigns =
+      assigns
+      |> assign(:segments, segments)
+      |> assign(:break_xy, break_xy)
+      |> assign(:stroke, stroke)
+      |> assign(:width, width)
+      |> assign(:dash, dash)
+      |> assign(:filter, filter)
+      |> assign(:hatch, hatch)
+
+    ~H"""
+    <g filter="url(#map-rough)">
+      <line
+        :for={[{x1, y1}, {x2, y2}] <- @segments}
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke={@stroke}
+        stroke-width={@width}
+        stroke-dasharray={@dash}
+        filter={@filter}
+      />
+    </g>
+    <g :for={{x, y} <- @break_xy} filter={@filter}>
+      <rect x={x - 4.5} y={y - 4.5} width="9" height="9" fill={@hatch} stroke={@stroke} stroke-width="1" />
+    </g>
+    """
+  end
+
+  attr :location, :map, required: true
+  attr :state, :atom, required: true
+
+  defp map_node(assigns) do
+    {x, y} = assigns.location.graph_position
+
+    {fill, stroke, opacity, filter} =
+      case assigns.state do
+        :current -> {"var(--cyan)", "var(--cyan)", "1", "url(#map-glow)"}
+        :connected -> {"none", "var(--cyan)", "1", "url(#map-rough)"}
+        :discovered -> {"none", "var(--muted)", "0.7", "url(#map-rough)"}
+        :undiscovered -> {"url(#map-hatch-undiscovered)", "var(--border-c)", "1", nil}
+      end
+
+    name = if assigns.state == :undiscovered, do: "???", else: assigns.location.name
+
+    assigns =
+      assigns
+      |> assign(:x, x)
+      |> assign(:y, y)
+      |> assign(:fill, fill)
+      |> assign(:stroke, stroke)
+      |> assign(:opacity, opacity)
+      |> assign(:filter, filter)
+      |> assign(:name, name)
+
+    ~H"""
+    <g filter={@filter}>
+      <rect
+        x={@x - 14}
+        y={@y - 14}
+        width="28"
+        height="28"
+        fill={@fill}
+        stroke={@stroke}
+        stroke-width="2.5"
+        opacity={@opacity}
+        transform={"rotate(45 #{@x} #{@y})"}
+      />
+    </g>
+    <path
+      :if={@state == :undiscovered}
+      d={"M#{@x - 6} #{@y - 6} L#{@x + 6} #{@y + 6} M#{@x + 6} #{@y - 6} L#{@x - 6} #{@y + 6}"}
+      stroke="var(--muted)"
+      stroke-width="2.5"
+      filter="url(#map-rough)"
+    />
+    <path
+      :if={@state == :current}
+      d={"M#{@x - 23} #{@y - 14} L#{@x - 23} #{@y - 23} M#{@x - 23} #{@y - 14} L#{@x - 14} #{@y - 14}
+          M#{@x + 23} #{@y - 14} L#{@x + 23} #{@y - 23} M#{@x + 23} #{@y - 14} L#{@x + 14} #{@y - 14}
+          M#{@x - 23} #{@y + 14} L#{@x - 23} #{@y + 23} M#{@x - 23} #{@y + 14} L#{@x - 14} #{@y + 14}
+          M#{@x + 23} #{@y + 14} L#{@x + 23} #{@y + 23} M#{@x + 23} #{@y + 14} L#{@x + 14} #{@y + 14}"}
+      stroke="var(--cyan)"
+      stroke-width="2"
+      filter="url(#map-rough)"
+    />
+    <ellipse
+      :if={@state in [:current, :connected]}
+      cx={@x}
+      cy={@y}
+      rx="5.5"
+      ry="4.5"
+      fill="#1c2422"
+      stroke="var(--cyan)"
+      stroke-width="1"
+      opacity="0.9"
+    />
+    <text
+      x={@x}
+      y={@y + 45}
+      text-anchor="middle"
+      fill={@stroke}
+      font-size="11"
+      letter-spacing="1"
+    >
+      {@name}
+    </text>
+    <circle
+      :if={@state == :connected}
+      id={"move-to-#{@location.key}"}
+      cx={@x}
+      cy={@y}
+      r="20"
+      fill="transparent"
+      phx-click="move_to"
+      phx-value-destination={@location.key}
+    />
+    """
+  end
+
+  def map_legend(assigns) do
+    ~H"""
+    <ul class="map-legend">
+      <li><span style="color: var(--cyan)">●</span> CURRENT LOCATION</li>
+      <li><span style="color: var(--cyan)">○</span> CONNECTED</li>
+      <li><span style="color: var(--muted)">○</span> DISCOVERED</li>
+      <li><span style="color: var(--muted)">✕</span> UNDISCOVERED</li>
+    </ul>
+    """
+  end
+
+  defp node_state(location, player, connected_keys) do
+    cond do
+      location.key == player.location_id -> :current
+      location.key in connected_keys -> :connected
+      location.key in player.discovered_locations -> :discovered
+      true -> :undiscovered
+    end
+  end
+
+  defp edges(locations) do
+    by_key = Map.new(locations, &{&1.key, &1})
+
+    locations
+    |> Enum.flat_map(fn loc -> Enum.map(loc.exits, &{loc.key, &1.to}) end)
+    |> Enum.uniq_by(fn {a, b} -> Enum.sort([a, b]) end)
+    |> Enum.map(fn {a, b} -> {by_key[a], by_key[b]} end)
+  end
+
+  defp edge_style(state_a, state_b) do
+    cond do
+      :current in [state_a, state_b] -> :active
+      :undiscovered in [state_a, state_b] -> :unknown
+      true -> :known
+    end
+  end
+
+  defp break_points(t_fractions, {x1, y1}, {x2, y2}) do
+    Enum.map(t_fractions, fn t -> {x1 + (x2 - x1) * t, y1 + (y2 - y1) * t} end)
+  end
+
+  defp bounds(locations) do
+    xs = Enum.map(locations, &elem(&1.graph_position, 0))
+    ys = Enum.map(locations, &elem(&1.graph_position, 1))
+    {Enum.min(xs), Enum.max(xs), Enum.min(ys), Enum.max(ys)}
+  end
 end

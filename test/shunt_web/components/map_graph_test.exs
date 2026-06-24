@@ -1,42 +1,80 @@
 defmodule ShuntWeb.Components.MapGraphTest do
   use ExUnit.Case, async: true
 
-  # TODO: import Phoenix.LiveViewTest and `use Phoenix.Component`, then alias
-  # ShuntWeb.Components.MapGraph — mirror test/shunt_web/components/chrome_test.exs's
-  # render_component/wrapper-component pattern (e.g. `render_component(&map_graph_wrapper/1,
-  # %{player: player, locations: locations})` where the wrapper does
-  # `<MapGraph.map_graph player={@player} locations={@locations} />`). Private
-  # node_state/edge_style logic is tested indirectly through the rendered markup, the same way
-  # ChromeTest covers Chrome's private heat_label/1 only through wallet_hud's output — don't
-  # make node_state/edge_style public just to unit test them directly.
+  import Phoenix.LiveViewTest
+  use Phoenix.Component
 
-  # TODO: build one small fixture: a player map with `location_id: "a"` and
-  # `discovered_locations: ["a", "b"]`, plus 4 plain location maps shaped like
-  # Shunt.World.get_location/1's return value (%{key:, name:, graph_position:, exits: [...]})
-  # — "a" (current), "b" (direct exit from "a", also already discovered — exercises the
-  # :connected-wins-over-:discovered rule), "c" (direct exit from "a", never visited), "d"
-  # (no exit from "a", not in discovered_locations). Reuse this fixture across the tests below.
+  alias Shunt.World.Exit
+  alias ShuntWeb.Components.MapGraph
 
-  # TODO: test "the current location renders as a filled node with no move handler" — assert
-  # the rendered html contains location "a"'s real name and does NOT contain
-  # `id="move-to-a"`.
+  @player %{location_id: "a", discovered_locations: ["a", "b", "e"]}
 
-  # TODO: test "a directly-connected, never-visited location renders bright and clickable" —
-  # assert the html contains `id="move-to-c"`, `phx-click="move_to"`, and location "c"'s real
-  # name (not "???").
+  @locations [
+    %{key: "a", name: "Alpha", graph_position: {0, 0}, exits: [%Exit{to: "b"}, %Exit{to: "c"}]},
+    %{key: "b", name: "Bravo", graph_position: {100, 0}, exits: [%Exit{to: "a"}]},
+    %{key: "c", name: "Charlie", graph_position: {0, 100}, exits: [%Exit{to: "a"}]},
+    %{key: "d", name: "Delta", graph_position: {100, 100}, exits: []},
+    %{key: "e", name: "Echo", graph_position: {200, 200}, exits: []}
+  ]
 
-  # TODO: test "a directly-connected, already-discovered location is still clickable" — assert
-  # the html contains `id="move-to-b"` (connectivity wins over discovery for clickability).
+  defp render_map(assigns) do
+    render_component(&map_graph_wrapper/1, assigns)
+  end
 
-  # TODO: test "a location with no exit from current renders its real name but is not
-  # clickable" — using a 5th fixture location "e" that's in discovered_locations but not a
-  # direct exit from "a", assert its real name appears and no `id="move-to-e"` is present.
+  defp map_graph_wrapper(assigns) do
+    ~H"""
+    <MapGraph.map_graph player={@player} locations={@locations} />
+    """
+  end
 
-  # TODO: test "an undiscovered, unreachable location renders redacted and is not clickable" —
-  # assert the html contains "???" instead of location "d"'s real name, and no
-  # `id="move-to-d"`.
+  test "the current location renders as a filled node with no move handler" do
+    html = render_map(%{player: @player, locations: @locations})
 
-  # TODO: test "map_legend/1 renders all four legend rows" — render `<MapGraph.map_legend />`
-  # via the same wrapper pattern and assert the html contains the four legend labels (match the
-  # exact copy once map_legend/1 ships).
+    assert html =~ "Alpha"
+    refute html =~ ~s(id="move-to-a")
+  end
+
+  test "a directly-connected, never-visited location renders bright and clickable" do
+    html = render_map(%{player: @player, locations: @locations})
+
+    assert html =~ ~s(id="move-to-c")
+    assert html =~ ~s(phx-click="move_to")
+    assert html =~ "Charlie"
+  end
+
+  test "a directly-connected, already-discovered location is still clickable" do
+    html = render_map(%{player: @player, locations: @locations})
+
+    assert html =~ ~s(id="move-to-b")
+  end
+
+  test "a location with no exit from current renders its real name but is not clickable" do
+    html = render_map(%{player: @player, locations: @locations})
+
+    assert html =~ "Echo"
+    refute html =~ ~s(id="move-to-e")
+  end
+
+  test "an undiscovered, unreachable location renders redacted and is not clickable" do
+    html = render_map(%{player: @player, locations: @locations})
+
+    assert html =~ "???"
+    refute html =~ "Delta"
+    refute html =~ ~s(id="move-to-d")
+  end
+
+  defp legend_wrapper(assigns) do
+    ~H"""
+    <MapGraph.map_legend />
+    """
+  end
+
+  test "map_legend/1 renders all four legend rows" do
+    html = render_component(&legend_wrapper/1, %{})
+
+    assert html =~ "CURRENT LOCATION"
+    assert html =~ "CONNECTED"
+    assert html =~ "DISCOVERED"
+    assert html =~ "UNDISCOVERED"
+  end
 end
