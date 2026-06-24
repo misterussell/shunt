@@ -34,7 +34,7 @@ defmodule ShuntWeb.MovementLive do
   def handle_event("event_choice", %{"event_id" => event_id, "choice" => choice}, socket) do
     case Players.dispatch(socket.assigns.player_id, &Events.choose(&1, event_id, choice)) do
       {:ok, player, _meta} ->
-        active_event_id = if event_id in player.completed_events, do: nil, else: event_id
+        active_event_id = if Map.has_key?(player.event_state, event_id), do: event_id, else: nil
 
         {:noreply,
          socket

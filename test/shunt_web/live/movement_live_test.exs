@@ -150,7 +150,7 @@ defmodule ShuntWeb.MovementLiveTest do
       assert has_element?(view, "#event-step-text", "middle step text")
     end
 
-    test "clicking a choice that completes the event reverts the panel to the description + POI list",
+    test "clicking a choice with no :next or :complete reverts the panel to the description + POI list",
          %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/map")
 
@@ -161,17 +161,31 @@ defmodule ShuntWeb.MovementLiveTest do
 
       refute has_element?(view, "#active-event")
       assert has_element?(view, "#current-location", location.description)
-      assert has_element?(view, "#location-events", "Broken Deck (completed)")
+      assert has_element?(view, "#location-events", "Broken Deck")
+      refute has_element?(view, "#location-events", "Broken Deck (completed)")
     end
 
-    test "Shunt.Players.get_player!().completed_events includes the event id afterward",
+    test "Shunt.Players.get_player!().completed_events does not include the event id afterward",
          %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/map")
 
       view |> element("#start-event-#{@event_id}") |> render_click()
       view |> element("##{choice_dom_id("Leave it alone")}") |> render_click()
 
-      assert @event_id in Shunt.Players.get_player!().completed_events
+      refute @event_id in Shunt.Players.get_player!().completed_events
+    end
+
+    test "the event can be started again after leaving it alone", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      view |> element("#start-event-#{@event_id}") |> render_click()
+      view |> element("##{choice_dom_id("Leave it alone")}") |> render_click()
+      view |> element("#start-event-#{@event_id}") |> render_click()
+
+      [first_step | _] = Shunt.Events.get!(@event_id).steps
+      first_line = first_step.text |> String.trim() |> String.split("\n") |> hd()
+
+      assert has_element?(view, "#event-step-text", first_line)
     end
   end
 

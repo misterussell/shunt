@@ -11,7 +11,7 @@
       """,
       choices: [
         %{label: "Read a chit", next: "fragments"},
-        %{label: "Keep them hidden", complete: true}
+        %{label: "Keep them hidden"}
       ]
     },
     %{
@@ -25,7 +25,7 @@
         {:knowledge, :authority_networks}
       ],
       choices: [
-        %{label: "Text", complete: true}
+        %{label: "Stash the chits away. You'll figure out who they are valuable to later.", complete: true}
       ]
     }
   ]

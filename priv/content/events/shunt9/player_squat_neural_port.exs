@@ -11,7 +11,7 @@
       """,
       choices: [
         %{label: "Pry it open", next: "wiring"},
-        %{label: "Toss it aside", complete: true}
+        %{label: "Toss it aside"}
       ]
     },
     %{

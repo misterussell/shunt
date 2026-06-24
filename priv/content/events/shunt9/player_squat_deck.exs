@@ -12,21 +12,32 @@
       """,
       choices: [
         %{label: "Examine circuitry", next: "circuitry"},
-        %{label: "Leave it alone", complete: true}
+        %{label: "Check the owners manual", next: "manual"},
+        %{label: "Leave it alone"}
       ]
     },
     %{
       id: "circuitry",
       text: """
-      Most of the hardware can be salvaged,
-      but the lattice coupler is ruined. If you scavenge the right parts, and make a new jury-rigged terminal you might be able to join the Latticework again.
+      Most of the hardware can be salvaged, but the lattice coupler is ruined.
+      If you scavenge the right parts, and make a new jury-rigged terminal you might be able to join the Latticework again.
       Hope isn't lost yet. All you need is a little bit of street alchemy and some luck, oh, and a soldering iron and at least 10 hours of free time.
       """,
       rewards: [
         {:knowledge, :ghostwork}
       ],
       choices: [
-        %{label: "Text", complete: true}
+        %{label: "Tuck the broken deck away. You'll find a way to fix it later.", complete: true}
+      ]
+    },
+    %{
+      id: "manual",
+      text: """
+      The owners manual is torn and water-damaged, but you can make out some useful information about the Deck's internals.
+      It also explains how the deck was designed to interface with the Latticework. An interesting read any night of the week.
+      """,
+      choices: [
+        %{label: "Set the manual next to the dead deck. You'll find a way to fix it later.", next: "inspect"}
       ]
     }
   ]

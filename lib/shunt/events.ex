@@ -47,6 +47,10 @@ defmodule Shunt.Events do
     {:ok, [{:set, :event_state, put_step(player.event_state, event_id, next_id)}], %{}}
   end
 
+  defp resolve_choice(player, event_id, _choice) do
+    {:ok, [{:set, :event_state, Map.delete(player.event_state, event_id)}], %{}}
+  end
+
   defp complete_event(player, event_id) do
     new_completed = Enum.uniq([event_id | player.completed_events])
     new_state = Map.delete(player.event_state, event_id)

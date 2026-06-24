@@ -20,7 +20,8 @@ defmodule Shunt.EventsTest do
           choices: [
             %{label: "Branch onward", next: "middle"},
             %{label: "Bail immediately", complete: true},
-            %{label: "Take the bad path", next: "dead_end"}
+            %{label: "Take the bad path", next: "dead_end"},
+            %{label: "Leave it alone"}
           ]
         },
         %{
@@ -130,6 +131,21 @@ defmodule Shunt.EventsTest do
 
       assert {:set, :completed_events, [@event_id, "another_event"]} in effects
       assert {:set, :event_state, %{"other_event" => %{"current_step" => "x"}}} in effects
+    end
+
+    test "a choice with neither :next nor :complete closes the event without completing it" do
+      player = %Player{
+        event_state: %{
+          @event_id => %{"current_step" => "start"},
+          "other_event" => %{"current_step" => "x"}
+        },
+        completed_events: ["another_event"]
+      }
+
+      assert {:ok, effects, _meta} = Events.choose(player, @event_id, "Leave it alone")
+
+      assert {:set, :event_state, %{"other_event" => %{"current_step" => "x"}}} in effects
+      refute Enum.any?(effects, &match?({:set, :completed_events, _}, &1))
     end
 
     test "a choice label not on the current step returns {:error, :invalid_choice}" do
