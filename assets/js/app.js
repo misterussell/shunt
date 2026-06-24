@@ -25,6 +25,9 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/shunt"
 import topbar from "../vendor/topbar"
 import Clock from "./hooks/clock"
+// TODO: import EventTerminal from "./hooks/event_terminal" once that hook is
+// implemented (see TODO there), and add it to the `hooks` object below as
+// `EventTerminal`.
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
