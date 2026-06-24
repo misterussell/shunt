@@ -37,7 +37,7 @@
       It also explains how the deck was designed to interface with the Latticework. An interesting read any night of the week.
       """,
       choices: [
-        %{label: "Set the manual next to the dead deck. You'll find a way to fix it later.", next: "inspect"}
+        %{label: "Set the manual next to the dead deck. You'll find a way to fix it later."}
       ]
     }
   ]
