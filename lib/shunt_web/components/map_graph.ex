@@ -3,23 +3,9 @@ defmodule ShuntWeb.Components.MapGraph do
 
   use Phoenix.Component
 
-  # TODO: Replace the full-world viewBox in map_graph/1 with a fixed-size
-  # camera window centered on the player's current location (see
-  # docs/superpowers/specs/2026-06-24-map-page-redesign-design.md "Map camera"):
-  #   - Define fixed window dimensions as module attributes, e.g.
-  #     @window_width 640, @window_height 440.
-  #   - Keep the <svg> viewBox constant: "0 0 #{@window_width} #{@window_height}".
-  #   - Wrap the existing <.edge> and <.map_node> elements in a single
-  #     <g class="map-world" transform={"translate(#{@window_width / 2 - cx}, #{@window_height / 2 - cy})"}>
-  #     where {cx, cy} = current.graph_position, so the player's location is
-  #     always centered. Anything outside the window is clipped automatically
-  #     by the SVG's own viewport.
-  #   - Move the background dots/grain rects and the current-location glow
-  #     (currently positioned from world bounds) to sit at the fixed viewport
-  #     center/extents instead, since they no longer need to track world
-  #     bounds.
-  #   - Delete the bounds/1 function and its call once nothing references
-  #     full-world bounds.
+  @window_width 640
+  @window_height 440
+
   attr :player, :map, required: true
   attr :locations, :list, required: true
 
@@ -29,21 +15,19 @@ defmodule ShuntWeb.Components.MapGraph do
     states = Map.new(assigns.locations, &{&1.key, node_state(&1, assigns.player, connected_keys)})
     edges = edges(assigns.locations)
 
-    {min_x, max_x, min_y, max_y} = bounds(assigns.locations)
+    {cx, cy} = current.graph_position
+    translate_x = @window_width / 2 - cx
+    translate_y = @window_height / 2 - cy
 
     assigns =
       assigns
       |> assign(:states, states)
       |> assign(:edges, edges)
       |> assign(:current, current)
-      |> assign(:x, min_x - 50)
-      |> assign(:y, min_y - 50)
-      |> assign(:width, max_x - min_x + 100)
-      |> assign(:height, max_y - min_y + 100)
-      |> assign(
-        :view_box,
-        "#{min_x - 50} #{min_y - 50} #{max_x - min_x + 100} #{max_y - min_y + 100}"
-      )
+      |> assign(:window_width, @window_width)
+      |> assign(:window_height, @window_height)
+      |> assign(:view_box, "0 0 #{@window_width} #{@window_height}")
+      |> assign(:world_transform, "translate(#{trunc(translate_x)}, #{trunc(translate_y)})")
 
     ~H"""
     <svg viewBox={@view_box} class="map-graph">
@@ -110,27 +94,39 @@ defmodule ShuntWeb.Components.MapGraph do
         </radialGradient>
       </defs>
 
-      <rect x={@x} y={@y} width={@width} height={@height} fill="url(#map-dots)" />
-      <rect x={@x} y={@y} width={@width} height={@height} filter="url(#map-grain)" opacity="0.18" />
+      <rect x="0" y="0" width={@window_width} height={@window_height} fill="url(#map-dots)" />
+      <rect
+        x="0"
+        y="0"
+        width={@window_width}
+        height={@window_height}
+        filter="url(#map-grain)"
+        opacity="0.18"
+      />
 
       <rect
-        :if={@current}
-        x={elem(@current.graph_position, 0) - 120}
-        y={elem(@current.graph_position, 1) - 120}
+        x={@window_width / 2 - 120}
+        y={@window_height / 2 - 120}
         width="240"
         height="240"
         fill="url(#map-burn)"
       />
 
-      <.edge
-        :for={{loc_a, loc_b} <- @edges}
-        state_a={@states[loc_a.key]}
-        state_b={@states[loc_b.key]}
-        point_a={loc_a.graph_position}
-        point_b={loc_b.graph_position}
-      />
+      <g class="map-world" transform={@world_transform}>
+        <.edge
+          :for={{loc_a, loc_b} <- @edges}
+          state_a={@states[loc_a.key]}
+          state_b={@states[loc_b.key]}
+          point_a={loc_a.graph_position}
+          point_b={loc_b.graph_position}
+        />
 
-      <.map_node :for={location <- @locations} location={location} state={@states[location.key]} />
+        <.map_node
+          :for={location <- @locations}
+          location={location}
+          state={@states[location.key]}
+        />
+      </g>
     </svg>
     """
   end
@@ -330,11 +326,5 @@ defmodule ShuntWeb.Components.MapGraph do
 
   defp break_points(t_fractions, {x1, y1}, {x2, y2}) do
     Enum.map(t_fractions, fn t -> {x1 + (x2 - x1) * t, y1 + (y2 - y1) * t} end)
-  end
-
-  defp bounds(locations) do
-    xs = Enum.map(locations, &elem(&1.graph_position, 0))
-    ys = Enum.map(locations, &elem(&1.graph_position, 1))
-    {Enum.min(xs), Enum.max(xs), Enum.min(ys), Enum.max(ys)}
   end
 end

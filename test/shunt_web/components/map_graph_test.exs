@@ -69,6 +69,31 @@ defmodule ShuntWeb.Components.MapGraphTest do
     """
   end
 
+  test "the viewBox is a fixed window size regardless of world bounds" do
+    html = render_map(%{player: @player, locations: @locations})
+
+    assert html =~ ~s(viewBox="0 0 640 440")
+  end
+
+  test "the viewBox stays the same fixed size even with far-apart locations" do
+    far_locations = [
+      %{key: "a", name: "Alpha", graph_position: {0, 0}, exits: []},
+      %{key: "z", name: "Zulu", graph_position: {5000, 5000}, exits: []}
+    ]
+
+    player = %{location_id: "a", discovered_locations: ["a"]}
+    html = render_map(%{player: player, locations: far_locations})
+
+    assert html =~ ~s(viewBox="0 0 640 440")
+  end
+
+  test "the world group is translated so the current location sits at the window center" do
+    player = %{location_id: "b", discovered_locations: ["a", "b"]}
+    html = render_map(%{player: player, locations: @locations})
+
+    assert html =~ ~s{transform="translate(220, 220)"}
+  end
+
   test "map_legend/1 renders all four legend rows" do
     html = render_component(&legend_wrapper/1, %{})
 
