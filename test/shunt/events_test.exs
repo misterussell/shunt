@@ -34,7 +34,9 @@ defmodule Shunt.EventsTest do
           id: "dead_end",
           text: "dead end text",
           rewards: [{:knowledge, :test}],
-          complete: true
+          choices: [
+            %{label: "Close it out", complete: true}
+          ]
         }
       ]
     }
@@ -103,7 +105,7 @@ defmodule Shunt.EventsTest do
       assert {:set, :event_state, %{"other_event" => %{"current_step" => "x"}}} in effects
     end
 
-    test "a choice that leads to a terminal step also completes the event" do
+    test "a choice that leads to a terminal step transitions current_step without completing" do
       player = %Player{
         event_state: %{@event_id => %{"current_step" => "start"}},
         completed_events: []
@@ -111,8 +113,23 @@ defmodule Shunt.EventsTest do
 
       assert {:ok, effects, _meta} = Events.choose(player, @event_id, "Take the bad path")
 
-      assert {:set, :completed_events, [@event_id]} in effects
-      assert {:set, :event_state, %{}} in effects
+      assert {:set, :event_state, %{@event_id => %{"current_step" => "dead_end"}}} in effects
+      refute Enum.any?(effects, &match?({:set, :completed_events, _}, &1))
+    end
+
+    test "choosing a terminal step's own closing choice completes the event" do
+      player = %Player{
+        event_state: %{
+          @event_id => %{"current_step" => "dead_end"},
+          "other_event" => %{"current_step" => "x"}
+        },
+        completed_events: ["another_event"]
+      }
+
+      assert {:ok, effects, _meta} = Events.choose(player, @event_id, "Close it out")
+
+      assert {:set, :completed_events, [@event_id, "another_event"]} in effects
+      assert {:set, :event_state, %{"other_event" => %{"current_step" => "x"}}} in effects
     end
 
     test "a choice label not on the current step returns {:error, :invalid_choice}" do

@@ -44,13 +44,7 @@ defmodule Shunt.Events do
   end
 
   defp resolve_choice(player, event_id, %{next: next_id}) do
-    next_step = find_step!(get!(event_id), next_id)
-
-    if Map.get(next_step, :complete, false) do
-      complete_event(player, event_id)
-    else
-      {:ok, [{:set, :event_state, put_step(player.event_state, event_id, next_id)}], %{}}
-    end
+    {:ok, [{:set, :event_state, put_step(player.event_state, event_id, next_id)}], %{}}
   end
 
   defp complete_event(player, event_id) do

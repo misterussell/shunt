@@ -98,6 +98,20 @@ defmodule ShuntWeb.MovementLiveTest do
       end
     end
 
+    test "clicking 'Examine circuitry' on the Broken Deck event renders the circuitry step's text",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      view |> element("#start-event-#{@event_id}") |> render_click()
+      view |> element("##{choice_dom_id("Examine circuitry")}") |> render_click()
+
+      circuitry_step = Shunt.Events.get!(@event_id).steps |> Enum.find(&(&1.id == "circuitry"))
+      first_line = circuitry_step.text |> String.trim() |> String.split("\n") |> hd()
+
+      assert has_element?(view, "#active-event")
+      assert has_element?(view, "#event-step-text", first_line)
+    end
+
     test "clicking a choice that has :next renders the next step", %{conn: conn} do
       branching_event_id = "test_movement_live_branching_event"
 

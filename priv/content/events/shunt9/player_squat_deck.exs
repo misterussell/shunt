@@ -25,7 +25,9 @@
       rewards: [
         {:knowledge, :ghostwork}
       ],
-      complete: true
+      choices: [
+        %{label: "Text", complete: true}
+      ]
     }
   ]
 }

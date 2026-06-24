@@ -24,7 +24,9 @@
       rewards: [
         {:knowledge, :authority_networks}
       ],
-      complete: true
+      choices: [
+        %{label: "Text", complete: true}
+      ]
     }
   ]
 }

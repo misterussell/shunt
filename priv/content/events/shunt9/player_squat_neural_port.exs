@@ -23,7 +23,9 @@
       rewards: [
         {:knowledge, :augmentations}
       ],
-      complete: true
+      choices: [
+        %{label: "Text", complete: true}
+      ]
     }
   ]
 }
