@@ -284,6 +284,7 @@ defmodule ShuntWeb.MovementLiveTest do
       assert has_element?(view, "#event-modal")
       assert render(view) =~ "+1 Stripped Copper Coil"
       assert has_element?(view, "#event-log button", "Close")
+      assert has_element?(view, "#event-log .event-choices--revealed button", "Close")
     end
 
     test "clicking Close after a reward dismisses the event modal", %{conn: conn} do

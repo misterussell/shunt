@@ -1532,6 +1532,14 @@
   letter-spacing: 0.04em;
 }
 
+.event-reward-text {
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.55;
+  white-space: pre-line;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--cyan) 30%, transparent);
+}
+
 .event-choices {
   display: none;
   flex-direction: column;

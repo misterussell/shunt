@@ -62,7 +62,7 @@ defmodule ShuntWeb.Components.EventTerminal do
                 </div>
               <% entry.kind == :reward -> %>
                 <p class="event-reward-text">{entry.text}</p>
-                <div class="event-choices">
+                <div class="event-choices event-choices--revealed">
                   <button
                     id={dom_id <> "-close"}
                     class="btn-ghost event-choice-button"
