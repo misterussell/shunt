@@ -115,6 +115,17 @@ defmodule Shunt.Content.StoreTest do
     test "repeated calls don't error" do
       assert Content.all(:npcs) == Content.all(:npcs)
     end
+
+    # TODO: once :events is added to Content.Store's @sources and
+    # priv/content/events/shunt9/*.exs are authored, add:
+    #   test "events: returns 3 events with the expected keys and shape"
+    #   test "events: fetch!/2 returns the event for a known key"
+    # mirroring the npcs/raws assertions above.
+
+    # TODO: once priv/content/locations/*.exs move under priv/content/locations/shunt9/ and
+    # content_files/1's wildcard becomes recursive, add:
+    #   test "locations: still returns all 7 seeded locations from the nested shunt9/ dir"
+    # to prove the recursive wildcard change didn't silently drop content.
   end
 
   describe "load_source/2 for :skill_trees" do

@@ -70,4 +70,14 @@ defmodule ShuntWeb.MovementLiveTest do
 
     assert Regex.scan(~r/\?\?\?/, render(view)) |> length() == 1
   end
+
+  # TODO: once MovementLive's "start_event"/"event_choice" handlers and template are
+  # implemented (see the TODOs in lib/shunt_web/live/movement_live.ex), add tests at
+  # shunt9_player_squat covering:
+  #   - the location panel lists each of @location.events by title
+  #   - clicking a "start_event" button renders that event's first step text + choice buttons
+  #   - clicking a choice that has :next renders the next step
+  #   - clicking a choice that completes the event reverts the panel to the description + POI
+  #     list, and the event now shows "(completed)"
+  #   - Shunt.Players.get_player!().completed_events includes the event id afterward
 end

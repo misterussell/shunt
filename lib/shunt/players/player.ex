@@ -19,6 +19,11 @@ defmodule Shunt.Players.Player do
     field :location_id, :string, default: "shunt9_player_squat"
     field :discovered_locations, {:array, :string}, default: []
 
+    # TODO: add event progression fields, via a migration mirroring
+    # priv/repo/migrations/20260623184313_add_location_to_players.exs:
+    #   field :completed_events, {:array, :string}, default: []
+    #   field :event_state, :map, default: %{}   # %{"event_id" => %{"current_step" => "step_id"}}
+
     timestamps()
   end
 end
