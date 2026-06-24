@@ -5,6 +5,7 @@ defmodule ShuntWeb.MovementLive do
   alias Shunt.Movement
   alias Shunt.Players
   alias Shunt.World
+  alias Shunt.World.Npcs
   alias ShuntWeb.Chrome
   alias ShuntWeb.Components.EventTerminal
   alias ShuntWeb.Components.MapGraph
@@ -64,6 +65,13 @@ defmodule ShuntWeb.MovementLive do
     end
   end
 
+  def handle_event("start_npc_event", %{"npc_key" => npc_key}, socket) do
+    player = socket.assigns.player
+    event_id = Npcs.current_event(player, npc_key)
+
+    handle_event("start_event", %{"id" => event_id}, socket)
+  end
+
   def handle_event("move_to", %{"destination" => destination}, socket) do
     case Players.dispatch(socket.assigns.player_id, &Movement.move(&1, destination)) do
       {:ok, player, meta} ->
@@ -109,15 +117,18 @@ defmodule ShuntWeb.MovementLive do
                   do: " (completed)"} ]
               </button>
             </div>
-            <%!-- TODO: add a sibling block here for `Map.get(@location, :npcs, [])`, per
-            priv/docs/SHUNT_npc_architecture.md "Location Integration" + "Runtime Flow"
-            sections. For each npc_key: render the NPC's name
-            (Shunt.World.Npcs.get!(npc_key).name) as a button, e.g.
-            id={"start-npc-#{npc_key}"} phx-click="start_npc_event"
-            phx-value-npc_key={npc_key}. Add a new handle_event("start_npc_event", %{"npc_key"
-            => npc_key}, socket) clause that resolves
-            `event_id = Shunt.World.Npcs.current_event(player, npc_key)` and then does what
-            handle_event("start_event", ...) above does. --%>
+            <div :if={Map.get(@location, :npcs, []) != []} id="location-npcs">
+              <p class="location-events-label">People Here</p>
+              <button
+                :for={npc_key <- @location.npcs}
+                id={"start-npc-#{npc_key}"}
+                class="btn-ghost location-event-button"
+                phx-click="start_npc_event"
+                phx-value-npc_key={npc_key}
+              >
+                [ {Npcs.get!(npc_key).name} ]
+              </button>
+            </div>
           </Chrome.panel>
           <MapGraph.map_legend />
           <MapGraph.map_graph player={@player} locations={@locations} />

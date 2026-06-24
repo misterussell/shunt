@@ -193,6 +193,59 @@ defmodule ShuntWeb.MovementLiveTest do
     end
 
     defp first_line(text), do: text |> String.trim() |> String.split("\n") |> hd()
+  end
+
+  describe "npcs at shunt9_maintenance_tunnel" do
+    @npc_key "shunt9_maintenance_tunnel_junkie"
+
+    test "the location panel lists the npc present at the location", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+
+      assert has_element?(view, "#location-npcs", "Tunnel Junkie")
+    end
+
+    test "clicking a start_npc_event button opens the event modal with the npc's current event",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+      view |> element("#start-npc-#{@npc_key}") |> render_click()
+
+      intro = Shunt.Events.get!("shunt9_maintenance_tunnel_junkie_intro")
+      [first_step | _] = intro.steps
+
+      assert has_element?(view, "#event-modal", intro.title)
+      assert render(view) =~ first_line(first_step.text)
+    end
+
+    test "completing the npc's current event advances progression so the next interaction shows the next story arc",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+      view |> element("#start-npc-#{@npc_key}") |> render_click()
+
+      view |> element("#event-log button", "Talk to them") |> render_click()
+
+      view
+      |> element(
+        "#event-log button",
+        "Nothing yet, just looking for parts. Trying to make some scrip."
+      )
+      |> render_click()
+
+      view |> element("#event-log button", "Thanks.") |> render_click()
+
+      view |> element("#start-npc-#{@npc_key}") |> render_click()
+
+      parts_request = Shunt.Events.get!("shunt9_maintenance_tunnel_junkie_parts_request")
+      [first_step | _] = parts_request.steps
+
+      assert has_element?(view, "#event-modal", parts_request.title)
+      assert render(view) =~ first_line(first_step.text)
+    end
 
     defp start_branching_event(conn) do
       branching_event_id = "test_movement_live_branching_event"
