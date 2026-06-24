@@ -25,7 +25,7 @@
         {:knowledge, :authority_networks}
       ],
       choices: [
-        %{label: "Stash the chits away. You'll figure out who they are valuable to later.", complete: true}
+        %{label: "Stash the chits away. You'll figure out who they are valuable to later."}
       ]
     }
   ]

@@ -24,7 +24,7 @@
         {:knowledge, :augmentations}
       ],
       choices: [
-        %{label: "Text", complete: true}
+        %{label: "Put the burnt-out port away. You'll find a way to fix it later."}
       ]
     }
   ]

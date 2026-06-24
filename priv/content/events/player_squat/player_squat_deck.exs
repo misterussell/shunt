@@ -27,7 +27,7 @@
         {:knowledge, :ghostwork}
       ],
       choices: [
-        %{label: "Tuck the broken deck away. You'll find a way to fix it later.", complete: true}
+        %{label: "Tuck the broken deck away. You'll find a way to fix it later."}
       ]
     },
     %{
