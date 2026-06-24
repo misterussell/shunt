@@ -15,7 +15,7 @@ alias Shunt.World.Exit
     :social
   ],
 
-  graph_position: {700, 300},
+  graph_position: {250, 570},
 
   exits: [
     %Exit{to: "shunt9_bazaar"}

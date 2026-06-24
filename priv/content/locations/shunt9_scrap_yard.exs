@@ -15,7 +15,7 @@ alias Shunt.World.Exit
     :underbelly
   ],
 
-  graph_position: {300, 300},
+  graph_position: {250, 230},
 
   exits: [
     %Exit{to: "shunt9_bazaar"}

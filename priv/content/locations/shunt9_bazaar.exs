@@ -15,7 +15,7 @@ alias Shunt.World.Exit
     :underbelly
   ],
 
-  graph_position: {500, 300},
+  graph_position: {250, 400},
 
   exits: [
     %Exit{to: "shunt9_scrap_yard"},

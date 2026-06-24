@@ -15,7 +15,7 @@ alias Shunt.World.Exit
     :safe
   ],
 
-  graph_position: {500, 900},
+  graph_position: {700, 400},
 
   exits: [
     %Exit{to: "shunt9_maintenance_tunnel"}
