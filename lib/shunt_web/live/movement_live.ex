@@ -1,6 +1,7 @@
 defmodule ShuntWeb.MovementLive do
   use ShuntWeb, :live_view
 
+  alias Shunt.Events
   alias Shunt.Movement
   alias Shunt.Players
   alias Shunt.World
@@ -15,22 +16,35 @@ defmodule ShuntWeb.MovementLive do
      socket
      |> assign(player_id: player_id)
      |> assign(:status, nil)
-     # TODO: assign(:active_event_id, nil) — ephemeral UI state for which event's step is
-     # currently expanded in the location panel; not persisted (see Shunt.Events.choose/3 TODO).
+     |> assign(:active_event_id, nil)
      |> stream(:narrative, [], limit: -20)
      |> assign_location(player)}
   end
 
-  # TODO: handle_event("start_event", %{"id" => event_id}, socket) — dispatch
-  # Events.start/2 via Players.dispatch/2 (same shape as "move_to" below), then
-  # assign(:active_event_id, event_id) so the template renders that event's current step.
+  def handle_event("start_event", %{"id" => event_id}, socket) do
+    {:ok, player, _meta} =
+      Players.dispatch(socket.assigns.player_id, &Events.start(&1, event_id))
 
-  # TODO: handle_event("event_choice", %{"event_id" => id, "choice" => choice}, socket) —
-  # dispatch Events.choose/3 via Players.dispatch/2. On {:ok, player, _meta}, re-assign the
-  # player and, if the event is now in player.completed_events, clear :active_event_id (back
-  # to the description + POI list); otherwise keep it set so the next step renders. On
-  # {:error, :invalid_choice} or {:error, :already_completed}, no-op the socket (same style as
-  # the {:error, :not_connected} clause below).
+    {:noreply,
+     socket
+     |> assign(:player, player)
+     |> assign(:active_event_id, event_id)}
+  end
+
+  def handle_event("event_choice", %{"event_id" => event_id, "choice" => choice}, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Events.choose(&1, event_id, choice)) do
+      {:ok, player, _meta} ->
+        active_event_id = if event_id in player.completed_events, do: nil, else: event_id
+
+        {:noreply,
+         socket
+         |> assign(:player, player)
+         |> assign(:active_event_id, active_event_id)}
+
+      {:error, reason} when reason in [:invalid_choice, :already_completed] ->
+        {:noreply, socket}
+    end
+  end
 
   def handle_event("move_to", %{"destination" => destination}, socket) do
     case Players.dispatch(socket.assigns.player_id, &Movement.move(&1, destination)) do
@@ -56,15 +70,37 @@ defmodule ShuntWeb.MovementLive do
           <Chrome.section_header>MAP</Chrome.section_header>
           <Chrome.panel id="current-location">
             <p class="location-name">{@location.name}</p>
-            <%!-- TODO: when @active_event_id is set, render that event's current step
-            (via Shunt.Events.current_step/2) — step text + a button per choice, each
-            phx-click="event_choice" with phx-value-event_id and phx-value-choice — instead
-            of the description below. When nil, render the description as today plus a
-            "Points of Interest" list sourced from @location.events (title via
-            Shunt.Events.get!/1), each clickable with phx-click="start_event"
-            phx-value-id={event_id}, marked "(completed)" when the id is in
-            @player.completed_events. --%>
-            <p class="location-description">{@location.description}</p>
+            <%= if @active_event_id do %>
+              <% step = Events.current_step(@player, @active_event_id) %>
+              <div id="active-event">
+                <p id="event-step-text" class="location-description">{step.text}</p>
+                <button
+                  :for={choice <- step.choices}
+                  id={choice_dom_id(choice.label)}
+                  class="btn-ghost location-event-button"
+                  phx-click="event_choice"
+                  phx-value-event_id={@active_event_id}
+                  phx-value-choice={choice.label}
+                >
+                  [ {choice.label} ]
+                </button>
+              </div>
+            <% else %>
+              <p class="location-description">{@location.description}</p>
+              <div :if={Map.get(@location, :events, []) != []} id="location-events">
+                <p class="location-events-label">Points of Interest</p>
+                <button
+                  :for={event_id <- @location.events}
+                  id={"start-event-#{event_id}"}
+                  class="btn-ghost location-event-button"
+                  phx-click="start_event"
+                  phx-value-id={event_id}
+                >
+                  [ {Events.get!(event_id).title}{if event_id in @player.completed_events,
+                    do: " (completed)"} ]
+                </button>
+              </div>
+            <% end %>
           </Chrome.panel>
           <MapGraph.map_legend />
           <MapGraph.map_graph player={@player} locations={@locations} />
@@ -82,6 +118,8 @@ defmodule ShuntWeb.MovementLive do
     </Layouts.app>
     """
   end
+
+  defp choice_dom_id(label), do: "event-choice-" <> String.replace(label, " ", "-")
 
   defp assign_location(socket, player) do
     socket

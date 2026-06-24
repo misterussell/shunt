@@ -1404,6 +1404,21 @@
   margin: 8px 0 0;
 }
 
+.location-events-label {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 14px 0 8px;
+}
+
+.location-event-button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 6px;
+}
+
 .map-page-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

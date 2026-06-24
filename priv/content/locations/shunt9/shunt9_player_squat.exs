@@ -17,13 +17,11 @@ alias Shunt.World.Exit
 
   graph_position: {700, 400},
 
-  # TODO: add an `events:` key once priv/content/events/shunt9/player_squat_*.exs are
-  # authored and :events is loaded by Content.Store:
-  #   events: [
-  #     "shunt9_player_squat_deck",
-  #     "shunt9_player_squat_neural_port",
-  #     "shunt9_player_squat_knowledge_chits"
-  #   ],
+  events: [
+    "shunt9_player_squat_deck",
+    "shunt9_player_squat_neural_port",
+    "shunt9_player_squat_knowledge_chits"
+  ],
 
   exits: [
     %Exit{to: "shunt9_maintenance_tunnel"}

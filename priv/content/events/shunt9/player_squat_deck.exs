@@ -1,6 +1,29 @@
-# TODO: author the "Broken Deck" event per priv/docs/SHUNT_event_system.md's "Broken Deck"
-# and "Event Step Model" sections (the doc's own example uses this exact event).
-#
-# id: "shunt9_player_squat_deck", title: "Broken Deck". Introduces: the Latticework,
-# Ghostwork skill, Street Alchemy skill, equipment repair concepts. Two steps ("inspect" ->
-# "circuitry"), matching the doc's worked example. Return a %Shunt.Events.Event{}.
+%Shunt.Events.Event{
+  id: "shunt9_player_squat_deck",
+  title: "Broken Deck",
+
+  steps: [
+    %{
+      id: "inspect",
+      text: """
+      Your Deck lies cracked and silent.
+      Once it linked you to the Latticework.
+      """,
+      choices: [
+        %{label: "Examine circuitry", next: "circuitry"},
+        %{label: "Leave it alone", complete: true}
+      ]
+    },
+    %{
+      id: "circuitry",
+      text: """
+      Most of the hardware can be salvaged,
+      but the lattice coupler is ruined.
+      """,
+      rewards: [
+        {:knowledge, :ghostwork}
+      ],
+      complete: true
+    }
+  ]
+}

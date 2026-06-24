@@ -71,13 +71,95 @@ defmodule ShuntWeb.MovementLiveTest do
     assert Regex.scan(~r/\?\?\?/, render(view)) |> length() == 1
   end
 
-  # TODO: once MovementLive's "start_event"/"event_choice" handlers and template are
-  # implemented (see the TODOs in lib/shunt_web/live/movement_live.ex), add tests at
-  # shunt9_player_squat covering:
-  #   - the location panel lists each of @location.events by title
-  #   - clicking a "start_event" button renders that event's first step text + choice buttons
-  #   - clicking a choice that has :next renders the next step
-  #   - clicking a choice that completes the event reverts the panel to the description + POI
-  #     list, and the event now shows "(completed)"
-  #   - Shunt.Players.get_player!().completed_events includes the event id afterward
+  describe "events at shunt9_player_squat" do
+    @event_id "shunt9_player_squat_deck"
+
+    test "the location panel lists each of @location.events by title", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      assert has_element?(view, "#location-events", "Broken Deck")
+      assert has_element?(view, "#location-events", "Burnt-Out Neural Port")
+      assert has_element?(view, "#location-events", "Stolen Kaspav Authority Knowledge-Chits")
+    end
+
+    test "clicking a start_event button renders that event's first step text + choice buttons",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      view |> element("#start-event-#{@event_id}") |> render_click()
+
+      [first_step | _] = Shunt.Events.get!(@event_id).steps
+      first_line = first_step.text |> String.trim() |> String.split("\n") |> hd()
+
+      assert has_element?(view, "#event-step-text", first_line)
+
+      for choice <- first_step.choices do
+        assert has_element?(view, "##{choice_dom_id(choice.label)}", choice.label)
+      end
+    end
+
+    test "clicking a choice that has :next renders the next step", %{conn: conn} do
+      branching_event_id = "test_movement_live_branching_event"
+
+      :ets.insert(
+        :events,
+        {branching_event_id,
+         %Shunt.Events.Event{
+           id: branching_event_id,
+           title: "Test Branching Event",
+           steps: [
+             %{
+               id: "start",
+               text: "start step text",
+               choices: [%{label: "Go onward", next: "middle"}]
+             },
+             %{
+               id: "middle",
+               text: "middle step text",
+               choices: [%{label: "Finish up", complete: true}]
+             }
+           ]
+         }}
+      )
+
+      on_exit(fn -> :ets.delete(:events, branching_event_id) end)
+
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      render_click(view, "start_event", %{"id" => branching_event_id})
+
+      render_click(view, "event_choice", %{
+        "event_id" => branching_event_id,
+        "choice" => "Go onward"
+      })
+
+      assert has_element?(view, "#event-step-text", "middle step text")
+    end
+
+    test "clicking a choice that completes the event reverts the panel to the description + POI list",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      view |> element("#start-event-#{@event_id}") |> render_click()
+      view |> element("##{choice_dom_id("Leave it alone")}") |> render_click()
+
+      location = Shunt.World.get_location("shunt9_player_squat")
+
+      refute has_element?(view, "#active-event")
+      assert has_element?(view, "#current-location", location.description)
+      assert has_element?(view, "#location-events", "Broken Deck (completed)")
+    end
+
+    test "Shunt.Players.get_player!().completed_events includes the event id afterward",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      view |> element("#start-event-#{@event_id}") |> render_click()
+      view |> element("##{choice_dom_id("Leave it alone")}") |> render_click()
+
+      assert @event_id in Shunt.Players.get_player!().completed_events
+    end
+  end
+
+  defp choice_dom_id(label), do: "event-choice-" <> String.replace(label, " ", "-")
 end

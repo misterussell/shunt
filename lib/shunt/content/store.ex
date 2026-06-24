@@ -9,14 +9,9 @@ defmodule Shunt.Content.Store do
     {:recipes, "priv/content/recipes"},
     {:heat_events, "priv/content/heat_events"},
     {:skill_trees, "priv/content/skills"},
-    {:locations, "priv/content/locations"}
-    # TODO: add {:events, "priv/content/events"} once Shunt.Events.Event exists and
-    # priv/content/events/shunt9/*.exs has been authored (see priv/docs/SHUNT_event_system.md).
+    {:locations, "priv/content/locations"},
+    {:events, "priv/content/events"}
   ]
-
-  # TODO: move priv/content/locations/*.exs into priv/content/locations/shunt9/ (all 7
-  # files, unchanged contents) to match the zone-based layout used by priv/content/events/shunt9/.
-  # Requires the content_files/1 wildcard change below first.
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -46,6 +41,16 @@ defmodule Shunt.Content.Store do
     end
   end
 
+  def load_source(:events, dir) do
+    entries =
+      for file <- content_files(dir) do
+        {event, _bindings} = Code.eval_file(file)
+        {event.id, event}
+      end
+
+    :ets.insert(:events, entries)
+  end
+
   def load_source(table, dir) do
     entries =
       for file <- content_files(dir) do
@@ -57,10 +62,6 @@ defmodule Shunt.Content.Store do
   end
 
   defp content_files(dir) do
-    # TODO: change "*.exs" to "**/*.exs" so nested zone directories (e.g.
-    # priv/content/locations/shunt9/, priv/content/events/shunt9/) load alongside the
-    # existing flat content dirs. Elixir's ** matches zero-or-more directories, so this is a
-    # one-line change that doesn't affect the currently-flat sources (npcs, raws, etc).
-    Path.wildcard(Path.join(Application.app_dir(:shunt, dir), "*.exs"))
+    Path.wildcard(Path.join(Application.app_dir(:shunt, dir), "**/*.exs"))
   end
 end

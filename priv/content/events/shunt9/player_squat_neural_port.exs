@@ -1,6 +1,29 @@
-# TODO: author the "Burnt-Out Neural Port" event per priv/docs/SHUNT_event_system.md's
-# "Burnt-Out Neural Port" section.
-#
-# id: "shunt9_player_squat_neural_port", title: "Burnt-Out Neural Port". Introduces:
-# Augmentations, Chrome & Meat skill, body modification culture. Return a
-# %Shunt.Events.Event{} with at least one step leading to a complete: true terminal step.
+%Shunt.Events.Event{
+  id: "shunt9_player_squat_neural_port",
+  title: "Burnt-Out Neural Port",
+
+  steps: [
+    %{
+      id: "inspect",
+      text: """
+      A discarded neural port sits among your belongings, damaged beyond use.
+      You remember when it still answered your thoughts.
+      """,
+      choices: [
+        %{label: "Pry it open", next: "wiring"},
+        %{label: "Toss it aside", complete: true}
+      ]
+    },
+    %{
+      id: "wiring",
+      text: """
+      The wiring inside is scorched, but the housing still holds the
+      manufacturer's mark — Chrome & Meat work, through and through.
+      """,
+      rewards: [
+        {:knowledge, :augmentations}
+      ],
+      complete: true
+    }
+  ]
+}
