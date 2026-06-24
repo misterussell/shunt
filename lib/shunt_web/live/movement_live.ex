@@ -37,63 +37,31 @@ defmodule ShuntWeb.MovementLive do
      |> stream(:event_log, [step_entry(step)], reset: true)}
   end
 
-  # TODO: read `meta` (currently discarded as `_meta` below) and replace the body of this
-  # `{:ok, player, _meta} ->` clause with a three-way cond, so a completion that grants items
-  # keeps the modal open to show them instead of vanishing instantly:
-  #
-  #   completed? = not Map.has_key?(player.event_state, event_id)
-  #   granted_items = Map.get(meta, :granted_items, [])
-  #   socket = assign(socket, :player, player)
-  #
-  #   socket =
-  #     cond do
-  #       not completed? ->
-  #         step = Events.current_step(player, event_id)
-  #         socket
-  #         |> assign(:active_event_id, event_id)
-  #         |> stream_insert(:event_log, echo_entry(choice))
-  #         |> stream_insert(:event_log, step_entry(step))
-  #
-  #       granted_items != [] ->
-  #         socket
-  #         |> assign(:active_event_id, event_id)
-  #         |> stream_insert(:event_log, echo_entry(choice))
-  #         |> stream_insert(:event_log, reward_entry(event_id, granted_items))
-  #
-  #       true ->
-  #         assign(socket, :active_event_id, nil)
-  #     end
-  #
-  # Add a private `reward_entry(event_id, granted_items)` alongside `step_entry`/`echo_entry`
-  # below, returning %{id: System.unique_integer([:monotonic, :positive]), kind: :reward,
-  # text: ..., event_id: event_id}, where text formats each {key, qty} in granted_items as
-  # "+#{qty} #{Shunt.Crafting.RawCatalog.fetch!(key).name}" (Enum.join("\n") if more than
-  # one) — same lookup SkillsLive already uses for scavenge results. Only handles raw-item
-  # keys for now; a recipe-item reward would crash RawCatalog.fetch!/1 (no event grants one
-  # today).
-  #
-  # Also add a sibling clause `handle_event("close_event", %{"event_id" => event_id}, socket)`
-  # (the modal's [ Close ] button, added in event_terminal.ex, targets this) that does
-  # `{:noreply, assign(socket, :active_event_id, nil)}`.
   def handle_event("event_choice", %{"event_id" => event_id, "choice" => choice}, socket) do
     case Players.dispatch(socket.assigns.player_id, &Events.choose(&1, event_id, choice)) do
-      {:ok, player, _meta} ->
-        active_event_id = if Map.has_key?(player.event_state, event_id), do: event_id, else: nil
+      {:ok, player, meta} ->
+        completed? = not Map.has_key?(player.event_state, event_id)
+        granted_items = Map.get(meta, :granted_items, [])
+        socket = assign(socket, :player, player)
 
         socket =
-          socket
-          |> assign(:player, player)
-          |> assign(:active_event_id, active_event_id)
+          cond do
+            not completed? ->
+              step = Events.current_step(player, event_id)
 
-        socket =
-          if active_event_id do
-            step = Events.current_step(player, event_id)
+              socket
+              |> assign(:active_event_id, event_id)
+              |> stream_insert(:event_log, echo_entry(choice))
+              |> stream_insert(:event_log, step_entry(step))
 
-            socket
-            |> stream_insert(:event_log, echo_entry(choice))
-            |> stream_insert(:event_log, step_entry(step))
-          else
-            socket
+            granted_items != [] ->
+              socket
+              |> assign(:active_event_id, event_id)
+              |> stream_insert(:event_log, echo_entry(choice))
+              |> stream_insert(:event_log, reward_entry(event_id, granted_items))
+
+            true ->
+              assign(socket, :active_event_id, nil)
           end
 
         {:noreply, socket}
@@ -101,6 +69,10 @@ defmodule ShuntWeb.MovementLive do
       {:error, reason} when reason in [:invalid_choice, :already_completed] ->
         {:noreply, socket}
     end
+  end
+
+  def handle_event("close_event", %{"event_id" => _event_id}, socket) do
+    {:noreply, assign(socket, :active_event_id, nil)}
   end
 
   def handle_event("start_npc_event", %{"npc_key" => npc_key}, socket) do
@@ -200,6 +172,20 @@ defmodule ShuntWeb.MovementLive do
       kind: :echo,
       text: choice_label,
       choices: []
+    }
+  end
+
+  defp reward_entry(event_id, granted_items) do
+    text =
+      Enum.map_join(granted_items, "\n", fn {key, qty} ->
+        "+#{qty} #{Shunt.Crafting.RawCatalog.fetch!(key).name}"
+      end)
+
+    %{
+      id: System.unique_integer([:monotonic, :positive]),
+      kind: :reward,
+      text: text,
+      event_id: event_id
     }
   end
 

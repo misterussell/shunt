@@ -39,35 +39,41 @@ defmodule ShuntWeb.Components.EventTerminal do
             id={dom_id}
             class={["event-log-entry", entry.kind == :echo && "event-log-entry--echo"]}
           >
-            <%!-- TODO: add a third branch here for `entry.kind == :reward` (there are three
-            kinds now: :step, :echo, :reward — turn this if/else into a cond, or add a
-            nested if before the existing :step/:echo else-branch). Render `entry.text`
-            (already formatted as e.g. "+1 Battered Relay Coil", possibly multi-line) in a
-            `<p class="event-reward-text">`, followed by a close button:
-            `<button class="btn-ghost event-choice-button" phx-click="close_event"
-            phx-value-event_id={entry.event_id}>[ Close ]</button>`. --%>
-            <%= if entry.kind == :step do %>
-              <p
-                id={dom_id <> "-text"}
-                class="event-step-text"
-                phx-hook="EventTerminal"
-                data-text={entry.text}
-              >
-              </p>
-              <div class="event-choices">
-                <button
-                  :for={choice <- entry.choices}
-                  id={dom_id <> "-choice-" <> String.replace(choice.label, " ", "-")}
-                  class="btn-ghost event-choice-button"
-                  phx-click="event_choice"
-                  phx-value-event_id={@event_id}
-                  phx-value-choice={choice.label}
+            <%= cond do %>
+              <% entry.kind == :step -> %>
+                <p
+                  id={dom_id <> "-text"}
+                  class="event-step-text"
+                  phx-hook="EventTerminal"
+                  data-text={entry.text}
                 >
-                  [ {choice.label} ]
-                </button>
-              </div>
-            <% else %>
-              <p class="event-echo-text">{"> [ #{entry.text} ]"}</p>
+                </p>
+                <div class="event-choices">
+                  <button
+                    :for={choice <- entry.choices}
+                    id={dom_id <> "-choice-" <> String.replace(choice.label, " ", "-")}
+                    class="btn-ghost event-choice-button"
+                    phx-click="event_choice"
+                    phx-value-event_id={@event_id}
+                    phx-value-choice={choice.label}
+                  >
+                    [ {choice.label} ]
+                  </button>
+                </div>
+              <% entry.kind == :reward -> %>
+                <p class="event-reward-text">{entry.text}</p>
+                <div class="event-choices">
+                  <button
+                    id={dom_id <> "-close"}
+                    class="btn-ghost event-choice-button"
+                    phx-click="close_event"
+                    phx-value-event_id={entry.event_id}
+                  >
+                    [ Close ]
+                  </button>
+                </div>
+              <% true -> %>
+                <p class="event-echo-text">{"> [ #{entry.text} ]"}</p>
             <% end %>
           </div>
         </div>

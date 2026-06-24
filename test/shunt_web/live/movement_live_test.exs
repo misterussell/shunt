@@ -247,6 +247,54 @@ defmodule ShuntWeb.MovementLiveTest do
       assert render(view) =~ first_line(first_step.text)
     end
 
+    test "completing a choice that grants an item keeps the modal open and shows the reward",
+         %{conn: conn} do
+      {:ok, view} = start_reward_event(conn)
+
+      view |> element("#event-log button", "Take it") |> render_click()
+
+      assert has_element?(view, "#event-modal")
+      assert render(view) =~ "+1 Stripped Copper Coil"
+      assert has_element?(view, "#event-log button", "Close")
+    end
+
+    test "clicking Close after a reward dismisses the event modal", %{conn: conn} do
+      {:ok, view} = start_reward_event(conn)
+
+      view |> element("#event-log button", "Take it") |> render_click()
+      view |> element("#event-log button", "Close") |> render_click()
+
+      refute has_element?(view, "#event-modal")
+    end
+
+    defp start_reward_event(conn) do
+      reward_event_id = "test_movement_live_reward_event"
+
+      :ets.insert(
+        :events,
+        {reward_event_id,
+         %Shunt.Events.Event{
+           id: reward_event_id,
+           title: "Test Reward Event",
+           on_complete: [{:inventory, "stripped_copper_coil", 1}],
+           steps: [
+             %{
+               id: "start",
+               text: "start step text",
+               choices: [%{label: "Take it", complete: true}]
+             }
+           ]
+         }}
+      )
+
+      on_exit(fn -> :ets.delete(:events, reward_event_id) end)
+
+      {:ok, view, _html} = live(conn, ~p"/map")
+      render_click(view, "start_event", %{"id" => reward_event_id})
+
+      {:ok, view}
+    end
+
     defp start_branching_event(conn) do
       branching_event_id = "test_movement_live_branching_event"
 
