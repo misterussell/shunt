@@ -1439,7 +1439,7 @@
 
 .map-page-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 1fr;
   gap: 14px;
   align-items: stretch;
 }
@@ -1452,6 +1452,7 @@
 
 #map-viewport {
   height: 380px;
+  padding: 0 0 14px;
   overflow: hidden;
 }
 
