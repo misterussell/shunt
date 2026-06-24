@@ -1157,6 +1157,10 @@
   padding: 1.625rem 1.125rem 4.375rem;
 }
 
+.main-content--wide {
+  max-width: 1600px;
+}
+
 .main-bar {
   position: sticky;
   top: 26px;
@@ -1386,6 +1390,20 @@
 
 #current-location {
   padding: 20px;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+#current-location::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  background: linear-gradient(180deg, transparent, var(--p2));
+  pointer-events: none;
 }
 
 .location-name {
@@ -1421,9 +1439,31 @@
 
 .map-page-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 1fr;
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
+}
+
+.map-page-rail {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+#map-viewport {
+  height: 380px;
+  padding: 0 0 14px;
+  overflow: hidden;
+}
+
+#map-viewport .map-graph {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.map-world {
+  transition: transform 400ms ease-in-out;
 }
 
 .map-node--connected {
@@ -1464,6 +1504,24 @@
 
 #narrative-feed {
   padding: 16px 20px;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  position: relative;
+}
+
+#narrative-feed::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 32px;
+  background: linear-gradient(180deg, var(--p1), transparent);
+  pointer-events: none;
+  z-index: 1;
 }
 
 #narrative-entries p {

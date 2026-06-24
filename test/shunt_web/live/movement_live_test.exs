@@ -71,6 +71,18 @@ defmodule ShuntWeb.MovementLiveTest do
     assert Regex.scan(~r/\?\?\?/, render(view)) |> length() == 1
   end
 
+  test "the map graph renders inside a fixed map-viewport panel", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    assert has_element?(view, "#map-viewport svg.map-graph")
+  end
+
+  test "the current-location panel has its own LOCATION section header", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    assert has_element?(view, ".section-header", "LOCATION")
+  end
+
   describe "events at shunt9_player_squat" do
     @event_id "shunt9_player_squat_deck"
 

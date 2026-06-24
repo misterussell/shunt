@@ -109,8 +109,22 @@ defmodule ShuntWeb.MovementLive do
         streams={@streams}
       />
       <div class="map-page-grid">
-        <div>
+        <div class="map-page-main">
           <Chrome.section_header>MAP</Chrome.section_header>
+          <Chrome.panel id="map-viewport">
+            <MapGraph.map_graph player={@player} locations={@locations} />
+          </Chrome.panel>
+          <MapGraph.map_legend />
+          <Chrome.section_header>NARRATIVE_FEED</Chrome.section_header>
+          <Chrome.panel id="narrative-feed">
+            <div id="narrative-entries" phx-update="stream">
+              <p id="narrative-empty" class="hidden only:block">No movement yet.</p>
+              <p :for={{id, entry} <- @streams.narrative} id={id}>{entry.text}</p>
+            </div>
+          </Chrome.panel>
+        </div>
+        <div class="map-page-rail">
+          <Chrome.section_header>LOCATION</Chrome.section_header>
           <Chrome.panel id="current-location">
             <p class="location-name">{@location.name}</p>
             <p class="location-description">{@location.description}</p>
@@ -138,17 +152,6 @@ defmodule ShuntWeb.MovementLive do
               >
                 [ {Npcs.get!(npc_key).name} ]
               </button>
-            </div>
-          </Chrome.panel>
-          <MapGraph.map_legend />
-          <MapGraph.map_graph player={@player} locations={@locations} />
-        </div>
-        <div>
-          <Chrome.section_header>NARRATIVE_FEED</Chrome.section_header>
-          <Chrome.panel id="narrative-feed">
-            <div id="narrative-entries" phx-update="stream">
-              <p id="narrative-empty" class="hidden only:block">No movement yet.</p>
-              <p :for={{id, entry} <- @streams.narrative} id={id}>{entry.text}</p>
             </div>
           </Chrome.panel>
         </div>
