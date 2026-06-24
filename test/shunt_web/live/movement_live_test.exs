@@ -247,6 +247,34 @@ defmodule ShuntWeb.MovementLiveTest do
       assert render(view) =~ first_line(first_step.text)
     end
 
+    test "completing the parts_request event shows the granted Battered Relay Coil reward",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+      view |> element("#start-npc-#{@npc_key}") |> render_click()
+      view |> element("#event-log button", "Talk to them") |> render_click()
+
+      view
+      |> element(
+        "#event-log button",
+        "Nothing yet, just looking for parts. Trying to make some scrip."
+      )
+      |> render_click()
+
+      view |> element("#event-log button", "Thanks.") |> render_click()
+      view |> element("#start-npc-#{@npc_key}") |> render_click()
+      view |> element("#event-log button", "Did you find anything?") |> render_click()
+      view |> element("#event-log button", "Take the coil.") |> render_click()
+
+      assert has_element?(view, "#event-modal")
+      assert render(view) =~ "+1 Battered Relay Coil"
+
+      view |> element("#event-log button", "Close") |> render_click()
+
+      refute has_element?(view, "#event-modal")
+    end
+
     test "completing a choice that grants an item keeps the modal open and shows the reward",
          %{conn: conn} do
       {:ok, view} = start_reward_event(conn)
