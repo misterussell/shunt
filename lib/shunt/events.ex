@@ -59,6 +59,14 @@ defmodule Shunt.Events do
       get!(event_id).on_complete ++
         [{:set, :completed_events, new_completed}, {:set, :event_state, new_state}]
 
+    # TODO: bind `event = get!(event_id)` above (reusing it for both `effects` and here
+    # instead of calling get!/1 twice) and replace this %{} with
+    # %{granted_items: granted_items(event.on_complete)}. Add a private `granted_items(effects)`
+    # that does `for {:inventory, key, delta} <- effects, delta > 0, do: {key, delta}`. This
+    # pulls only positive :inventory grants out of on_complete as display-only metadata for
+    # MovementLive's "event_choice" handler to show a reward line in the event modal —
+    # :npc_progression, :set, and other effect types stay out of it, and it does not add a
+    # new effect type to Shunt.Effects.
     {:ok, effects, %{}}
   end
 

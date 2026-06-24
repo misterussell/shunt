@@ -39,6 +39,13 @@ defmodule ShuntWeb.Components.EventTerminal do
             id={dom_id}
             class={["event-log-entry", entry.kind == :echo && "event-log-entry--echo"]}
           >
+            <%!-- TODO: add a third branch here for `entry.kind == :reward` (there are three
+            kinds now: :step, :echo, :reward — turn this if/else into a cond, or add a
+            nested if before the existing :step/:echo else-branch). Render `entry.text`
+            (already formatted as e.g. "+1 Battered Relay Coil", possibly multi-line) in a
+            `<p class="event-reward-text">`, followed by a close button:
+            `<button class="btn-ghost event-choice-button" phx-click="close_event"
+            phx-value-event_id={entry.event_id}>[ Close ]</button>`. --%>
             <%= if entry.kind == :step do %>
               <p
                 id={dom_id <> "-text"}
