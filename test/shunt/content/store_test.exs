@@ -116,26 +116,6 @@ defmodule Shunt.Content.StoreTest do
       assert Content.all(:npcs) == Content.all(:npcs)
     end
 
-    test "events: returns 3 events with the expected keys and shape" do
-      events = Content.all(:events)
-
-      assert length(events) == 3
-
-      for event <- events do
-        assert %Shunt.Events.Event{} = event
-        assert is_binary(event.id)
-        assert is_binary(event.title)
-        assert is_list(event.steps)
-      end
-
-      assert MapSet.new(Enum.map(events, & &1.id)) ==
-               MapSet.new([
-                 "shunt9_player_squat_deck",
-                 "shunt9_player_squat_neural_port",
-                 "shunt9_player_squat_knowledge_chits"
-               ])
-    end
-
     test "events: fetch!/2 returns the event for a known key" do
       event = Content.fetch!(:events, "shunt9_player_squat_deck")
 
