@@ -13,6 +13,7 @@ defmodule Shunt.EventsTest do
     event = %Event{
       id: @event_id,
       title: "Test Branching Event",
+      on_complete: [{:npc_progression, "test_npc", 1}],
       steps: [
         %{
           id: "start",
@@ -104,6 +105,14 @@ defmodule Shunt.EventsTest do
 
       assert {:set, :completed_events, [@event_id, "another_event"]} in effects
       assert {:set, :event_state, %{"other_event" => %{"current_step" => "x"}}} in effects
+    end
+
+    test "completing an event prepends the event's on_complete effects" do
+      player = %Player{event_state: %{}, completed_events: []}
+
+      assert {:ok, effects, _meta} = Events.choose(player, @event_id, "Bail immediately")
+
+      assert {:npc_progression, "test_npc", 1} in effects
     end
 
     test "a choice that leads to a terminal step transitions current_step without completing" do

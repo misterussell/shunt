@@ -136,6 +136,32 @@ defmodule Shunt.EffectsTest do
     end
   end
 
+  describe "apply/2 - :npc_progression" do
+    test "adds a new npc_progression key starting from zero" do
+      player = %Player{npc_progression: %{}}
+
+      {changes, _meta} = Effects.apply(player, [{:npc_progression, "tunnel_junkie", 1}])
+
+      assert changes.npc_progression == %{"tunnel_junkie" => 1}
+    end
+
+    test "increments an existing npc_progression key" do
+      player = %Player{npc_progression: %{"tunnel_junkie" => 1}}
+
+      {changes, _meta} = Effects.apply(player, [{:npc_progression, "tunnel_junkie", 1}])
+
+      assert changes.npc_progression == %{"tunnel_junkie" => 2}
+    end
+
+    test "clamps npc_progression at a minimum of 0 when a delta would take it negative" do
+      player = %Player{npc_progression: %{"tunnel_junkie" => 1}}
+
+      {changes, _meta} = Effects.apply(player, [{:npc_progression, "tunnel_junkie", -5}])
+
+      assert changes.npc_progression == %{"tunnel_junkie" => 0}
+    end
+  end
+
   describe "apply/2 - :set" do
     test "sets a field to a literal value" do
       player = %Player{current_offer_key: "old_key"}

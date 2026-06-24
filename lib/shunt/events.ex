@@ -55,12 +55,11 @@ defmodule Shunt.Events do
     new_completed = Enum.uniq([event_id | player.completed_events])
     new_state = Map.delete(player.event_state, event_id)
 
-    # TODO: prepend `get!(event_id).on_complete` (default []) to the effects list below,
-    # per priv/docs/SHUNT_npc_architecture.md "Event-Driven Progression" section, once
-    # Shunt.Events.Event gains the on_complete field. This already runs through
-    # Players.dispatch -> Effects.apply (see movement_live.ex's "event_choice" handler),
-    # so no new dispatch path is needed — just fetch the event and prepend its effects.
-    {:ok, [{:set, :completed_events, new_completed}, {:set, :event_state, new_state}], %{}}
+    effects =
+      get!(event_id).on_complete ++
+        [{:set, :completed_events, new_completed}, {:set, :event_state, new_state}]
+
+    {:ok, effects, %{}}
   end
 
   defp put_step(event_state, event_id, step_id) do

@@ -69,12 +69,12 @@ defmodule Shunt.Effects do
     do_apply(rest, player, acc, %{meta | loyalty_signals: signals})
   end
 
-  # TODO: add a do_apply clause for {:npc_progression, npc_key, delta}, mirroring the
-  # {:npc_loyalty, npc_key, delta} clause above but writing to player.npc_progression
-  # instead, with no banding/signals — just `Map.get(current, npc_key, 0) + delta`,
-  # clamped at a minimum of 0 (no upper clamp; overflow past story_arcs length is handled
-  # by Shunt.Npcs.current_event/2 falling back to repeatable_events). Per
-  # priv/docs/SHUNT_npc_architecture.md "Event-Driven Progression" section.
+  defp do_apply([{:npc_progression, npc_key, delta} | rest], player, acc, meta) do
+    current_progression = Map.get(acc, :npc_progression, player.npc_progression)
+    new_value = max(Map.get(current_progression, npc_key, 0) + delta, 0)
+    new_progression = Map.put(current_progression, npc_key, new_value)
+    do_apply(rest, player, Map.put(acc, :npc_progression, new_progression), meta)
+  end
 
   defp do_apply([{:set, field, value} | rest], player, acc, meta) do
     do_apply(rest, player, Map.put(acc, field, value), meta)
