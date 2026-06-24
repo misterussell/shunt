@@ -13,7 +13,11 @@ defmodule Shunt.EventsTest do
     event = %Event{
       id: @event_id,
       title: "Test Branching Event",
-      on_complete: [{:npc_progression, "test_npc", 1}],
+      on_complete: [
+        {:npc_progression, "test_npc", 1},
+        {:inventory, "test_item", 2},
+        {:inventory, "junk_item", -1}
+      ],
       steps: [
         %{
           id: "start",
@@ -113,6 +117,14 @@ defmodule Shunt.EventsTest do
       assert {:ok, effects, _meta} = Events.choose(player, @event_id, "Bail immediately")
 
       assert {:npc_progression, "test_npc", 1} in effects
+    end
+
+    test "completing an event returns positive :inventory grants from on_complete as granted_items in meta" do
+      player = %Player{event_state: %{}, completed_events: []}
+
+      assert {:ok, _effects, meta} = Events.choose(player, @event_id, "Bail immediately")
+
+      assert meta.granted_items == [{"test_item", 2}]
     end
 
     test "a choice that leads to a terminal step transitions current_step without completing" do

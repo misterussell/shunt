@@ -52,22 +52,19 @@ defmodule Shunt.Events do
   end
 
   defp complete_event(player, event_id) do
+    event = get!(event_id)
     new_completed = Enum.uniq([event_id | player.completed_events])
     new_state = Map.delete(player.event_state, event_id)
 
     effects =
-      get!(event_id).on_complete ++
+      event.on_complete ++
         [{:set, :completed_events, new_completed}, {:set, :event_state, new_state}]
 
-    # TODO: bind `event = get!(event_id)` above (reusing it for both `effects` and here
-    # instead of calling get!/1 twice) and replace this %{} with
-    # %{granted_items: granted_items(event.on_complete)}. Add a private `granted_items(effects)`
-    # that does `for {:inventory, key, delta} <- effects, delta > 0, do: {key, delta}`. This
-    # pulls only positive :inventory grants out of on_complete as display-only metadata for
-    # MovementLive's "event_choice" handler to show a reward line in the event modal —
-    # :npc_progression, :set, and other effect types stay out of it, and it does not add a
-    # new effect type to Shunt.Effects.
-    {:ok, effects, %{}}
+    {:ok, effects, %{granted_items: granted_items(event.on_complete)}}
+  end
+
+  defp granted_items(effects) do
+    for {:inventory, key, delta} <- effects, delta > 0, do: {key, delta}
   end
 
   defp put_step(event_state, event_id, step_id) do
