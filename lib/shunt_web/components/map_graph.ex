@@ -263,6 +263,7 @@ defmodule ShuntWeb.Components.MapGraph do
     <circle
       :if={@state == :connected}
       id={"move-to-#{@location.key}"}
+      class="map-node--connected"
       cx={@x}
       cy={@y}
       r="20"
@@ -276,10 +277,10 @@ defmodule ShuntWeb.Components.MapGraph do
   def map_legend(assigns) do
     ~H"""
     <ul class="map-legend">
-      <li><span style="color: var(--cyan)">●</span> CURRENT LOCATION</li>
-      <li><span style="color: var(--cyan)">○</span> CONNECTED</li>
-      <li><span style="color: var(--muted)">○</span> DISCOVERED</li>
-      <li><span style="color: var(--muted)">✕</span> UNDISCOVERED</li>
+      <li class="map-legend-row map-legend-row--current">● CURRENT LOCATION</li>
+      <li class="map-legend-row map-legend-row--connected">○ CONNECTED</li>
+      <li class="map-legend-row map-legend-row--discovered">○ DISCOVERED</li>
+      <li class="map-legend-row map-legend-row--undiscovered">✕ UNDISCOVERED</li>
     </ul>
     """
   end

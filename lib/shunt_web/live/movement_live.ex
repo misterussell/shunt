@@ -38,21 +38,26 @@ defmodule ShuntWeb.MovementLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} player={@player} active={:map} status={@status}>
-      <Chrome.section_header>MAP</Chrome.section_header>
-      <Chrome.panel id="current-location">
-        <p class="location-name">{@location.name}</p>
-        <p class="location-description">{@location.description}</p>
-      </Chrome.panel>
-      <MapGraph.map_legend />
-      <MapGraph.map_graph player={@player} locations={@locations} />
-
-      <Chrome.section_header>NARRATIVE_FEED</Chrome.section_header>
-      <Chrome.panel id="narrative-feed">
-        <div id="narrative-entries" phx-update="stream">
-          <p id="narrative-empty" class="hidden only:block">No movement yet.</p>
-          <p :for={{id, entry} <- @streams.narrative} id={id}>{entry.text}</p>
+      <div class="map-page-grid">
+        <div>
+          <Chrome.section_header>MAP</Chrome.section_header>
+          <Chrome.panel id="current-location">
+            <p class="location-name">{@location.name}</p>
+            <p class="location-description">{@location.description}</p>
+          </Chrome.panel>
+          <MapGraph.map_legend />
+          <MapGraph.map_graph player={@player} locations={@locations} />
         </div>
-      </Chrome.panel>
+        <div>
+          <Chrome.section_header>NARRATIVE_FEED</Chrome.section_header>
+          <Chrome.panel id="narrative-feed">
+            <div id="narrative-entries" phx-update="stream">
+              <p id="narrative-empty" class="hidden only:block">No movement yet.</p>
+              <p :for={{id, entry} <- @streams.narrative} id={id}>{entry.text}</p>
+            </div>
+          </Chrome.panel>
+        </div>
+      </div>
     </Layouts.app>
     """
   end
