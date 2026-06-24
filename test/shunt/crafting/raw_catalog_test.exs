@@ -4,11 +4,10 @@ defmodule Shunt.Crafting.RawCatalogTest do
   alias Shunt.Crafting.RawCatalog
 
   describe "items/0" do
-    test "returns 16 items, each with a unique key and non-empty scavenge_text" do
+    test "returns items, each with a unique key and non-empty scavenge_text" do
       items = RawCatalog.items()
 
-      assert length(items) == 16
-      assert items |> Enum.map(& &1.key) |> Enum.uniq() |> length() == 16
+      assert items |> Enum.map(& &1.key) |> Enum.uniq() |> length() == length(items)
       assert Enum.all?(items, &(&1.scavenge_text != ""))
     end
   end

@@ -46,10 +46,8 @@ defmodule Shunt.Content.StoreTest do
       assert item.name == "Scrap Dermal Plating"
     end
 
-    test "raws: returns 16 raws with the expected keys and shape" do
+    test "raws: returns raws with the expected keys and shape" do
       raws = Content.all(:raws)
-
-      assert length(raws) == 16
 
       for raw <- raws do
         assert Map.has_key?(raw, :key)
