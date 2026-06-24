@@ -17,6 +17,10 @@ alias Shunt.World.Exit
 
   graph_position: {550, 400},
 
+  # TODO: replace this `events:` entry with `npcs: ["shunt9_maintenance_tunnel_junkie"]`
+  # once Shunt.World.NPC content + Content.Store's :npcs loader clause exist (see TODOs in
+  # lib/shunt/world/npc.ex and lib/shunt/content/store.ex). The event then becomes
+  # reachable via Shunt.Npcs.current_event/2 instead of being listed here directly.
   events: [
     "shunt9_maintenance_tunnel_junkie"
   ],

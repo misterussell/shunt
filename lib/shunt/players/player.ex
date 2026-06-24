@@ -15,6 +15,11 @@ defmodule Shunt.Players.Player do
 
     field :inventory, :map, default: %{}
     field :npc_loyalty, :map, default: %{}
+    # TODO: add `field :npc_progression, :map, default: %{}` (npc_key => integer stage),
+    # mirroring npc_loyalty above, per priv/docs/SHUNT_npc_architecture.md "Player
+    # Relationship State" section. Needs a migration: `mix ecto.gen.migration
+    # add_npc_progression_to_players`, adding `add :npc_progression, :map, default: %{},
+    # null: false` (same shape as the existing add_npc_loyalty_to_players migration).
 
     field :location_id, :string, default: "shunt9_player_squat"
     field :discovered_locations, {:array, :string}, default: []
