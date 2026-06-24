@@ -1388,6 +1388,14 @@
   padding: 20px;
 }
 
+/* TODO: make #current-location flex: 1 within its (now full-height) right
+   column, with overflow: hidden, position: relative, and a bottom-edge
+   fade pseudo-element (::after, gradient from transparent to the panel
+   background) so any overflowing Points-of-Interest/NPC buttons fade
+   rather than getting a scrollbar. See
+   docs/superpowers/specs/2026-06-24-map-page-redesign-design.md "Panel
+   overflow". */
+
 .location-name {
   font-weight: 600;
   font-size: 19px;
@@ -1425,6 +1433,21 @@
   gap: 14px;
   align-items: start;
 }
+
+/* TODO: switch align-items: start -> stretch on .map-page-grid so the right
+   column (current-location) automatically matches the left column's
+   (map viewport + legend + narrative-feed) total height, per
+   docs/superpowers/specs/2026-06-24-map-page-redesign-design.md. The right
+   column's section_header + panel should be wrapped in a flex column
+   (flex-direction: column; height: 100%) with the current-location panel
+   set to flex: 1 so it fills the stretched height. */
+
+/* TODO: add a #map-viewport rule giving the map panel a fixed height (e.g.
+   ~380px) and make its child .map-graph svg fill it: width: 100%; height:
+   100%; display: block. Add a .map-world rule with
+   transition: transform 400ms ease-in-out so the camera pan (set via the
+   <g transform> added in map_graph.ex) animates smoothly when the player
+   moves. */
 
 .map-node--connected {
   cursor: pointer;
@@ -1465,6 +1488,16 @@
 #narrative-feed {
   padding: 16px 20px;
 }
+
+/* TODO: give #narrative-feed a fixed height (it's now a small box stacked
+   under the map+legend in the left column, not a full-height rail). Make
+   it display: flex; flex-direction: column; justify-content: flex-end;
+   overflow: hidden so newest entries (appended at the end of the stream)
+   stay pinned at the bottom and oldest entries clip off the top. Add a
+   top-edge fade pseudo-element (::before, gradient from the panel
+   background to transparent) to soften the clip line. See
+   docs/superpowers/specs/2026-06-24-map-page-redesign-design.md "Panel
+   overflow". */
 
 #narrative-entries p {
   font-size: 13.5px;

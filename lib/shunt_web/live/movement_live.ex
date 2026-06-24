@@ -98,6 +98,17 @@ defmodule ShuntWeb.MovementLive do
     end
   end
 
+  # TODO: Restructure the map-page-grid layout (see
+  # docs/superpowers/specs/2026-06-24-map-page-redesign-design.md):
+  #   - Left column: wrap MapGraph.map_graph in a new fixed-height
+  #     Chrome.panel id="map-viewport", under the existing "MAP" section_header.
+  #     Below it: MapGraph.map_legend, then a new section_header "NARRATIVE_FEED"
+  #     and the #narrative-feed panel (moved here from the right column).
+  #   - Right column: a new section_header (e.g. "LOCATION") followed by the
+  #     #current-location panel (moved here from the left column), which should
+  #     stretch to the right column's full height.
+  #   - Keep all existing phx-click/phx-value handlers and stream usage as-is;
+  #     this is a markup reorder, not a behavior change.
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} player={@player} active={:map} status={@status}>

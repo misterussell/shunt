@@ -3,6 +3,23 @@ defmodule ShuntWeb.Components.MapGraph do
 
   use Phoenix.Component
 
+  # TODO: Replace the full-world viewBox in map_graph/1 with a fixed-size
+  # camera window centered on the player's current location (see
+  # docs/superpowers/specs/2026-06-24-map-page-redesign-design.md "Map camera"):
+  #   - Define fixed window dimensions as module attributes, e.g.
+  #     @window_width 640, @window_height 440.
+  #   - Keep the <svg> viewBox constant: "0 0 #{@window_width} #{@window_height}".
+  #   - Wrap the existing <.edge> and <.map_node> elements in a single
+  #     <g class="map-world" transform={"translate(#{@window_width / 2 - cx}, #{@window_height / 2 - cy})"}>
+  #     where {cx, cy} = current.graph_position, so the player's location is
+  #     always centered. Anything outside the window is clipped automatically
+  #     by the SVG's own viewport.
+  #   - Move the background dots/grain rects and the current-location glow
+  #     (currently positioned from world bounds) to sit at the fixed viewport
+  #     center/extents instead, since they no longer need to track world
+  #     bounds.
+  #   - Delete the bounds/1 function and its call once nothing references
+  #     full-world bounds.
   attr :player, :map, required: true
   attr :locations, :list, required: true
 
