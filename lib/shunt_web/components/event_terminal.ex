@@ -1,11 +1,14 @@
 defmodule ShuntWeb.Components.EventTerminal do
   @moduledoc """
-  Full-screen modal that renders an active location event as a scrolling terminal
-  transcript ("hacking panel"). Replaces the old in-panel swap in MovementLive: each
-  event step types out into a growing log, with the most recent step's choices
-  revealed once typing finishes. Styling lives in assets/css/app.css under the
-  `.event-modal-*` / `.event-log-*` classes; typing/reveal behavior lives in the
-  `EventTerminal` JS hook (assets/js/hooks/event_terminal.js).
+  Modal that renders an active location event as a scrolling terminal transcript
+  ("hacking panel"). The backdrop dims the full page, but the panel itself is a
+  compact, centered popup (~560px wide, NOT full-screen) — it should read like a
+  small terminal window floating over the map, not a takeover view. Replaces the
+  old in-panel swap in MovementLive: each event step types out into a growing log,
+  with the most recent step's choices revealed once typing finishes. Styling lives
+  in assets/css/app.css under the `.event-modal-*` / `.event-log-*` classes;
+  typing/reveal behavior lives in the `EventTerminal` JS hook
+  (assets/js/hooks/event_terminal.js).
   """
   use Phoenix.Component
 
