@@ -145,9 +145,18 @@ end
 >
 > Implementation note: `Content.Store.load_source/2`'s generic clause keys ETS entries by
 > `item.key`, which a `%NPC{}` struct doesn't have. This needs a dedicated
-> `load_source(:npcs, dir)` clause (mirroring the existing `:events` and `:skill_trees`
-> special cases) that keys by `item.id` instead, added *before* the generic fallback
-> clause since Elixir matches function clauses in source order.
+> `load_source(:world_npcs, dir)` clause (mirroring the existing `:events` and
+> `:skill_trees` special cases) that keys by `item.id` instead, added *before* the generic
+> fallback clause since Elixir matches function clauses in source order.
+>
+> ✅ DECIDED (table split, found during implementation): this struct-based NPC content does
+> **not** go into the existing `:npcs` table/`priv/content/npcs` directory. `Shunt.Npcs.list/0`
+> feeds the Hub screen, and `hub_live.ex` assumes every `:npcs` entry has Fixer-shaped fields
+> (`faction`, `trade_actions`) — mixing a `%Shunt.World.NPC{}` into that table crashes the Hub
+> on render. Instead: a new source entry `{:world_npcs, "priv/content/world_npcs"}` and ETS
+> table, with a new `Shunt.World.Npcs` module (mirroring `Shunt.Npcs`'s `get!/1`, plus
+> `current_event/2`) — completely separate from `Shunt.Npcs`/`:npcs`/the Hub. Updated
+> throughout this doc.
 
 Example:
 
@@ -271,12 +280,13 @@ The exact interpretation can remain content-specific.
 When a player interacts with an NPC:
 
 ```elixir
-Shunt.Npcs.current_event(player, npc_key)
+Shunt.World.Npcs.current_event(player, npc_key)
 ```
 
 > ✅ DECIDED: Takes a key and fetches internally, consistent with every comparable
 > lookup in the codebase (`Events.current_step(player, event_id)`, `Npcs.get!(npc_key)`,
-> `Loyalty.value(player, npc_key)`).
+> `Loyalty.value(player, npc_key)`). Lives on the new `Shunt.World.Npcs` module, not
+> `Shunt.Npcs` — see table-split decision under **NPC Definition**.
 
 Resolver:
 
@@ -441,7 +451,7 @@ content/
 │  └─ shunt9/
 │     └─ shunt9_maintenance_tunnel.exs
 │
-├─ npcs/
+├─ world_npcs/
 │  └─ shunt9_maintenance_tunnel_junkie.exs
 │
 └─ events/
@@ -465,8 +475,8 @@ World
 > `priv/content/events/player_squat/player_squat_deck.exs`), not a new `events/npc/`
 > umbrella. `Content.Store.load_source/2` already walks every source directory
 > recursively (`Path.wildcard(Path.join(..., "**/*.exs"))`), so nested directories work
-> today with zero loader changes — only the new `load_source(:npcs, dir)` clause noted
-> under **NPC Definition** is required.
+> today with zero loader changes — only the new `load_source(:world_npcs, dir)` clause
+> noted under **NPC Definition** is required.
 
 ---
 
@@ -541,10 +551,12 @@ the first pass. Explicitly out of scope for this round:
 
 The new machinery needed for the pilot, in dependency order:
 
-1. `Content.Store.load_source(:npcs, dir)` clause, keying by `item.id` (new — needed
-   because NPC is a struct, unlike the other plain-map content types).
-2. `priv/content/npcs/shunt9_maintenance_tunnel_junkie.exs` — new `%Shunt.World.NPC{}`
-   content file.
+1. New `{:world_npcs, "priv/content/world_npcs"}` source entry +
+   `Content.Store.load_source(:world_npcs, dir)` clause, keying by `item.id` (new — needed
+   because NPC is a struct, unlike the other plain-map content types; kept separate from
+   `:npcs` so the Hub screen's Fixer-shaped assumptions aren't disturbed).
+2. `priv/content/world_npcs/shunt9_maintenance_tunnel_junkie.exs` — new `%Shunt.World.NPC{}`
+   content file, plus a new `Shunt.World.Npcs` module (`get!/1`, later `current_event/2`).
 3. `npcs: [...]` field added to
    `priv/content/locations/shunt9/shunt9_maintenance_tunnel.exs`.
 4. `npc_progression: :map` field + migration on `Player`.
@@ -578,6 +590,11 @@ Resolved 2026-06-24:
 5. **Naming convention** — zone-prefix all new ids (`shunt9_maintenance_tunnel_junkie`,
    `shunt9_maintenance_tunnel_junkie_intro`, etc.), matching existing location/event ids in
    this zone.
+6. **Table split** (found during implementation) — story-driven `Shunt.World.NPC` content
+   lives in its own `:world_npcs` ETS table / `priv/content/world_npcs` directory /
+   `Shunt.World.Npcs` module, not the existing `:npcs` table. `Shunt.Npcs.list/0` feeds the
+   Hub screen, and `hub_live.ex` assumes every `:npcs` entry has Fixer-shaped fields
+   (`faction`, `trade_actions`); mixing the new struct into that table would crash the Hub.
 
 Still open / deferred, not blocking the pilot:
 

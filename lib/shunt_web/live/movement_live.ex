@@ -111,11 +111,12 @@ defmodule ShuntWeb.MovementLive do
             </div>
             <%!-- TODO: add a sibling block here for `Map.get(@location, :npcs, [])`, per
             priv/docs/SHUNT_npc_architecture.md "Location Integration" + "Runtime Flow"
-            sections. For each npc_key: render the NPC's name (Npcs.get!(npc_key).name) as
-            a button, e.g. id={"start-npc-#{npc_key}"} phx-click="start_npc_event"
+            sections. For each npc_key: render the NPC's name
+            (Shunt.World.Npcs.get!(npc_key).name) as a button, e.g.
+            id={"start-npc-#{npc_key}"} phx-click="start_npc_event"
             phx-value-npc_key={npc_key}. Add a new handle_event("start_npc_event", %{"npc_key"
             => npc_key}, socket) clause that resolves
-            `event_id = Npcs.current_event(player, npc_key)` and then does what
+            `event_id = Shunt.World.Npcs.current_event(player, npc_key)` and then does what
             handle_event("start_event", ...) above does. --%>
           </Chrome.panel>
           <MapGraph.map_legend />

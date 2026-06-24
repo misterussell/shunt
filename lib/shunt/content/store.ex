@@ -4,6 +4,7 @@ defmodule Shunt.Content.Store do
 
   @sources [
     {:npcs, "priv/content/npcs"},
+    {:world_npcs, "priv/content/world_npcs"},
     {:fencing_items, "priv/content/fencing"},
     {:raws, "priv/content/raws"},
     {:recipes, "priv/content/recipes"},
@@ -41,18 +42,15 @@ defmodule Shunt.Content.Store do
     end
   end
 
-  # TODO: add a load_source(:npcs, dir) clause here, above the generic load_source(table, dir)
-  # clause below, that evals each file in priv/content/npcs and inserts entries keyed by
-  # `npc.id` (mirroring this :events clause), since Shunt.World.NPC is a struct without a
-  # :key field. Must come before the generic clause since Elixir matches in source order.
-  #
-  # Implement this in the same change as filling in the Shunt.World.NPC struct
-  # (lib/shunt/world/npc.ex) and creating priv/content/npcs/shunt9_maintenance_tunnel_junkie.exs
-  # (per priv/docs/SHUNT_npc_architecture.md "NPC Definition" section) — Content.Store
-  # eagerly evaluates every .exs file under priv/content/npcs at app boot (it's in the
-  # supervision tree), so a new npc content file with no matching loader clause, or a
-  # loader clause with no matching content file shaped right, will crash `mix test`/`mix
-  # phx.server` on startup. Land struct + loader clause + content file together.
+  def load_source(:world_npcs, dir) do
+    entries =
+      for file <- content_files(dir) do
+        {npc, _bindings} = Code.eval_file(file)
+        {npc.id, npc}
+      end
+
+    :ets.insert(:world_npcs, entries)
+  end
 
   def load_source(:events, dir) do
     entries =
