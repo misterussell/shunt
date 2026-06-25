@@ -18,9 +18,21 @@ alias Shunt.World.Exit
   graph_position: {250, 400},
 
   exits: [
-    %Exit{to: "shunt9_scrap_yard"},
-    %Exit{to: "shunt9_food_stalls"},
-    %Exit{to: "shunt9_power_relay"},
-    %Exit{to: "shunt9_burned_platform"}
+    %Exit{
+      id: "bazaar_to_scrap_yard",
+      to: "shunt9_scrap_yard"
+    },
+    %Exit{
+      id: "bazaar_to_food_stalls",
+      to: "shunt9_food_stalls"
+    },
+    %Exit{
+      id: "bazaar_to_power_relay",
+      to: "shunt9_power_relay"
+    },
+    %Exit{
+      id: "bazaar_to_burned_platform",
+      to: "shunt9_burned_platform"
+    }
   ]
 }

@@ -24,6 +24,9 @@ alias Shunt.World.Exit
   ],
 
   exits: [
-    %Exit{to: "shunt9_maintenance_tunnel"}
+    %Exit{
+      id: "player_squat_to_maintenance_tunnel",
+      to: "shunt9_maintenance_tunnel"
+    }
   ]
 }

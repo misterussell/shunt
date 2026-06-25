@@ -26,7 +26,13 @@ alias Shunt.World.Exit
   ],
 
   exits: [
-    %Exit{to: "shunt9_burned_platform"},
-    %Exit{to: "shunt9_player_squat"}
+    %Exit{
+      id: "maintenance_tunnel_to_burned_platform",
+      to: "shunt9_burned_platform"
+    },
+    %Exit{
+      id: "maintenance_tunnel_to_player_squat",
+      to: "shunt9_player_squat"
+    }
   ]
 }

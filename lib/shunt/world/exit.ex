@@ -4,6 +4,7 @@ defmodule Shunt.World.Exit do
   @enforce_keys [:to]
   defstruct [
     :to,
+    id: nil,
     requirements: [],
     tags: [],
     travel_text: nil
