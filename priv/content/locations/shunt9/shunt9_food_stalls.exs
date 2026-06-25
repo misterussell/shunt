@@ -1,7 +1,7 @@
 alias Shunt.World.Exit
 
 %{
-  key: "shunt9_food_stalls",
+  id: "shunt9_food_stalls",
   name: "Food Stalls",
 
   short_description:

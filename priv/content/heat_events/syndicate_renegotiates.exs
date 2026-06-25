@@ -1,5 +1,5 @@
 %{
-  key: "syndicate_renegotiates",
+  id: "syndicate_renegotiates",
   band: :medium,
   name: "Syndicate Renegotiates",
   flavor_text:

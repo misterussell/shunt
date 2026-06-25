@@ -1,5 +1,5 @@
 %{
-  key: "burned_netrunners_memory_core",
+  id: "burned_netrunners_memory_core",
   name: "Burned Netrunner's Memory Core",
   tier: :hot,
   buy_cost: 65,

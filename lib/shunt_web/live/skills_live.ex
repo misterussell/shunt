@@ -69,12 +69,12 @@ defmodule ShuntWeb.SkillsLive do
     <Layouts.app
       flash={@flash}
       player={@player}
-      active={String.to_existing_atom(@tree.key)}
+      active={String.to_existing_atom(@tree.id)}
       status={@status}
     >
       <Chrome.ladder_track tree={@tree} current_tier={@current_tier} />
 
-      <%= if @tree.key == "street_alchemy" do %>
+      <%= if @tree.id == "street_alchemy" do %>
         <Chrome.section_header secondary="⚠ DRAWS HEAT" secondary_amber>
           SCAVENGE
         </Chrome.section_header>
@@ -93,13 +93,13 @@ defmodule ShuntWeb.SkillsLive do
           <div class="scavenge-right">
             <div class="raw-materials-label">RAW MATERIALS · BIN</div>
             <div class="raw-materials-grid">
-              <div :for={raw <- @raws} id={"raw-#{raw.key}"} class="raw-material-chip">
+              <div :for={raw <- @raws} id={"raw-#{raw.id}"} class="raw-material-chip">
                 <span class="raw-material-name">{raw.name}</span>
                 <span class={[
                   "raw-material-count",
-                  Map.get(@player.inventory, raw.key, 0) > 0 && "raw-material-count--owned"
+                  Map.get(@player.inventory, raw.id, 0) > 0 && "raw-material-count--owned"
                 ]}>
-                  ×{Map.get(@player.inventory, raw.key, 0)}
+                  ×{Map.get(@player.inventory, raw.id, 0)}
                 </span>
               </div>
             </div>
@@ -108,7 +108,7 @@ defmodule ShuntWeb.SkillsLive do
 
         <Chrome.section_header secondary="DECRYPTED BY TIER">RECIPES</Chrome.section_header>
         <div class="recipes-list">
-          <div :for={recipe <- @recipes} id={"recipe-#{recipe.key}"}>
+          <div :for={recipe <- @recipes} id={"recipe-#{recipe.id}"}>
             <%= if @current_tier < recipe.tier_required do %>
               <div class="recipe-row recipe-row--locked">
                 <span class="recipe-tier-chip recipe-tier-chip--locked">T{recipe.tier_required}</span>
@@ -129,10 +129,10 @@ defmodule ShuntWeb.SkillsLive do
                 </div>
                 <span class="recipe-value">+{recipe.sell_value}cr</span>
                 <Chrome.btn
-                  id={"assemble-#{recipe.key}-button"}
+                  id={"assemble-#{recipe.id}-button"}
                   variant={if(recipe.craftable?, do: :primary, else: :dead)}
                   phx-click="assemble"
-                  phx-value-key={recipe.key}
+                  phx-value-key={recipe.id}
                 >
                   [ ASSEMBLE ]
                 </Chrome.btn>
@@ -142,12 +142,12 @@ defmodule ShuntWeb.SkillsLive do
         </div>
 
         <Chrome.section_header secondary="BENCH OUTPUT">ASSEMBLED</Chrome.section_header>
-        <%= if Enum.any?(@recipes, &(Map.get(@player.inventory, &1.key, 0) > 0)) do %>
+        <%= if Enum.any?(@recipes, &(Map.get(@player.inventory, &1.id, 0) > 0)) do %>
           <div class="assembled-grid">
             <div
               :for={recipe <- @recipes}
-              :if={Map.get(@player.inventory, recipe.key, 0) > 0}
-              id={"assembled-#{recipe.key}"}
+              :if={Map.get(@player.inventory, recipe.id, 0) > 0}
+              id={"assembled-#{recipe.id}"}
               class="assembled-row"
             >
               <div>
@@ -155,10 +155,10 @@ defmodule ShuntWeb.SkillsLive do
                 <div class="assembled-value">+{recipe.sell_value} cr</div>
               </div>
               <Chrome.btn
-                id={"sell-assembled-#{recipe.key}-button"}
+                id={"sell-assembled-#{recipe.id}-button"}
                 variant={:ghost}
                 phx-click="sell_assembled"
-                phx-value-key={recipe.key}
+                phx-value-key={recipe.id}
               >
                 [ SELL ]
               </Chrome.btn>

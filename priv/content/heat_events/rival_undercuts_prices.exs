@@ -1,5 +1,5 @@
 %{
-  key: "rival_undercuts_prices",
+  id: "rival_undercuts_prices",
   band: :low,
   name: "Rival Undercuts Prices",
   flavor_text:

@@ -175,7 +175,7 @@ defmodule Shunt.NpcsTest do
 
     test "returns effects for 50% of the held item's sell_value, clearing held_item_key, and npc_loyalty" do
       item = Catalog.fetch!("scrap_dermal_plating")
-      player = %Player{held_item_key: item.key}
+      player = %Player{held_item_key: item.id}
 
       assert Npcs.move_goods(player) ==
                {:ok,
@@ -188,7 +188,7 @@ defmodule Shunt.NpcsTest do
 
     test "a favored-loyalty player gets a scaled (better) payout effect" do
       item = Catalog.fetch!("scrap_dermal_plating")
-      player = %Player{held_item_key: item.key, npc_loyalty: %{"rook" => 80}}
+      player = %Player{held_item_key: item.id, npc_loyalty: %{"rook" => 80}}
 
       assert {:ok, effects} = Npcs.move_goods(player)
       assert {:scrip, floor(item.sell_value * 0.5 * 1.2)} in effects
@@ -196,7 +196,7 @@ defmodule Shunt.NpcsTest do
 
     test "a hostile-loyalty player gets a scaled (worse) payout effect when reliable" do
       item = Catalog.fetch!("scrap_dermal_plating")
-      player = %Player{held_item_key: item.key, npc_loyalty: %{"rook" => 24}}
+      player = %Player{held_item_key: item.id, npc_loyalty: %{"rook" => 24}}
 
       result =
         Enum.reduce_while(1..200, nil, fn _, _acc ->
@@ -212,7 +212,7 @@ defmodule Shunt.NpcsTest do
 
     test "a hostile-loyalty player can get {:error, :npc_unreliable}" do
       item = Catalog.fetch!("scrap_dermal_plating")
-      player = %Player{held_item_key: item.key, npc_loyalty: %{"rook" => 0}}
+      player = %Player{held_item_key: item.id, npc_loyalty: %{"rook" => 0}}
 
       results = Enum.map(1..200, fn _ -> Npcs.move_goods(player) end)
 

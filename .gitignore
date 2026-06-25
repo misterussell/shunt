@@ -38,3 +38,8 @@ npm-debug.log
 # superpowers:brainstorming visual companion mockups
 /.superpowers/
 
+# superpower bleed docs
+/docs/superpowers/
+
+# docker settings
+docker-compose.yml

@@ -1,5 +1,5 @@
 %{
-  key: "informant_chatter",
+  id: "informant_chatter",
   band: :medium,
   name: "Informant Chatter",
   flavor_text:

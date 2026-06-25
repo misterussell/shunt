@@ -1,5 +1,5 @@
 %{
-  key: "mother_graft",
+  id: "mother_graft",
   name: "Mother Graft",
   faction: :fleshless,
   trade_actions: [

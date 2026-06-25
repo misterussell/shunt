@@ -1,5 +1,5 @@
 %{
-  key: "nine_iron",
+  id: "nine_iron",
   name: "Nine-Iron",
   faction: :kaspav_authority,
   trade_actions: [

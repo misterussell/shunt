@@ -1,7 +1,7 @@
 alias Shunt.World.Exit
 
 %{
-  key: "shunt9_maintenance_tunnel",
+  id: "shunt9_maintenance_tunnel",
   name: "Maintenance Tunnel",
 
   short_description:

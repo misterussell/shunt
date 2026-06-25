@@ -1,5 +1,5 @@
 %{
-  key: "scrap_dermal_plating",
+  id: "scrap_dermal_plating",
   name: "Scrap Dermal Plating",
   tier: :clean,
   buy_cost: 10,

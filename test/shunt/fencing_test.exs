@@ -11,7 +11,7 @@ defmodule Shunt.FencingTest do
 
       assert {:ok, [{:set, :current_offer_key, key}]} = Fencing.find_lead(player)
 
-      valid_keys = Enum.map(Catalog.items(), & &1.key)
+      valid_keys = Enum.map(Catalog.items(), & &1.id)
       assert key in valid_keys
     end
 
@@ -25,14 +25,14 @@ defmodule Shunt.FencingTest do
   describe "can_take_offer?/1" do
     test "returns true when scrip covers the offer's buy_cost" do
       item = Catalog.fetch!("cracked_latticework_relay_key")
-      player = %Player{current_offer_key: item.key, scrip: item.buy_cost}
+      player = %Player{current_offer_key: item.id, scrip: item.buy_cost}
 
       assert Fencing.can_take_offer?(player)
     end
 
     test "returns false when scrip is below the offer's buy_cost" do
       item = Catalog.fetch!("cracked_latticework_relay_key")
-      player = %Player{current_offer_key: item.key, scrip: item.buy_cost - 1}
+      player = %Player{current_offer_key: item.id, scrip: item.buy_cost - 1}
 
       refute Fencing.can_take_offer?(player)
     end
@@ -47,14 +47,14 @@ defmodule Shunt.FencingTest do
   describe "take_offer/1" do
     test "deducts buy_cost from scrip and moves the offer to held_item_key" do
       item = Catalog.fetch!("cracked_latticework_relay_key")
-      player = %Player{current_offer_key: item.key, scrip: 100}
+      player = %Player{current_offer_key: item.id, scrip: 100}
 
       assert Fencing.take_offer(player) ==
                {:ok,
                 [
                   {:scrip, -item.buy_cost},
                   {:set, :current_offer_key, nil},
-                  {:set, :held_item_key, item.key}
+                  {:set, :held_item_key, item.id}
                 ]}
     end
 
@@ -66,7 +66,7 @@ defmodule Shunt.FencingTest do
 
     test "returns an error when scrip is insufficient" do
       item = Catalog.fetch!("cracked_latticework_relay_key")
-      player = %Player{current_offer_key: item.key, scrip: 0}
+      player = %Player{current_offer_key: item.id, scrip: 0}
 
       assert Fencing.take_offer(player) == {:error, :insufficient_scrip}
     end
@@ -89,7 +89,7 @@ defmodule Shunt.FencingTest do
   describe "sell_held_item/1" do
     test "returns effects for heat, scrip, cred, and clearing held_item_key" do
       item = Catalog.fetch!("cracked_latticework_relay_key")
-      player = %Player{held_item_key: item.key}
+      player = %Player{held_item_key: item.id}
 
       assert Fencing.sell_held_item(player) ==
                {:ok,

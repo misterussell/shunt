@@ -186,7 +186,7 @@ defmodule ShuntWeb.HubLive do
               <div class="offer-header-row">
                 <div>
                   <p class="offer-name">{@offer.name}</p>
-                  <p class="offer-sku">SKU://{offer_sku(@offer.key)}</p>
+                  <p class="offer-sku">SKU://{offer_sku(@offer.id)}</p>
                 </div>
                 <span class={["offer-tier-badge", "offer-tier-badge--#{@offer.tier}"]}>
                   {tier_label(@offer.tier)}
@@ -266,7 +266,7 @@ defmodule ShuntWeb.HubLive do
 
       <Chrome.section_header secondary="5 DOSSIERS · USE WISELY">CONTACTS</Chrome.section_header>
       <div class="contacts-grid">
-        <Chrome.panel :for={npc <- @npcs} id={"npc-#{npc.key}"}>
+        <Chrome.panel :for={npc <- @npcs} id={"npc-#{npc.id}"}>
           <span class={["npc-accent-bar", "npc-accent-bar--#{loyalty_band(npc.loyalty)}"]}></span>
           <p class="npc-name">{npc.name}</p>
           <span class={["npc-faction-pill", "npc-faction-pill--#{faction_color(npc.faction)}"]}>
@@ -288,7 +288,7 @@ defmodule ShuntWeb.HubLive do
             <p class="npc-action-text"><span>{action.name}</span> — {action.description}</p>
           </div>
           <%= cond do %>
-            <% npc.key == "mother_graft" -> %>
+            <% npc.id == "mother_graft" -> %>
               <% can_do = Npcs.can_flesh_tithe?(@player) %>
               <Chrome.btn
                 id="trade-flesh-tithe-button"
@@ -297,7 +297,7 @@ defmodule ShuntWeb.HubLive do
               >
                 {action_label(can_do, "FLESH TITHE", "CAN'T PAY")}
               </Chrome.btn>
-            <% npc.key == "rook" -> %>
+            <% npc.id == "rook" -> %>
               <% can_do = Npcs.can_move_goods?(@player) %>
               <Chrome.btn
                 id="trade-move-goods-button"
@@ -306,7 +306,7 @@ defmodule ShuntWeb.HubLive do
               >
                 {action_label(can_do, "MOVE GOODS", "CAN'T PAY")}
               </Chrome.btn>
-            <% npc.key == "nine_iron" -> %>
+            <% npc.id == "nine_iron" -> %>
               <% can_do = Npcs.can_look_the_other_way?(@player) %>
               <Chrome.btn
                 id="trade-look-the-other-way-button"
@@ -315,7 +315,7 @@ defmodule ShuntWeb.HubLive do
               >
                 {action_label(can_do, "LOOK THE OTHER WAY", "CAN'T PAY")}
               </Chrome.btn>
-            <% npc.key == "splice" -> %>
+            <% npc.id == "splice" -> %>
               <% can_do = Npcs.can_data_drop?(@player) %>
               <Chrome.btn
                 id="trade-data-drop-button"
@@ -324,7 +324,7 @@ defmodule ShuntWeb.HubLive do
               >
                 {action_label(can_do, "DATA DROP", "CAN'T PAY")}
               </Chrome.btn>
-            <% npc.key == "tally" -> %>
+            <% npc.id == "tally" -> %>
               <% can_do = Npcs.can_settle_the_books?(@player) %>
               <Chrome.btn
                 id="trade-settle-the-books-button"
@@ -346,7 +346,7 @@ defmodule ShuntWeb.HubLive do
     |> assign(:player, player)
     |> assign(:offer, catalog_item(player.current_offer_key))
     |> assign(:held, catalog_item(player.held_item_key))
-    |> assign(:npcs, Enum.map(Npcs.list(), &Map.put(&1, :loyalty, Loyalty.value(player, &1.key))))
+    |> assign(:npcs, Enum.map(Npcs.list(), &Map.put(&1, :loyalty, Loyalty.value(player, &1.id))))
   end
 
   defp catalog_item(nil), do: nil

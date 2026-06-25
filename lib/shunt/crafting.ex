@@ -7,7 +7,7 @@ defmodule Shunt.Crafting do
 
   def scavenge(%Player{}) do
     raw = Enum.random(RawCatalog.items())
-    {:ok, [{:inventory, raw.key, 1}, {:heat, 4}], %{gained_raw: raw.key}}
+    {:ok, [{:inventory, raw.id, 1}, {:heat, 4}], %{gained_raw: raw.id}}
   end
 
   def craftable?(%Player{} = player, recipe) do
@@ -29,7 +29,7 @@ defmodule Shunt.Crafting do
         input_effects =
           Enum.map(recipe.inputs, fn {raw_key, qty} -> {:inventory, raw_key, -qty} end)
 
-        {:ok, input_effects ++ [{:inventory, recipe.key, 1}]}
+        {:ok, input_effects ++ [{:inventory, recipe.id, 1}]}
     end
   end
 

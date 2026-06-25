@@ -139,7 +139,7 @@ defmodule ShuntWeb.HubLiveTest do
   } do
     item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
     player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.key))
+    Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.id))
 
     {:ok, view, _html} = live(conn, ~p"/")
 
@@ -256,7 +256,7 @@ defmodule ShuntWeb.HubLiveTest do
   test "renders the NPC roster", %{conn: conn} do
     item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
     player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.key))
+    Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.id))
 
     {:ok, view, _html} = live(conn, ~p"/")
 
@@ -369,7 +369,7 @@ defmodule ShuntWeb.HubLiveTest do
   test "Move Goods pays out for the held item and clears it", %{conn: conn} do
     item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
     player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.key, scrip: 0))
+    Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.id, scrip: 0))
 
     {:ok, view, _html} = live(conn, ~p"/")
 

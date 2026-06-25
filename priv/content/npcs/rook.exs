@@ -1,5 +1,5 @@
 %{
-  key: "rook",
+  id: "rook",
   name: "Rook",
   faction: :syndicate_of_closed_hands,
   trade_actions: [

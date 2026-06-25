@@ -1,5 +1,5 @@
 %{
-  key: "tally",
+  id: "tally",
   name: "Tally",
   faction: :syndicate_of_closed_hands,
   trade_actions: [

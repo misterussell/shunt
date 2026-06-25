@@ -1,7 +1,7 @@
 alias Shunt.World.Exit
 
 %{
-  key: "shunt9_player_squat",
+  id: "shunt9_player_squat",
   name: "Player Squat",
 
   short_description:

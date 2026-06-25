@@ -10,9 +10,9 @@ defmodule ShuntWeb.Components.MapGraph do
   attr :locations, :list, required: true
 
   def map_graph(assigns) do
-    current = Enum.find(assigns.locations, &(&1.key == assigns.player.location_id))
+    current = Enum.find(assigns.locations, &(&1.id == assigns.player.location_id))
     connected_keys = MapSet.new(current.exits, & &1.to)
-    states = Map.new(assigns.locations, &{&1.key, node_state(&1, assigns.player, connected_keys)})
+    states = Map.new(assigns.locations, &{&1.id, node_state(&1, assigns.player, connected_keys)})
     edges = edges(assigns.locations)
 
     {cx, cy} = current.graph_position
@@ -115,8 +115,8 @@ defmodule ShuntWeb.Components.MapGraph do
       <g class="map-world" transform={@world_transform}>
         <.edge
           :for={{loc_a, loc_b} <- @edges}
-          state_a={@states[loc_a.key]}
-          state_b={@states[loc_b.key]}
+          state_a={@states[loc_a.id]}
+          state_b={@states[loc_b.id]}
           point_a={loc_a.graph_position}
           point_b={loc_b.graph_position}
         />
@@ -124,7 +124,7 @@ defmodule ShuntWeb.Components.MapGraph do
         <.map_node
           :for={location <- @locations}
           location={location}
-          state={@states[location.key]}
+          state={@states[location.id]}
         />
       </g>
     </svg>
@@ -275,14 +275,14 @@ defmodule ShuntWeb.Components.MapGraph do
     </text>
     <circle
       :if={@state == :connected}
-      id={"move-to-#{@location.key}"}
+      id={"move-to-#{@location.id}"}
       class="map-node--connected"
       cx={@x}
       cy={@y}
       r="20"
       fill="transparent"
       phx-click="move_to"
-      phx-value-destination={@location.key}
+      phx-value-destination={@location.id}
     />
     """
   end
@@ -300,18 +300,18 @@ defmodule ShuntWeb.Components.MapGraph do
 
   defp node_state(location, player, connected_keys) do
     cond do
-      location.key == player.location_id -> :current
-      location.key in connected_keys -> :connected
-      location.key in player.discovered_locations -> :discovered
+      location.id == player.location_id -> :current
+      location.id in connected_keys -> :connected
+      location.id in player.discovered_locations -> :discovered
       true -> :undiscovered
     end
   end
 
   defp edges(locations) do
-    by_key = Map.new(locations, &{&1.key, &1})
+    by_key = Map.new(locations, &{&1.id, &1})
 
     locations
-    |> Enum.flat_map(fn loc -> Enum.map(loc.exits, &{loc.key, &1.to}) end)
+    |> Enum.flat_map(fn loc -> Enum.map(loc.exits, &{loc.id, &1.to}) end)
     |> Enum.uniq_by(fn {a, b} -> Enum.sort([a, b]) end)
     |> Enum.map(fn {a, b} -> {by_key[a], by_key[b]} end)
   end

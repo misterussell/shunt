@@ -1,6 +1,6 @@
 [
   %{
-    key: "ghostwork",
+    id: "ghostwork",
     name: "Ghostwork",
     description: "Interfacing with the Latticework — skimming feeds to cracking military ICE.",
     tier_field: :ghostwork_tier,
@@ -15,7 +15,7 @@
     ]
   },
   %{
-    key: "chrome_meat",
+    id: "chrome_meat",
     name: "Chrome & Meat",
     description: "Sourcing, installing, and trading illegal augmentations.",
     tier_field: :chrome_meat_tier,
@@ -30,7 +30,7 @@
     ]
   },
   %{
-    key: "web",
+    id: "web",
     name: "The Web",
     description: "Reading people, building leverage, calling in favors.",
     tier_field: :web_tier,
@@ -45,7 +45,7 @@
     ]
   },
   %{
-    key: "street_alchemy",
+    id: "street_alchemy",
     name: "Street Alchemy",
     description: "Breaking down scavenged tech and rebuilding it into something valuable.",
     tier_field: :street_alchemy_tier,

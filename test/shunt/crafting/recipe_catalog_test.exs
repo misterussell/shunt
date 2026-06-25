@@ -7,10 +7,10 @@ defmodule Shunt.Crafting.RecipeCatalogTest do
   describe "recipes/0" do
     test "returns 7 recipes with valid tiers, inputs, and raw key references" do
       recipes = RecipeCatalog.recipes()
-      raw_keys = Enum.map(RawCatalog.items(), & &1.key)
+      raw_keys = Enum.map(RawCatalog.items(), & &1.id)
 
       assert length(recipes) == 7
-      assert recipes |> Enum.map(& &1.key) |> Enum.uniq() |> length() == 7
+      assert recipes |> Enum.map(& &1.id) |> Enum.uniq() |> length() == 7
       assert Enum.all?(recipes, &(&1.tier_required >= 0))
       assert Enum.all?(recipes, &(map_size(&1.inputs) > 0))
 

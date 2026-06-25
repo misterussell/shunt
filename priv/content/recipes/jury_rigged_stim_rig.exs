@@ -1,5 +1,5 @@
 %{
-  key: "jury_rigged_stim_rig",
+  id: "jury_rigged_stim_rig",
   name: "Jury-Rigged Stim Rig",
   tier_required: 1,
   inputs: %{"junked_servo_motor" => 1, "stripped_copper_coil" => 2},

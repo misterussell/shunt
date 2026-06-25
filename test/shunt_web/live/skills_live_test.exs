@@ -120,7 +120,7 @@ defmodule ShuntWeb.SkillsLiveTest do
 
     assert Enum.all?(
              Shunt.Crafting.RawCatalog.items(),
-             &has_element?(view, "#raw-#{&1.key}", "×0")
+             &has_element?(view, "#raw-#{&1.id}", "×0")
            )
   end
 
@@ -131,7 +131,7 @@ defmodule ShuntWeb.SkillsLiveTest do
 
     assert Enum.any?(
              Shunt.Crafting.RawCatalog.items(),
-             &has_element?(view, "#raw-#{&1.key}")
+             &has_element?(view, "#raw-#{&1.id}")
            )
   end
 

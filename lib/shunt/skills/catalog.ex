@@ -6,8 +6,8 @@ defmodule Shunt.Skills.Catalog do
   def trees, do: Content.fetch!(:skill_trees, :skill_trees)
 
   def fetch!(key) do
-    Enum.find(trees(), &(&1.key == key)) ||
-      raise "unknown skill tree key: #{inspect(key)}"
+    Enum.find(trees(), &(&1.id == key)) ||
+      raise "unknown skill tree id: #{inspect(key)}"
   end
 
   # Capped at 0/1 for now — tiers 2-5's advancement mechanic is undesigned until a future

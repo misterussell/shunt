@@ -1,5 +1,5 @@
 %{
-  key: "tunnel_toll_hike",
+  id: "tunnel_toll_hike",
   band: :low,
   name: "Tunnel Toll Hike",
   flavor_text: "The Syndicate's local enforcer decides Shunt 9 owes a little extra this week.",

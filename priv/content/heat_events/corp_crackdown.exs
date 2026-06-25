@@ -1,5 +1,5 @@
 %{
-  key: "corp_crackdown",
+  id: "corp_crackdown",
   band: :high,
   name: "Corp Crackdown",
   flavor_text:

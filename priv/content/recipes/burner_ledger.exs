@@ -1,5 +1,5 @@
 %{
-  key: "burner_ledger",
+  id: "burner_ledger",
   name: "Burner Ledger",
   tier_required: 0,
   inputs: %{"burner_sim_stack" => 1, "forged_credential_stub" => 1},

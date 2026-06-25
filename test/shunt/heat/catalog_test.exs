@@ -17,7 +17,7 @@ defmodule Shunt.Heat.CatalogTest do
     test "returns the matching event for a known key" do
       [event | _] = Catalog.events_for_band(:low)
 
-      assert Catalog.fetch!(event.key) == event
+      assert Catalog.fetch!(event.id) == event
     end
 
     test "raises for an unknown key" do

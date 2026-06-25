@@ -1,7 +1,7 @@
 alias Shunt.World.Exit
 
 %{
-  key: "shunt9_scrap_yard",
+  id: "shunt9_scrap_yard",
   name: "Scrap Yard",
 
   short_description:

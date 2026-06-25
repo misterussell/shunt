@@ -1,5 +1,5 @@
 %{
-  key: "grey_market_neural_patch",
+  id: "grey_market_neural_patch",
   name: "Grey-Market Neural Patch",
   tier: :warm,
   buy_cost: 25,

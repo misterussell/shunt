@@ -1,7 +1,7 @@
 alias Shunt.World.Exit
 
 %{
-  key: "shunt9_power_relay",
+  id: "shunt9_power_relay",
   name: "Power Relay",
 
   short_description:

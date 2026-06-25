@@ -15,7 +15,7 @@ defmodule Shunt.Fencing.CatalogTest do
 
     test "every item has a unique key and a positive margin" do
       items = Catalog.items()
-      keys = Enum.map(items, & &1.key)
+      keys = Enum.map(items, & &1.id)
 
       assert length(Enum.uniq(keys)) == length(keys)
       assert Enum.all?(items, &(&1.sell_value > &1.buy_cost))

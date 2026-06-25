@@ -1,5 +1,5 @@
 %{
-  key: "syndicate_makes_an_example",
+  id: "syndicate_makes_an_example",
   band: :high,
   name: "Syndicate Makes an Example",
   flavor_text:

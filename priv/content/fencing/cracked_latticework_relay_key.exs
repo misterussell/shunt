@@ -1,5 +1,5 @@
 %{
-  key: "cracked_latticework_relay_key",
+  id: "cracked_latticework_relay_key",
   name: "Cracked Latticework Relay Key",
   tier: :warm,
   buy_cost: 30,

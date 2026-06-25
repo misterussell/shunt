@@ -1,5 +1,5 @@
 %{
-  key: "ka_task_force",
+  id: "ka_task_force",
   band: :high,
   name: "KA Task Force",
   flavor_text:

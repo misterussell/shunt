@@ -1,7 +1,7 @@
 alias Shunt.World.Exit
 
 %{
-  key: "shunt9_bazaar",
+  id: "shunt9_bazaar",
   name: "Shunt 9 Bazaar",
 
   short_description:

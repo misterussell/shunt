@@ -34,7 +34,7 @@ defmodule Shunt.WorldTest do
   describe "all_locations/0" do
     test "returns all 7 seeded locations" do
       assert length(World.all_locations()) == 7
-      assert "shunt9_bazaar" in Enum.map(World.all_locations(), & &1.key)
+      assert "shunt9_bazaar" in Enum.map(World.all_locations(), & &1.id)
     end
 
     test "every returned location has a graph_position tuple" do

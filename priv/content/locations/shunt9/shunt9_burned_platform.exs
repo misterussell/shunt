@@ -1,7 +1,7 @@
 alias Shunt.World.Exit
 
 %{
-  key: "shunt9_burned_platform",
+  id: "shunt9_burned_platform",
   name: "Burned Platform",
 
   short_description:

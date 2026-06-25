@@ -10,11 +10,11 @@ defmodule ShuntWeb.Components.MapGraphTest do
   @player %{location_id: "a", discovered_locations: ["a", "b", "e"]}
 
   @locations [
-    %{key: "a", name: "Alpha", graph_position: {0, 0}, exits: [%Exit{to: "b"}, %Exit{to: "c"}]},
-    %{key: "b", name: "Bravo", graph_position: {100, 0}, exits: [%Exit{to: "a"}]},
-    %{key: "c", name: "Charlie", graph_position: {0, 100}, exits: [%Exit{to: "a"}]},
-    %{key: "d", name: "Delta", graph_position: {100, 100}, exits: []},
-    %{key: "e", name: "Echo", graph_position: {200, 200}, exits: []}
+    %{id: "a", name: "Alpha", graph_position: {0, 0}, exits: [%Exit{to: "b"}, %Exit{to: "c"}]},
+    %{id: "b", name: "Bravo", graph_position: {100, 0}, exits: [%Exit{to: "a"}]},
+    %{id: "c", name: "Charlie", graph_position: {0, 100}, exits: [%Exit{to: "a"}]},
+    %{id: "d", name: "Delta", graph_position: {100, 100}, exits: []},
+    %{id: "e", name: "Echo", graph_position: {200, 200}, exits: []}
   ]
 
   defp render_map(assigns) do
@@ -77,8 +77,8 @@ defmodule ShuntWeb.Components.MapGraphTest do
 
   test "the viewBox stays the same fixed size even with far-apart locations" do
     far_locations = [
-      %{key: "a", name: "Alpha", graph_position: {0, 0}, exits: []},
-      %{key: "z", name: "Zulu", graph_position: {5000, 5000}, exits: []}
+      %{id: "a", name: "Alpha", graph_position: {0, 0}, exits: []},
+      %{id: "z", name: "Zulu", graph_position: {5000, 5000}, exits: []}
     ]
 
     player = %{location_id: "a", discovered_locations: ["a"]}

@@ -1,5 +1,5 @@
 %{
-  key: "splice",
+  id: "splice",
   name: "Splice",
   faction: :latticework_collective,
   trade_actions: [

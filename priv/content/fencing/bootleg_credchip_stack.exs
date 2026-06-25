@@ -1,5 +1,5 @@
 %{
-  key: "bootleg_credchip_stack",
+  id: "bootleg_credchip_stack",
   name: "Bootleg Credchip Stack",
   tier: :clean,
   buy_cost: 15,

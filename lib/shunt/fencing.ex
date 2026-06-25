@@ -5,7 +5,7 @@ defmodule Shunt.Fencing do
 
   def find_lead(%Player{current_offer_key: nil, held_item_key: nil}) do
     item = Enum.random(Catalog.items())
-    {:ok, [{:set, :current_offer_key, item.key}]}
+    {:ok, [{:set, :current_offer_key, item.id}]}
   end
 
   def find_lead(%Player{}), do: {:error, :offer_in_progress}

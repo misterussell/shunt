@@ -1,5 +1,5 @@
 %{
-  key: "nervous_contact",
+  id: "nervous_contact",
   band: :low,
   name: "Nervous Contact",
   flavor_text:

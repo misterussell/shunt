@@ -13,7 +13,7 @@ defmodule Shunt.CraftingTest do
       assert {:ok, [{:inventory, key, 1}, {:heat, 4}], %{gained_raw: key}} =
                Crafting.scavenge(player)
 
-      raw_keys = Enum.map(RawCatalog.items(), & &1.key)
+      raw_keys = Enum.map(RawCatalog.items(), & &1.id)
       assert key in raw_keys
     end
   end
@@ -41,7 +41,7 @@ defmodule Shunt.CraftingTest do
 
       expected_effects =
         Enum.map(recipe.inputs, fn {raw_key, qty} -> {:inventory, raw_key, -qty} end) ++
-          [{:inventory, recipe.key, 1}]
+          [{:inventory, recipe.id, 1}]
 
       assert Crafting.assemble(player, "patchwork_courier_drone") == {:ok, expected_effects}
     end
@@ -65,7 +65,7 @@ defmodule Shunt.CraftingTest do
 
       expected_effects =
         Enum.map(recipe.inputs, fn {raw_key, qty} -> {:inventory, raw_key, -qty} end) ++
-          [{:inventory, recipe.key, 1}]
+          [{:inventory, recipe.id, 1}]
 
       assert Crafting.assemble(player, "scrap_forged_soldering_iron") == {:ok, expected_effects}
     end

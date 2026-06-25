@@ -1,5 +1,5 @@
 %{
-  key: "patchwork_scalpel",
+  id: "patchwork_scalpel",
   name: "Patchwork Scalpel",
   tier_required: 0,
   inputs: %{"sterile_suture_kit" => 1, "subdermal_wiring_bundle" => 1},

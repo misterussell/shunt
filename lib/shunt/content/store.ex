@@ -66,7 +66,7 @@ defmodule Shunt.Content.Store do
     entries =
       for file <- content_files(dir) do
         {item, _bindings} = Code.eval_file(file)
-        {item.key, item}
+        {item.id, item}
       end
 
     :ets.insert(table, entries)

@@ -10,13 +10,13 @@ defmodule Shunt.Content.StoreTest do
       assert length(npcs) == 5
 
       for npc <- npcs do
-        assert Map.has_key?(npc, :key)
+        assert Map.has_key?(npc, :id)
         assert Map.has_key?(npc, :name)
         assert Map.has_key?(npc, :faction)
         assert Map.has_key?(npc, :trade_actions)
       end
 
-      assert MapSet.new(Enum.map(npcs, & &1.key)) ==
+      assert MapSet.new(Enum.map(npcs, & &1.id)) ==
                MapSet.new(["rook", "splice", "nine_iron", "mother_graft", "tally"])
     end
 
@@ -50,7 +50,7 @@ defmodule Shunt.Content.StoreTest do
       raws = Content.all(:raws)
 
       for raw <- raws do
-        assert Map.has_key?(raw, :key)
+        assert Map.has_key?(raw, :id)
         assert Map.has_key?(raw, :name)
         assert Map.has_key?(raw, :scavenge_text)
       end
@@ -68,7 +68,7 @@ defmodule Shunt.Content.StoreTest do
       assert length(recipes) == 7
 
       for recipe <- recipes do
-        assert Map.has_key?(recipe, :key)
+        assert Map.has_key?(recipe, :id)
         assert Map.has_key?(recipe, :inputs)
         assert Map.has_key?(recipe, :tier_required)
       end
@@ -87,7 +87,7 @@ defmodule Shunt.Content.StoreTest do
       assert length(events) == 9
 
       for event <- events do
-        assert Map.has_key?(event, :key)
+        assert Map.has_key?(event, :id)
         assert Map.has_key?(event, :band)
         assert Map.has_key?(event, :scrip_loss)
         assert Map.has_key?(event, :cred_loss)
@@ -106,7 +106,7 @@ defmodule Shunt.Content.StoreTest do
 
       assert length(trees) == 4
 
-      assert MapSet.new(Enum.map(trees, & &1.key)) ==
+      assert MapSet.new(Enum.map(trees, & &1.id)) ==
                MapSet.new(["ghostwork", "chrome_meat", "web", "street_alchemy"])
     end
 

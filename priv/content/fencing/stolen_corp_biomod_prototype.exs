@@ -1,5 +1,5 @@
 %{
-  key: "stolen_corp_biomod_prototype",
+  id: "stolen_corp_biomod_prototype",
   name: "Stolen Corp Biomod Prototype",
   tier: :hot,
   buy_cost: 55,

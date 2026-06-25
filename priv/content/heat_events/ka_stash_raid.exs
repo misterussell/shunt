@@ -1,5 +1,5 @@
 %{
-  key: "ka_stash_raid",
+  id: "ka_stash_raid",
   band: :medium,
   name: "KA Raids a Stash",
   flavor_text:
