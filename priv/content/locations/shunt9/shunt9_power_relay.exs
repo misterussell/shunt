@@ -10,10 +10,6 @@ alias Shunt.World.Exit
   description:
     "Cables thick as a man's arm snake between rusted transformers, throwing off heat and a low electrical hum that never quite stops.",
 
-  requirements: [
-    {:flag, :knows_secret_entrance_power_relay}
-  ],
-
   tags: [
     :infrastructure,
     :restricted

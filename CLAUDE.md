@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Singleton is an anti-pattern in Elixir. Functional always.
 
+All content generation must follow:
+
 ## Code Rules
 
 ### 1. Think Before Coding
@@ -80,3 +82,12 @@ use the project skill `todo-staging` to stage the design as inline TODOs and imp
 Before committing, check the current branch with `git branch --show-current`. If it is
 `main` or `master`, create and switch to a new feature branch first - never commit feature
 work directly to `main`/`master`.
+
+## Content
+
+All content generation must follow:
+
+- docs/SHUNT_TERMINOLOGY.md
+- docs/SHUNT_STYLE_GUIDE.md
+- docs/SHUNT_NAMING_PATTERNS.md
+- docs/SHUNT_LEXICON.md

@@ -28,7 +28,10 @@ alias Shunt.World.Exit
     },
     %Exit{
       id: "bazaar_to_power_relay",
-      to: "shunt9_power_relay"
+      to: "shunt9_power_relay",
+      requirements: [
+        {:flag, :knows_secret_entrance_power_relay}
+      ]
     },
     %Exit{
       id: "bazaar_to_burned_platform",
