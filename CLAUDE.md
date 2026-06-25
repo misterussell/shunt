@@ -87,6 +87,7 @@ work directly to `main`/`master`.
 
 All content generation must follow:
 
+- docs/SHUNT_CONTENT_CONSTITUTION.md
 - docs/SHUNT_TERMINOLOGY.md
 - docs/SHUNT_STYLE_GUIDE.md
 - docs/SHUNT_NAMING_PATTERNS.md
