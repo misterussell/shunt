@@ -1,18 +1,37 @@
-# Shunt
+# SHUNT
 
-To start your Phoenix server:
+A cyberpunk incremental RPG about building power in the criminal underworld of a sprawling megacity.
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+Players begin as a small-time fence operating out of **Shunt 9**, a forgotten transit hub buried beneath the city. Through trade, crafting, relationships, and specialization, they gradually expand their influence from the Underbelly toward the towers of the elite.
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+## Current Focus
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+SHUNT is currently in active development.
 
-## Learn more
+The project is focused on building:
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://hexdocs.pm/phoenix/overview.html
-* Docs: https://hexdocs.pm/phoenix
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+* Resource-driven progression
+* NPC relationships and reputation
+* Crafting and economic systems
+* Skill specialization
+* Dynamic world events
+* Data-driven content architecture
+
+## Core Themes
+
+* Cyberpunk
+* Ambition and identity
+* Criminal economies
+* Factions and influence
+* Technology versus humanity
+* Risk and reward
+
+## Development Philosophy
+
+The game is being built around data-driven systems that allow content, locations, NPCs, events, and progression to be expanded without requiring major code changes.
+
+## Status
+
+Early development and experimentation.
+
+Systems and mechanics are expected to evolve significantly as the project grows.
