@@ -17,6 +17,10 @@ alias Shunt.World.Exit
 
   graph_position: {400, 400},
 
+  events: [
+    "shunt9_burned_platform_melted_door"
+  ],
+
   exits: [
     %Exit{to: "shunt9_bazaar"},
     %Exit{to: "shunt9_maintenance_tunnel"}

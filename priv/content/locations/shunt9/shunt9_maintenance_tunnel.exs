@@ -21,6 +21,10 @@ alias Shunt.World.Exit
     "shunt9_maintenance_tunnel_junkie"
   ],
 
+  events: [
+    "shunt9_maintenance_tunnel_security_panel"
+  ],
+
   exits: [
     %Exit{to: "shunt9_burned_platform"},
     %Exit{to: "shunt9_player_squat"}
