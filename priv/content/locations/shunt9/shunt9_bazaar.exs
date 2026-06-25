@@ -34,6 +34,13 @@ alias Shunt.World.Exit
       ]
     },
     %Exit{
+      id: "bazaar_to_rooks_desk",
+      to: "shunt9_rooks_desk",
+      requirements: [
+        {:flag, :knows_rook}
+      ]
+    },
+    %Exit{
       id: "bazaar_to_burned_platform",
       to: "shunt9_burned_platform"
     }
