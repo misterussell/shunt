@@ -18,6 +18,7 @@ alias Shunt.World.Exit
   graph_position: {300, 300},
 
   requirements: [
+    # TODO: migrate to the unified knowledge keyword: {:knows, "rook"}
     {:flag, :knows_rook}
   ],
 

@@ -4,6 +4,11 @@ defmodule Shunt.Movement do
   alias Shunt.Players.Player
   alias Shunt.World
 
+  # TODO: Gate movement on exit requirements, not just connectivity. can_move?/2
+  # must return true only when an exit from player.location_id to `destination`
+  # exists AND that exit's requirements are met. Use World.available_exits/2 so a
+  # hidden exit cannot be traversed even if the move_to event is forged
+  # client-side (don't trust the UI's hiding).
   def can_move?(%Player{} = player, destination) do
     World.connected?(player.location_id, destination)
   end

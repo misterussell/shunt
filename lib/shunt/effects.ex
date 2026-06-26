@@ -93,6 +93,15 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, :discovered_locations, new_discovered), meta)
   end
 
+  # TODO: Add do_apply/4 clauses for The Web reward/effect types, following the
+  # immutable accumulator pattern above (read current from acc, fall back to
+  # player, write the result back into acc):
+  #   {:modify_rep, npc, dim, delta} -> update player.reputation[npc][dim] where
+  #       dim is :trust or :favors, clamped at a minimum of 0; create the npc and
+  #       dim entries if absent.
+  #   {:knowledge, key} -> append key to player.knowledge unless already present.
+  #   {:contact, key}   -> append key to player.contacts unless already present.
+
   defp maybe_append(list, true, item), do: list ++ [item]
   defp maybe_append(list, false, _item), do: list
 

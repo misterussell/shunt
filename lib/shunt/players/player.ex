@@ -17,6 +17,11 @@ defmodule Shunt.Players.Player do
     field :npc_loyalty, :map, default: %{}
     field :npc_progression, :map, default: %{}
 
+    # TODO: Add The Web ledger fields (see AddWebLedgerToPlayers migration):
+    #   field :reputation, :map, default: %{}   # %{"juno" => %{trust: 0, favors: 0}}
+    #   field :knowledge, {:array, :string}, default: []
+    #   field :contacts, {:array, :string}, default: []
+
     field :location_id, :string, default: "shunt9_player_squat"
     field :discovered_locations, {:array, :string}, default: []
 

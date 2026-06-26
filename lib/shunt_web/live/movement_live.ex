@@ -128,6 +128,9 @@ defmodule ShuntWeb.MovementLive do
           <Chrome.panel id="current-location">
             <p class="location-name">{@location.name}</p>
             <p class="location-description">{@location.description}</p>
+            <%!-- TODO: iterate World.points_of_interest(@player, @location.id)
+                  (assigned in assign_location) instead of @location.events so
+                  requirement-gated POI events stay hidden until met. --%>
             <div :if={Map.get(@location, :events, []) != []} id="location-events">
               <p class="location-events-label">Points of Interest</p>
               <button
@@ -193,6 +196,10 @@ defmodule ShuntWeb.MovementLive do
   end
 
   defp assign_location(socket, player) do
+    # TODO: Use World.accessible_locations(player) for :locations so gated nodes
+    # and exits never render. Keep :location as World.get_location/1 (the current
+    # location is always accessible). Do not evaluate requirements in this module
+    # or the template — call the World helpers (presentation boundary).
     socket
     |> assign(:player, player)
     |> assign(:location, World.get_location(player.location_id))

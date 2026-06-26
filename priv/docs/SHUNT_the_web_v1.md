@@ -1,3 +1,13 @@
+<!-- TODO: Rewrite this doc to match the implemented v1 and the agreed design:
+     - currency :scrip (not :credits); real event model (steps/choices/on_complete)
+     - the arc-spine (linear npc_progression) vs requirement-reveal split
+     - real keywords: rewards {:modify_rep, npc, dim, n}/{:knowledge, k}/{:contact, k};
+       requirements {:knows, k}/{:rep_at_least, npc, dim, n}/{:contact_known, k}
+     - new Player fields reputation/knowledge/contacts; Shunt.Requirements evaluator
+     - hide-entirely gating; Juno as the worked example with one knowledge reveal
+       (gated location) and one trust reveal (gated exit)
+     Keep the Design Philosophy and Future Phase sections. -->
+
 # Shunt Feature Proposal: The Web (Social & Criminal Networks)
 
 ## Goal
