@@ -110,22 +110,21 @@ defmodule Shunt.WebTest do
       assert {:inventory, "juno_delivery_receipt", 1} in effects
     end
 
-    test "the report POI appears at bazaar only while carrying juno_delivery_receipt" do
-      player_without = %Player{}
-      player_with = %Player{inventory: %{"juno_delivery_receipt" => 1}}
+    test "talking to Juno while carrying juno_delivery_receipt routes to the report event" do
+      player_without = %Player{completed_events: ["shunt9_bazaar_juno_move_package"]}
+      player_with = %Player{
+        completed_events: ["shunt9_bazaar_juno_move_package"],
+        inventory: %{"juno_delivery_receipt" => 1}
+      }
 
-      refute "shunt9_bazaar_juno_move_package_report" in World.points_of_interest(
-               player_without,
-               "shunt9_bazaar"
-             )
+      refute Shunt.World.Npcs.current_event(player_without, "shunt9_bazaar_juno") ==
+               "shunt9_bazaar_juno_move_package_report"
 
-      assert "shunt9_bazaar_juno_move_package_report" in World.points_of_interest(
-               player_with,
-               "shunt9_bazaar"
-             )
+      assert Shunt.World.Npcs.current_event(player_with, "shunt9_bazaar_juno") ==
+               "shunt9_bazaar_juno_move_package_report"
     end
 
-    test "completing the report POI applies scrip/trust payout and consumes the receipt" do
+    test "completing the report applies scrip/trust payout, consumes the receipt, and unlocks quiet_pickup" do
       effects = Events.get!("shunt9_bazaar_juno_move_package_report").on_complete
 
       assert {:inventory, "juno_delivery_receipt", -1} in effects
@@ -135,6 +134,17 @@ defmodule Shunt.WebTest do
                Enum.find(effects, &match?({:modify_rep, "juno", :trust, _}, &1))
 
       assert trust > 0
+      assert {:npc_progression, "shunt9_bazaar_juno", 1} in effects
+    end
+
+    test "quiet_pickup is not offered until the move_package loop is closed" do
+      player_mid_errand = %Player{
+        npc_progression: %{},
+        completed_events: ["shunt9_bazaar_juno_move_package"]
+      }
+
+      refute Shunt.World.Npcs.current_event(player_mid_errand, "shunt9_bazaar_juno") ==
+               "shunt9_bazaar_juno_quiet_pickup"
     end
 
     test "supplier_investigation is a POI at supplier_drop gated by knowledge, not at bazaar" do

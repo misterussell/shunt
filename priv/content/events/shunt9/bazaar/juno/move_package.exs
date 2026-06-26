@@ -3,8 +3,7 @@
   title: "Move a Package",
 
   on_complete: [
-    {:inventory, "juno_parcel", 1},
-    {:npc_progression, "shunt9_bazaar_juno", 1}
+    {:inventory, "juno_parcel", 1}
   ],
 
   steps: [

@@ -9,7 +9,8 @@
   on_complete: [
     {:inventory, "juno_delivery_receipt", -1},
     {:scrip, 50},
-    {:modify_rep, "juno", :trust, 10}
+    {:modify_rep, "juno", :trust, 10},
+    {:npc_progression, "shunt9_bazaar_juno", 1}
   ],
 
   steps: [

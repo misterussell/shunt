@@ -22,7 +22,7 @@ defmodule Shunt.World.NpcsTest do
     end
   end
 
-  describe "current_event/2" do
+  describe "current_event/2 story arc progression" do
     @npc_key "test_current_event_npc"
 
     setup do
@@ -30,6 +30,7 @@ defmodule Shunt.World.NpcsTest do
         id: @npc_key,
         name: "Test NPC",
         story_arcs: ["arc_one", "arc_two"],
+        conditional_events: [],
         repeatable_events: ["repeatable_one"]
       }
 
@@ -58,6 +59,15 @@ defmodule Shunt.World.NpcsTest do
       assert Npcs.current_event(player, @npc_key) == "arc_two"
     end
 
+    test "skips a story arc the player has already completed" do
+      player = %Player{
+        npc_progression: %{},
+        completed_events: ["arc_one"]
+      }
+
+      assert Npcs.current_event(player, @npc_key) == "repeatable_one"
+    end
+
     test "falls back to a repeatable event once progression exceeds the story arcs" do
       player = %Player{npc_progression: %{@npc_key => 2}}
 
@@ -65,18 +75,19 @@ defmodule Shunt.World.NpcsTest do
     end
   end
 
-  describe "current_event/2 with requirement-gated repeatables" do
-    @npc_key "test_requirement_npc"
+  describe "current_event/2 conditional events" do
+    @npc_key "test_conditional_npc"
 
     setup do
       npc = %NPC{
         id: @npc_key,
         name: "Test NPC",
         story_arcs: [],
-        repeatable_events: [
+        conditional_events: [
           "shunt9_bazaar_juno_deliver_parcel",
           "shunt9_bazaar_juno_collect_pickup"
-        ]
+        ],
+        repeatable_events: []
       }
 
       :ets.insert(:world_npcs, {@npc_key, npc})
@@ -85,19 +96,19 @@ defmodule Shunt.World.NpcsTest do
       :ok
     end
 
-    test "returns the first matching repeatable event based on player inventory" do
+    test "returns the first conditional event whose requirements are met" do
       player = %Player{inventory: %{"juno_parcel" => 1}}
 
       assert Npcs.current_event(player, @npc_key) == "shunt9_bazaar_juno_deliver_parcel"
     end
 
-    test "skips non-matching repeatables and returns the first one the player qualifies for" do
+    test "skips unmet conditional events and returns the first matching one" do
       player = %Player{inventory: %{"juno_pickup_chit" => 1}}
 
       assert Npcs.current_event(player, @npc_key) == "shunt9_bazaar_juno_collect_pickup"
     end
 
-    test "returns nil when no repeatable event requirements are met" do
+    test "returns nil when no conditional event requirements are met and no repeatables" do
       player = %Player{inventory: %{}}
 
       assert Npcs.current_event(player, @npc_key) == nil

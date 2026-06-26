@@ -8,6 +8,7 @@ defmodule Shunt.World.NPC do
     :description,
     :location_id,
     story_arcs: [],
+    conditional_events: [],
     repeatable_events: [],
     services: []
   ]

@@ -21,12 +21,6 @@ alias Shunt.World.Exit
     "shunt9_bazaar_juno"
   ],
 
-  events: [
-    "shunt9_bazaar_juno_move_package_report",
-    "shunt9_bazaar_juno_quiet_pickup_report",
-    "shunt9_bazaar_juno_supplier_investigation_report"
-  ],
-
   exits: [
     %Exit{
       id: "bazaar_to_scrap_yard",
