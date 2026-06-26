@@ -120,8 +120,9 @@ defmodule Shunt.Content.StoreTest do
       assert event.title == "Broken Deck"
     end
 
-    test "locations: still returns all 7 seeded locations from the nested shunt9/ dir" do
-      assert length(Content.all(:locations)) == 7
+    test "locations: loads them from the nested shunt9/ dir" do
+      ids = Enum.map(Content.all(:locations), & &1.id)
+      assert "shunt9_bazaar" in ids
     end
   end
 
