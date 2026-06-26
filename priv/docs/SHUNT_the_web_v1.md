@@ -1,391 +1,279 @@
-<!-- TODO: Rewrite this doc to match the implemented v1 and the agreed design:
-     - currency :scrip (not :credits); real event model (steps/choices/on_complete)
-     - the arc-spine (linear npc_progression) vs requirement-reveal split
-     - real keywords: rewards {:modify_rep, npc, dim, n}/{:knowledge, k}/{:contact, k};
-       requirements {:knows, k}/{:rep_at_least, npc, dim, n}/{:contact_known, k}
-     - new Player fields reputation/knowledge/contacts; Shunt.Requirements evaluator
-     - hide-entirely gating; Juno as the worked example with one knowledge reveal
-       (gated location) and one trust reveal (gated exit)
-     Keep the Design Philosophy and Future Phase sections. -->
-
-# Shunt Feature Proposal: The Web (Social & Criminal Networks)
+# Shunt Feature: The Web (Social & Criminal Networks) — v1
 
 ## Goal
 
-Implement the first version of **The Web** skill as a data-driven progression layer that sits on top of the existing NPC and Event systems.
+The Web is a data-driven progression layer that sits on top of the existing NPC,
+Event, and World systems. It introduces no separate quest engine, relationship
+engine, or social-graph system.
 
-The Web should not introduce a separate quest engine, relationship engine, or social graph system.
+Instead it:
 
-Instead, it should:
+* Reuses existing event content and event progression
+* Adds new reward types (trust, favors, knowledge, contacts)
+* Adds new requirement types that gate world content
+* Tracks player relationships, favors, knowledge, and contacts on the player
+* Unlocks new locations, exits, and events through social progression
 
-* Reuse existing event content
-* Reuse existing event progression
-* Introduce new reward and requirement types
-* Track player relationships, favors, knowledge, and contacts
-* Unlock new content through social progression
+The player fantasy:
 
-The player fantasy is:
-
-> Build trust, collect favors, learn secrets, discover contacts, and leverage those relationships to access opportunities unavailable to other players.
+> Build trust, collect favors, learn secrets, discover contacts, and leverage
+> those relationships to reach opportunities other players never see.
 
 ---
 
 # Design Philosophy
 
-The Web is not content.
+The Web is not content. NPCs, Events, and Locations remain the content
+containers. The Web is a layer that modifies **what content becomes available**.
 
-NPCs and Events remain the primary content containers.
+The central design split that keeps both feelings intact:
 
-The Web is a progression layer that modifies what content becomes available.
-
-Current model:
-
-```text
-NPC
- └─ Events
-      └─ Rewards
-```
-
-Expanded model:
+* **The arc spine is the existing linear NPC progression.** An NPC's `story_arcs`
+  advance one at a time via the `npc_progression` index. This preserves the
+  authored, one-step-at-a-time story feel — untouched by The Web.
+* **"The world opening up" is requirement-gating.** The trust, favors, and
+  knowledge an arc pays out are what reveal *new locations, exits, and points of
+  interest* branching off the spine.
 
 ```text
-NPC
- └─ Events
-      ├─ Rewards
-      │    ├─ Credits
-      │    ├─ Items
-      │    ├─ Trust
-      │    ├─ Favors
-      │    ├─ Knowledge
-      │    └─ Contacts
-      │
-      └─ Requirements
-           ├─ Trust
-           ├─ Favors
-           ├─ Knowledge
-           └─ Contacts
+NPC story arc (linear spine)
+  │  pays out
+  ▼
+Trust / Favors / Knowledge / Contacts   (player ledger)
+  │  satisfies
+  ▼
+Requirements on Locations / Exits / POI Events
+  │  reveals
+  ▼
+More world to explore  →  more NPCs  →  more arcs
 ```
+
+No graph engine is required. Every edge in the social network is expressed
+entirely through content.
 
 ---
 
 # Player State
 
-Add a generalized Web ledger to player progression.
-
-Example:
-
-```elixir
-%{
-  reputation: %{
-    "juno" => %{
-      trust: 25,
-      favors: 2
-    }
-  },
-
-  knowledge: MapSet.new(),
-
-  contacts: MapSet.new()
-}
-```
-
-This intentionally avoids dedicated structs such as:
+The Web ledger lives directly on the `Shunt.Players.Player` schema (see the
+`AddWebLedgerToPlayers` migration):
 
 ```elixir
-%ContactState{}
-%Rumor{}
-%Relationship{}
+field :reputation, :map, default: %{}            # %{"juno" => %{trust: 20, favors: 1}}
+field :knowledge, {:array, :string}, default: []  # ["juno_secret_supplier"]
+field :contacts, {:array, :string}, default: []   # ["rose_broker"]
 ```
 
-All progression should be data-driven.
+Notes:
+
+* `reputation` is keyed by a short relationship handle (e.g. `"juno"`), not the
+  full world-NPC id. This is the player-facing relationship key used by Web
+  rewards and requirements.
+* `knowledge` and `contacts` are string arrays (deduped on write), mirroring the
+  existing `discovered_locations` pattern. Ecto has no set type; arrays persist
+  cleanly and the effects below keep them unique.
+* This deliberately avoids dedicated structs (`%Relationship{}`, `%Rumor{}`,
+  etc.). All progression is data-driven.
+
+The existing `npc_loyalty` system (the five Fixer NPCs, with bands and pricing)
+is **separate** from `reputation` and untouched by v1.
 
 ---
 
-# New Reward Types
+# New Reward / Effect Types
 
-## Trust
+These are applied through `Shunt.Effects.apply/2` — list them in an event's
+`on_complete`.
 
-Increase relationship strength with an NPC.
-
-```elixir
-{:modify_rep, "juno", :trust, 5}
-```
-
----
-
-## Favor
-
-Represents a debt owed by an NPC.
+## Trust / Favors
 
 ```elixir
-{:modify_rep, "juno", :favors, 1}
+{:modify_rep, "juno", :trust, 10}   # raise trust
+{:modify_rep, "juno", :favors, 1}   # owe a favor
+{:modify_rep, "juno", :favors, -1}  # spend a favor
 ```
 
----
+`dim` is `:trust` or `:favors`. The value is clamped at a minimum of 0; the npc
+and dimension entries are created on first use.
 
 ## Knowledge
-
-Represents discovered information.
 
 ```elixir
 {:knowledge, "juno_secret_supplier"}
 ```
 
----
+Appends to `player.knowledge` (idempotent).
 
 ## Contact Discovery
-
-Unlocks new contacts.
 
 ```elixir
 {:contact, "rose_broker"}
 ```
+
+Appends to `player.contacts` (idempotent). Reserved for the first cross-NPC
+edge; not used by the v1 content slice.
+
+Currency rewards use the existing `{:scrip, n}` / `{:cred, n}` effects — there is
+no `:credits`.
 
 ---
 
 # New Requirement Types
 
-## Trust Requirement
+Requirements are evaluated by `Shunt.Requirements.met?/2`. A requirement list is
+met only when **every** entry passes; an empty list is always met.
 
 ```elixir
-{:rep_at_least, "juno", :trust, 20}
+{:knows, "rook"}                       # key in player.knowledge
+{:contact_known, "rose_broker"}        # key in player.contacts
+{:rep_at_least, "juno", :trust, 20}    # reputation[npc][dim] >= n (missing -> 0)
 ```
+
+`{:knows, ...}` replaces the older `{:flag, :atom}` form; all gating keys are now
+strings, consistent with the rest of the content model.
 
 ---
 
-## Favor Requirement
+# Where Requirements Apply (hide-entirely)
 
-```elixir
-{:rep_at_least, "juno", :favors, 1}
-```
+Content with unmet requirements is **hidden entirely** — not shown as locked or
+redacted. The world-facing helpers in `Shunt.World` project a player-specific
+view:
 
----
+* **Locations** carry an optional top-level `requirements:` list.
+* **Exits** (`%Shunt.World.Exit{}`) carry an optional `requirements:` list.
+* **Events** (`%Shunt.Events.Event{}`) carry an optional `requirements:` list,
+  used for **points-of-interest (POI) events** only. NPC story-arc events ignore
+  it — their ordering is the linear `npc_progression` index.
 
-## Knowledge Requirement
+Key functions:
 
-```elixir
-{:knows, "juno_secret_supplier"}
-```
+* `World.location_accessible?(player, id)` — location's own requirements met.
+* `World.available_exits(player, id)` — exits whose requirements are met **and**
+  whose destination location is accessible.
+* `World.accessible_locations(player)` — the map view: locations reachable from
+  the current location via available exits (breadth-first), each with its exits
+  narrowed to the available ones.
+* `World.points_of_interest(player, id)` — a location's event ids whose event
+  requirements are met.
 
----
+`Shunt.Movement.can_move?/2` enforces `available_exits` server-side, so a hidden
+exit cannot be traversed even if the client forges a move. The LiveView consumes
+these helpers and never evaluates requirements itself (presentation boundary).
 
-## Contact Requirement
-
-```elixir
-{:contact_known, "rose_broker"}
-```
-
----
-
-# Example Implementation
-
-This example demonstrates a complete Web progression path using a single NPC.
-
-The example intentionally leaves an opening for a future second NPC connection.
-
----
-
-# NPC: Juno
-
-Role:
-
-* Smuggler
-* Bazaar regular
-* Small-time contraband broker
-
-Initial state:
-
-```elixir
-player.reputation["juno"] = %{
-  trust: 0,
-  favors: 0
-}
-```
+**Why reachability, not a simple filter:** exits are written both ways but a
+requirement usually sits on only one direction, and a location can be gated while
+its exit is open. A naive per-item filter would leave dangling map edges or let a
+player slip in through the open return exit. BFS over *available* exits hides the
+whole unreachable branch cleanly.
 
 ---
 
-# Event 1: Move a Package
+# Worked Example: Juno
 
-Available immediately.
+Juno is a smuggler and contraband broker who works the Shunt 9 Bazaar. The v1
+content slice (`priv/content/.../juno/...`, `shunt9_bazaar_juno.exs`) is the
+reference pattern for authoring Web content.
 
-```elixir
-%Event{
-  id: "juno_move_package",
-
-  requirements: [],
-
-  rewards: [
-    {:credits, 50},
-    {:modify_rep, "juno", :trust, 10}
-  ]
-}
-```
-
-Narrative:
-
-Player delivers a package across Shunt 9.
-
-Result:
-
-```text
-Trust with Juno +10
-```
-
----
-
-# Event 2: Quiet Pickup
-
-Unlocked through trust.
+## The NPC and arc spine
 
 ```elixir
-%Event{
-  id: "juno_quiet_pickup",
-
-  requirements: [
-    {:rep_at_least, "juno", :trust, 10}
+%Shunt.World.NPC{
+  id: "shunt9_bazaar_juno",
+  name: "Juno",
+  location_id: "shunt9_bazaar",
+  story_arcs: [
+    "shunt9_bazaar_juno_move_package",
+    "shunt9_bazaar_juno_quiet_pickup"
   ],
+  repeatable_events: ["shunt9_bazaar_juno_odd_job"]
+}
+```
 
-  rewards: [
+The arc is linear: completing an event bumps `npc_progression` and the NPC offers
+the next one. (Provide at least one `repeatable_events` entry — once the arc is
+done, `current_event/2` draws from the repeatable pool.)
+
+## Arc event 1 — Move a Package
+
+Available immediately (no requirements; ordering is the arc index).
+
+```elixir
+%Shunt.Events.Event{
+  id: "shunt9_bazaar_juno_move_package",
+  title: "Move a Package",
+  on_complete: [
+    {:scrip, 50},
     {:modify_rep, "juno", :trust, 10},
-    {:modify_rep, "juno", :favors, 1}
-  ]
-}
-```
-
-Narrative:
-
-Juno trusts the player with a sensitive pickup.
-
-Result:
-
-```text
-Trust with Juno +10
-Favor with Juno +1
-```
-
-Player state:
-
-```elixir
-"juno" => %{
-  trust: 20,
-  favors: 1
-}
-```
-
----
-
-# Event 3: Call In a Favor
-
-Consumes a favor.
-
-```elixir
-%Event{
-  id: "juno_need_safehouse",
-
-  requirements: [
-    {:rep_at_least, "juno", :favors, 1}
+    {:npc_progression, "shunt9_bazaar_juno", 1}
   ],
-
-  effects: [
-    {:modify_rep, "juno", :favors, -1}
-  ],
-
-  rewards: [
-    {:knowledge, "juno_secret_supplier"}
-  ]
+  steps: [ ... ]
 }
 ```
 
-Narrative:
+## Arc event 2 — Quiet Pickup
 
-Juno arranges temporary shelter and accidentally reveals useful information.
-
-Result:
-
-```text
-Favor Spent
-Knowledge Gained:
-juno_secret_supplier
-```
-
----
-
-# Event 4: Supplier Investigation
-
-Unlocked through discovered knowledge.
+The pivot: it pays out the knowledge that opens the world.
 
 ```elixir
-%Event{
-  id: "juno_supplier_investigation",
-
-  requirements: [
-    {:knows, "juno_secret_supplier"}
-  ],
-
-  rewards: [
-    {:credits, 150},
-    {:modify_rep, "juno", :trust, 10}
-  ]
-}
-```
-
-Player state:
-
-```elixir
-"juno" => %{
-  trust: 30,
-  favors: 0
-}
-```
-
----
-
-# Expansion Hook: Second NPC Connection
-
-This is the first point where the social network begins to emerge.
-
-Future content can introduce:
-
-```elixir
-{:contact, "rose_broker"}
-```
-
-through completion of the supplier investigation.
-
-Example future reward:
-
-```elixir
-rewards: [
-  {:contact, "rose_broker"}
+on_complete: [
+  {:modify_rep, "juno", :trust, 10},     # trust now 20
+  {:modify_rep, "juno", :favors, 1},
+  {:knowledge, "juno_secret_supplier"},
+  {:npc_progression, "shunt9_bazaar_juno", 1}
 ]
 ```
 
-Result:
+## Reveal A — knowledge unlocks a location
 
-```text
-New Contact Discovered:
-Rose the Broker
+`shunt9_supplier_drop` is gated at the **location** level and reached by an open
+exit from the bazaar. It is hidden until the player knows the supplier.
+
+```elixir
+# shunt9_supplier_drop.exs
+requirements: [{:knows, "juno_secret_supplier"}]
 ```
 
-This creates the first edge in the social network:
+## Reveal B — trust unlocks an exit
 
-```text
-Juno
-  ↓
-introduces
-  ↓
-Rose
+The `bazaar -> shunt9_cargo_chute` **exit** is gated on a trust threshold. It
+appears once trust reaches 20.
+
+```elixir
+%Exit{
+  id: "bazaar_to_cargo_chute",
+  to: "shunt9_cargo_chute",
+  requirements: [{:rep_at_least, "juno", :trust, 20}]
+}
 ```
 
-Importantly, no graph system is required.
+## A gated point of interest
 
-The connection is represented entirely through content.
+`shunt9_bazaar_juno_supplier_investigation` is a POI event listed on the bazaar,
+gated by the same knowledge. It surfaces at the bazaar only after the player
+learns the supplier.
+
+```elixir
+requirements: [{:knows, "juno_secret_supplier"}],
+on_complete: [{:scrip, 150}, {:modify_rep, "juno", :trust, 10}]
+```
+
+## The first network edge (expansion hook)
+
+A future arc event can pay out `{:contact, "rose_broker"}`, and Rose's first
+event/exit can require `{:contact_known, "rose_broker"}`. That single pair forms
+the first edge of the social network — Juno introduces Rose — with no graph
+system:
+
+```text
+Juno  →  introduces  →  Rose
+```
 
 ---
 
 # Future Phase (Not In Scope)
 
-The following systems should be deferred until this foundation is proven fun:
+Deferred until the core loop proves fun:
 
 * Explicit relationship graphs
 * Faction influence networks
@@ -394,21 +282,13 @@ The following systems should be deferred until this foundation is proven fun:
 * Gang politics simulation
 * Dynamic leverage generation
 * Contact loyalty decay
+* Converging the Fixer `npc_loyalty` model with `reputation`
 
-The first implementation should focus entirely on:
+The v1 focus is the loop:
 
 ```text
-Events
-  ↓
-Trust
-  ↓
-Favors
-  ↓
-Knowledge
-  ↓
-Contacts
-  ↓
-More Events
+Events → Trust / Favors / Knowledge → Revealed Locations, Exits, POIs → More Events
 ```
 
-If that loop proves engaging, additional Web systems can be layered on top without replacing the underlying architecture.
+If that loop is engaging, further Web systems layer on top without replacing this
+architecture.
