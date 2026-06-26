@@ -17,10 +17,29 @@ alias Shunt.World.Exit
 
   graph_position: {250, 400},
 
+  npcs: [
+    "shunt9_bazaar_juno"
+  ],
+
+  events: [
+    "shunt9_bazaar_juno_supplier_investigation"
+  ],
+
   exits: [
     %Exit{
       id: "bazaar_to_scrap_yard",
       to: "shunt9_scrap_yard"
+    },
+    %Exit{
+      id: "bazaar_to_supplier_drop",
+      to: "shunt9_supplier_drop"
+    },
+    %Exit{
+      id: "bazaar_to_cargo_chute",
+      to: "shunt9_cargo_chute",
+      requirements: [
+        {:rep_at_least, "juno", :trust, 20}
+      ]
     },
     %Exit{
       id: "bazaar_to_food_stalls",

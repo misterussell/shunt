@@ -1,30 +1,87 @@
 defmodule Shunt.WebTest do
   use ExUnit.Case, async: true
 
-  # TODO: Author the minimal Juno reference content slice under priv/content/.
-  # This is the copyable pattern for all future Web content, so keep it clean:
-  #   - world_npc "juno" at location "shunt9_bazaar" with a SHORT linear
-  #     story_arcs spine (2-3 events) — the arc is the existing npc_progression
-  #     model, untouched.
-  #   - one arc event whose on_complete grants {:modify_rep, "juno", :trust, N}.
-  #   - one arc event whose on_complete grants {:knowledge, "juno_secret_supplier"}.
-  #   - KNOWLEDGE reveal (rooks_desk-style gated LOCATION): a new location with
-  #     location-level requirements: [{:knows, "juno_secret_supplier"}], reached
-  #     by a new exit from the bazaar.
-  #   - TRUST reveal (bazaar-style gated EXIT): a new exit whose requirements are
-  #     [{:rep_at_least, "juno", :trust, N}].
+  alias Shunt.Events
+  alias Shunt.Movement
+  alias Shunt.Players.Player
+  alias Shunt.World
 
-  # TODO: Reveal behavior tests (context level; build players via plain structs).
-  # Per project conventions do NOT assert exact counts/id-sets of content
-  # collections — assert presence/absence of the specific gated id instead.
-  #   - knowledge reveal: the gated location id is ABSENT from
-  #     World.accessible_locations/1 and Movement.can_move?/2 to it is false when
-  #     player.knowledge lacks "juno_secret_supplier"; both flip once it is added.
-  #   - trust reveal: same absent-then-present pattern, gated on reputation trust
-  #     reaching N via the player's reputation map.
+  @knowledge "juno_secret_supplier"
+  @trust_reveal_threshold 20
 
-  # TODO: New Web effect types in Shunt.Effects (can also live in effects_test.exs
-  # when implemented): {:modify_rep, npc, dim, delta} updates the nested
-  # reputation map clamped at 0; {:knowledge, key} / {:contact, key} append to the
-  # respective list only when absent (idempotent).
+  describe "knowledge reveal (gated location)" do
+    test "the supplier drop is hidden and unreachable without the knowledge" do
+      player = %Player{location_id: "shunt9_bazaar", knowledge: []}
+
+      refute "shunt9_supplier_drop" in location_ids(player)
+      refute Movement.can_move?(player, "shunt9_supplier_drop")
+    end
+
+    test "the supplier drop appears and is reachable once the knowledge is held" do
+      player = %Player{location_id: "shunt9_bazaar", knowledge: [@knowledge]}
+
+      assert "shunt9_supplier_drop" in location_ids(player)
+      assert Movement.can_move?(player, "shunt9_supplier_drop")
+    end
+  end
+
+  describe "trust reveal (gated exit)" do
+    test "the cargo chute is hidden and unreachable below the trust threshold" do
+      player = %Player{location_id: "shunt9_bazaar", reputation: %{"juno" => %{trust: 5}}}
+
+      refute "shunt9_cargo_chute" in location_ids(player)
+      refute Movement.can_move?(player, "shunt9_cargo_chute")
+    end
+
+    test "the cargo chute appears once trust reaches the threshold" do
+      player = %Player{
+        location_id: "shunt9_bazaar",
+        reputation: %{"juno" => %{trust: @trust_reveal_threshold}}
+      }
+
+      assert "shunt9_cargo_chute" in location_ids(player)
+      assert Movement.can_move?(player, "shunt9_cargo_chute")
+    end
+  end
+
+  describe "gated point of interest" do
+    test "the supplier investigation is hidden at the bazaar without the knowledge" do
+      player = %Player{knowledge: []}
+
+      refute "shunt9_bazaar_juno_supplier_investigation" in World.points_of_interest(
+               player,
+               "shunt9_bazaar"
+             )
+    end
+
+    test "the supplier investigation appears once the knowledge is held" do
+      player = %Player{knowledge: [@knowledge]}
+
+      assert "shunt9_bazaar_juno_supplier_investigation" in World.points_of_interest(
+               player,
+               "shunt9_bazaar"
+             )
+    end
+  end
+
+  describe "juno arc content wiring" do
+    test "the opening job grants trust with juno" do
+      effects = Events.get!("shunt9_bazaar_juno_move_package").on_complete
+
+      assert {:modify_rep, "juno", :trust, delta} =
+               Enum.find(effects, &match?({:modify_rep, _, :trust, _}, &1))
+
+      assert delta > 0
+    end
+
+    test "the quiet pickup grants the supplier knowledge" do
+      effects = Events.get!("shunt9_bazaar_juno_quiet_pickup").on_complete
+
+      assert {:knowledge, @knowledge} in effects
+    end
+  end
+
+  defp location_ids(player) do
+    player |> World.accessible_locations() |> Enum.map(& &1.id)
+  end
 end
