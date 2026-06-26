@@ -21,11 +21,6 @@ alias Shunt.World.Exit
     "shunt9_food_stalls_dex"
   ],
 
-  events: [
-    "shunt9_bazaar_juno_deliver_parcel",
-    "shunt9_bazaar_juno_collect_pickup"
-  ],
-
   exits: [
     %Exit{
       id: "food_stalls_to_bazaar",

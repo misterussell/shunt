@@ -3,6 +3,7 @@ defmodule Shunt.World.NpcsTest do
   # fixture NPC, which would otherwise race with other test modules' reads of :world_npcs.
   use ExUnit.Case, async: false
 
+  alias Shunt.Events.Event
   alias Shunt.Players.Player
   alias Shunt.World.NPC
   alias Shunt.World.Npcs
@@ -32,8 +33,15 @@ defmodule Shunt.World.NpcsTest do
         repeatable_events: ["repeatable_one"]
       }
 
+      event = %Event{id: "repeatable_one", title: "Repeatable One", requirements: [], steps: []}
+
       :ets.insert(:world_npcs, {@npc_key, npc})
-      on_exit(fn -> :ets.delete(:world_npcs, @npc_key) end)
+      :ets.insert(:events, {"repeatable_one", event})
+
+      on_exit(fn ->
+        :ets.delete(:world_npcs, @npc_key)
+        :ets.delete(:events, "repeatable_one")
+      end)
 
       :ok
     end
@@ -54,6 +62,45 @@ defmodule Shunt.World.NpcsTest do
       player = %Player{npc_progression: %{@npc_key => 2}}
 
       assert Npcs.current_event(player, @npc_key) == "repeatable_one"
+    end
+  end
+
+  describe "current_event/2 with requirement-gated repeatables" do
+    @npc_key "test_requirement_npc"
+
+    setup do
+      npc = %NPC{
+        id: @npc_key,
+        name: "Test NPC",
+        story_arcs: [],
+        repeatable_events: [
+          "shunt9_bazaar_juno_deliver_parcel",
+          "shunt9_bazaar_juno_collect_pickup"
+        ]
+      }
+
+      :ets.insert(:world_npcs, {@npc_key, npc})
+      on_exit(fn -> :ets.delete(:world_npcs, @npc_key) end)
+
+      :ok
+    end
+
+    test "returns the first matching repeatable event based on player inventory" do
+      player = %Player{inventory: %{"juno_parcel" => 1}}
+
+      assert Npcs.current_event(player, @npc_key) == "shunt9_bazaar_juno_deliver_parcel"
+    end
+
+    test "skips non-matching repeatables and returns the first one the player qualifies for" do
+      player = %Player{inventory: %{"juno_pickup_chit" => 1}}
+
+      assert Npcs.current_event(player, @npc_key) == "shunt9_bazaar_juno_collect_pickup"
+    end
+
+    test "returns nil when no repeatable event requirements are met" do
+      player = %Player{inventory: %{}}
+
+      assert Npcs.current_event(player, @npc_key) == nil
     end
   end
 end

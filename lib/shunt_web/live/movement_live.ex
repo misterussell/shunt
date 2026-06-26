@@ -77,9 +77,11 @@ defmodule ShuntWeb.MovementLive do
 
   def handle_event("start_npc_event", %{"npc_key" => npc_key}, socket) do
     player = socket.assigns.player
-    event_id = Npcs.current_event(player, npc_key)
 
-    handle_event("start_event", %{"id" => event_id}, socket)
+    case Npcs.current_event(player, npc_key) do
+      nil -> {:noreply, socket}
+      event_id -> handle_event("start_event", %{"id" => event_id}, socket)
+    end
   end
 
   def handle_event("move_to", %{"destination" => destination}, socket) do

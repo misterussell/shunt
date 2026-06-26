@@ -94,19 +94,13 @@ defmodule Shunt.WebTest do
       assert {:inventory, "juno_parcel", 1} in effects
     end
 
-    test "the deliver POI appears at food_stalls only while carrying juno_parcel" do
+    test "talking to Dex while carrying juno_parcel routes to the deliver event" do
       player_without = %Player{}
       player_with = %Player{inventory: %{"juno_parcel" => 1}}
 
-      refute "shunt9_bazaar_juno_deliver_parcel" in World.points_of_interest(
-               player_without,
-               "shunt9_food_stalls"
-             )
-
-      assert "shunt9_bazaar_juno_deliver_parcel" in World.points_of_interest(
-               player_with,
-               "shunt9_food_stalls"
-             )
+      assert Shunt.World.Npcs.current_event(player_without, "shunt9_food_stalls_dex") == nil
+      assert Shunt.World.Npcs.current_event(player_with, "shunt9_food_stalls_dex") ==
+               "shunt9_bazaar_juno_deliver_parcel"
     end
 
     test "completing the deliver POI removes the parcel and grants juno_delivery_receipt" do
