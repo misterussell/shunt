@@ -30,8 +30,7 @@ alias Shunt.World.Exit
       id: "bazaar_to_power_relay",
       to: "shunt9_power_relay",
       requirements: [
-        # TODO: migrate to the unified knowledge keyword: {:knows, "power_relay_entrance"}
-        {:flag, :knows_power_relay_entrance}
+        {:knows, "power_relay_entrance"}
       ]
     },
     %Exit{

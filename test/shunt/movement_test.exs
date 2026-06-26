@@ -16,6 +16,24 @@ defmodule Shunt.MovementTest do
 
       refute Movement.can_move?(player, "shunt9_food_stalls")
     end
+
+    test "returns false when the exit's requirement is unmet" do
+      player = %Player{location_id: "shunt9_bazaar", knowledge: []}
+
+      refute Movement.can_move?(player, "shunt9_power_relay")
+    end
+
+    test "returns true once the gating knowledge is held" do
+      player = %Player{location_id: "shunt9_bazaar", knowledge: ["power_relay_entrance"]}
+
+      assert Movement.can_move?(player, "shunt9_power_relay")
+    end
+
+    test "returns false for a destination gated at the location level despite an open exit" do
+      player = %Player{location_id: "shunt9_bazaar", knowledge: []}
+
+      refute Movement.can_move?(player, "shunt9_rooks_desk")
+    end
   end
 
   describe "move/2" do
