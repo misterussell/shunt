@@ -127,6 +127,7 @@ met only when **every** entry passes; an empty list is always met.
 {:knows, "rook"}                       # key in player.knowledge
 {:contact_known, "rose_broker"}        # key in player.contacts
 {:rep_at_least, "juno", :trust, 20}    # reputation[npc][dim] >= n (missing -> 0)
+{:has_item, "juno_parcel"}             # inventory[key] >= 1 (carried-item gate)
 ```
 
 `{:knows, ...}` replaces the older `{:flag, :atom}` form; all gating keys are now

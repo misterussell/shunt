@@ -23,8 +23,5 @@ defmodule Shunt.Requirements do
     |> Kernel.>=(threshold)
   end
 
-  # TODO: add a check/2 clause for {:has_item, key} that is met when
-  # Map.get(player.inventory, key, 0) >= 1 (the carried-item gate for The Web errands).
-  # Document it in priv/docs/SHUNT_the_web_v1.md beside the other requirement types, and add
-  # unit tests in test/shunt/requirements_test.exs (met at count >= 1; unmet at 0/absent).
+  defp check(player, {:has_item, key}), do: Map.get(player.inventory, key, 0) >= 1
 end
