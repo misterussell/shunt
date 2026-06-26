@@ -5,7 +5,7 @@ defmodule Shunt.Movement do
   alias Shunt.World
 
   def can_move?(%Player{} = player, destination) do
-    World.connected?(player.location_id, destination)
+    destination in Enum.map(World.available_exits(player, player.location_id), & &1.to)
   end
 
   def move(%Player{} = player, destination) do

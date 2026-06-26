@@ -17,10 +17,25 @@ alias Shunt.World.Exit
 
   graph_position: {250, 400},
 
+  npcs: [
+    "shunt9_bazaar_juno"
+  ],
+
   exits: [
     %Exit{
       id: "bazaar_to_scrap_yard",
       to: "shunt9_scrap_yard"
+    },
+    %Exit{
+      id: "bazaar_to_supplier_drop",
+      to: "shunt9_supplier_drop"
+    },
+    %Exit{
+      id: "bazaar_to_cargo_chute",
+      to: "shunt9_cargo_chute",
+      requirements: [
+        {:rep_at_least, "juno", :trust, 20}
+      ]
     },
     %Exit{
       id: "bazaar_to_food_stalls",
@@ -30,15 +45,12 @@ alias Shunt.World.Exit
       id: "bazaar_to_power_relay",
       to: "shunt9_power_relay",
       requirements: [
-        {:flag, :knows_secret_entrance_power_relay}
+        {:knows, "power_relay_entrance"}
       ]
     },
     %Exit{
       id: "bazaar_to_rooks_desk",
-      to: "shunt9_rooks_desk",
-      requirements: [
-        {:flag, :knows_rook}
-      ]
+      to: "shunt9_rooks_desk"
     },
     %Exit{
       id: "bazaar_to_burned_platform",

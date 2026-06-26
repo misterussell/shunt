@@ -17,6 +17,10 @@ alias Shunt.World.Exit
 
   graph_position: {250, 570},
 
+  npcs: [
+    "shunt9_food_stalls_dex"
+  ],
+
   exits: [
     %Exit{
       id: "food_stalls_to_bazaar",

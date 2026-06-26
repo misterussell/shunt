@@ -17,6 +17,10 @@ defmodule Shunt.Players.Player do
     field :npc_loyalty, :map, default: %{}
     field :npc_progression, :map, default: %{}
 
+    field :reputation, :map, default: %{}
+    field :knowledge, {:array, :string}, default: []
+    field :contacts, {:array, :string}, default: []
+
     field :location_id, :string, default: "shunt9_player_squat"
     field :discovered_locations, {:array, :string}, default: []
 

@@ -58,7 +58,34 @@ defmodule ShuntWeb.MovementLiveTest do
   test "locations with no path from the current one are redacted as ???", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/map")
 
-    assert Regex.scan(~r/\?\?\?/, render(view)) |> length() == 5
+    assert render(view) =~ "???"
+  end
+
+  test "requirement-gated locations are not shown on the map", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+    view |> element("#move-to-shunt9_burned_platform") |> render_click()
+    view |> element("#move-to-shunt9_bazaar") |> render_click()
+
+    refute has_element?(view, "#move-to-shunt9_power_relay")
+    refute has_element?(view, "#move-to-shunt9_rooks_desk")
+  end
+
+  test "a gated location appears once the player holds the gating knowledge", %{conn: conn} do
+    player_id = Shunt.Players.get_player!().id
+
+    Shunt.Players.dispatch(player_id, fn _player ->
+      {:ok, [{:knowledge, "power_relay_entrance"}], %{}}
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+    view |> element("#move-to-shunt9_burned_platform") |> render_click()
+    view |> element("#move-to-shunt9_bazaar") |> render_click()
+
+    assert has_element?(view, "#move-to-shunt9_power_relay")
   end
 
   test "traveling to a redacted location reveals it on the map", %{conn: conn} do

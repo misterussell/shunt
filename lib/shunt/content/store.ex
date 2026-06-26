@@ -11,7 +11,12 @@ defmodule Shunt.Content.Store do
     {:heat_events, "priv/content/heat_events"},
     {:skill_trees, "priv/content/skills"},
     {:locations, "priv/content/locations"},
-    {:events, "priv/content/events"}
+    {:events, "priv/content/events"},
+    # Quest items are carried errand items (parcels, chits, dossiers). They live in their own
+    # category — not :raws — so scavenge/RawCatalog, recipes, and fencing never iterate them and
+    # a quest item can't leak into those pools. The generic load_source/2 handles their
+    # %{id, name, flavor} map shape.
+    {:quest_items, "priv/content/quest_items"}
   ]
 
   def start_link(_opts) do

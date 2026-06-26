@@ -77,9 +77,11 @@ defmodule ShuntWeb.MovementLive do
 
   def handle_event("start_npc_event", %{"npc_key" => npc_key}, socket) do
     player = socket.assigns.player
-    event_id = Npcs.current_event(player, npc_key)
 
-    handle_event("start_event", %{"id" => event_id}, socket)
+    case Npcs.current_event(player, npc_key) do
+      nil -> {:noreply, socket}
+      event_id -> handle_event("start_event", %{"id" => event_id}, socket)
+    end
   end
 
   def handle_event("move_to", %{"destination" => destination}, socket) do
@@ -128,10 +130,10 @@ defmodule ShuntWeb.MovementLive do
           <Chrome.panel id="current-location">
             <p class="location-name">{@location.name}</p>
             <p class="location-description">{@location.description}</p>
-            <div :if={Map.get(@location, :events, []) != []} id="location-events">
+            <div :if={@points_of_interest != []} id="location-events">
               <p class="location-events-label">Points of Interest</p>
               <button
-                :for={event_id <- @location.events}
+                :for={event_id <- @points_of_interest}
                 id={"start-event-#{event_id}"}
                 class="btn-ghost location-event-button"
                 phx-click="start_event"
@@ -181,7 +183,7 @@ defmodule ShuntWeb.MovementLive do
   defp reward_entry(event_id, granted_items) do
     text =
       Enum.map_join(granted_items, "\n", fn {key, qty} ->
-        "+#{qty} #{Shunt.Crafting.RawCatalog.fetch!(key).name}"
+        "+#{qty} #{Shunt.Items.display_name(key)}"
       end)
 
     %{
@@ -196,6 +198,7 @@ defmodule ShuntWeb.MovementLive do
     socket
     |> assign(:player, player)
     |> assign(:location, World.get_location(player.location_id))
-    |> assign(:locations, World.all_locations())
+    |> assign(:locations, World.accessible_locations(player))
+    |> assign(:points_of_interest, World.points_of_interest(player, player.location_id))
   end
 end

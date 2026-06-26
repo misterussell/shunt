@@ -18,7 +18,7 @@ alias Shunt.World.Exit
   graph_position: {300, 300},
 
   requirements: [
-    {:flag, :knows_rook}
+    {:knows, "rook"}
   ],
 
   exits: [

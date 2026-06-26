@@ -181,4 +181,43 @@ defmodule Shunt.EventsTest do
       assert Events.choose(player, @event_id, "Branch onward") == {:error, :already_completed}
     end
   end
+
+  describe "repeatable events" do
+    @repeatable_id "test_repeatable_event"
+
+    setup do
+      event = %Event{
+        id: @repeatable_id,
+        title: "Repeatable Event",
+        repeatable: true,
+        on_complete: [{:scrip, 10}],
+        steps: [
+          %{
+            id: "start",
+            text: "do it again",
+            choices: [%{label: "Go", complete: true}]
+          }
+        ]
+      }
+
+      :ets.insert(:events, {@repeatable_id, event})
+      on_exit(fn -> :ets.delete(:events, @repeatable_id) end)
+
+      :ok
+    end
+
+    test "completing a repeatable event does not add it to completed_events" do
+      player = %Player{event_state: %{}, completed_events: []}
+
+      assert {:ok, effects, _meta} = Events.choose(player, @repeatable_id, "Go")
+
+      refute Enum.any?(effects, &match?({:set, :completed_events, _}, &1))
+    end
+
+    test "a repeatable event can be chosen again after a prior completion" do
+      player = %Player{event_state: %{}, completed_events: [@repeatable_id]}
+
+      assert {:ok, _effects, _meta} = Events.choose(player, @repeatable_id, "Go")
+    end
+  end
 end

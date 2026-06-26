@@ -3,6 +3,7 @@ defmodule Shunt.World.NpcsTest do
   # fixture NPC, which would otherwise race with other test modules' reads of :world_npcs.
   use ExUnit.Case, async: false
 
+  alias Shunt.Events.Event
   alias Shunt.Players.Player
   alias Shunt.World.NPC
   alias Shunt.World.Npcs
@@ -21,7 +22,7 @@ defmodule Shunt.World.NpcsTest do
     end
   end
 
-  describe "current_event/2" do
+  describe "current_event/2 story arc progression" do
     @npc_key "test_current_event_npc"
 
     setup do
@@ -29,11 +30,19 @@ defmodule Shunt.World.NpcsTest do
         id: @npc_key,
         name: "Test NPC",
         story_arcs: ["arc_one", "arc_two"],
+        conditional_events: [],
         repeatable_events: ["repeatable_one"]
       }
 
+      event = %Event{id: "repeatable_one", title: "Repeatable One", requirements: [], steps: []}
+
       :ets.insert(:world_npcs, {@npc_key, npc})
-      on_exit(fn -> :ets.delete(:world_npcs, @npc_key) end)
+      :ets.insert(:events, {"repeatable_one", event})
+
+      on_exit(fn ->
+        :ets.delete(:world_npcs, @npc_key)
+        :ets.delete(:events, "repeatable_one")
+      end)
 
       :ok
     end
@@ -50,10 +59,59 @@ defmodule Shunt.World.NpcsTest do
       assert Npcs.current_event(player, @npc_key) == "arc_two"
     end
 
+    test "skips a story arc the player has already completed" do
+      player = %Player{
+        npc_progression: %{},
+        completed_events: ["arc_one"]
+      }
+
+      assert Npcs.current_event(player, @npc_key) == "repeatable_one"
+    end
+
     test "falls back to a repeatable event once progression exceeds the story arcs" do
       player = %Player{npc_progression: %{@npc_key => 2}}
 
       assert Npcs.current_event(player, @npc_key) == "repeatable_one"
+    end
+  end
+
+  describe "current_event/2 conditional events" do
+    @npc_key "test_conditional_npc"
+
+    setup do
+      npc = %NPC{
+        id: @npc_key,
+        name: "Test NPC",
+        story_arcs: [],
+        conditional_events: [
+          "shunt9_bazaar_juno_deliver_parcel",
+          "shunt9_bazaar_juno_collect_pickup"
+        ],
+        repeatable_events: []
+      }
+
+      :ets.insert(:world_npcs, {@npc_key, npc})
+      on_exit(fn -> :ets.delete(:world_npcs, @npc_key) end)
+
+      :ok
+    end
+
+    test "returns the first conditional event whose requirements are met" do
+      player = %Player{inventory: %{"juno_parcel" => 1}}
+
+      assert Npcs.current_event(player, @npc_key) == "shunt9_bazaar_juno_deliver_parcel"
+    end
+
+    test "skips unmet conditional events and returns the first matching one" do
+      player = %Player{inventory: %{"juno_pickup_chit" => 1}}
+
+      assert Npcs.current_event(player, @npc_key) == "shunt9_bazaar_juno_collect_pickup"
+    end
+
+    test "returns nil when no conditional event requirements are met and no repeatables" do
+      player = %Player{inventory: %{}}
+
+      assert Npcs.current_event(player, @npc_key) == nil
     end
   end
 end
