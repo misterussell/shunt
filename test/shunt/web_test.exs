@@ -168,6 +168,53 @@ defmodule Shunt.WebTest do
     end
   end
 
+  describe "odd job round trip" do
+    test "accepting odd_job grants the parcel as the outbound carry item" do
+      effects = Events.get!("shunt9_bazaar_juno_odd_job").on_complete
+
+      assert {:inventory, "juno_odd_job_parcel", 1} in effects
+    end
+
+    test "talking to Dex while carrying juno_odd_job_parcel routes to odd_job_deliver" do
+      player_without = %Player{}
+      player_with = %Player{inventory: %{"juno_odd_job_parcel" => 1}}
+
+      assert Shunt.World.Npcs.current_event(player_without, "shunt9_food_stalls_dex") == nil
+      assert Shunt.World.Npcs.current_event(player_with, "shunt9_food_stalls_dex") ==
+               "shunt9_bazaar_juno_odd_job_deliver"
+    end
+
+    test "odd_job_deliver consumes the parcel and grants juno_odd_job_receipt" do
+      effects = Events.get!("shunt9_bazaar_juno_odd_job_deliver").on_complete
+
+      assert {:inventory, "juno_odd_job_parcel", -1} in effects
+      assert {:inventory, "juno_odd_job_receipt", 1} in effects
+    end
+
+    test "talking to Juno while carrying juno_odd_job_receipt routes to odd_job_report" do
+      player = %Player{
+        completed_events: ["shunt9_bazaar_juno_move_package", "shunt9_bazaar_juno_quiet_pickup"],
+        npc_progression: %{"shunt9_bazaar_juno" => 2},
+        inventory: %{"juno_odd_job_receipt" => 1}
+      }
+
+      assert Shunt.World.Npcs.current_event(player, "shunt9_bazaar_juno") ==
+               "shunt9_bazaar_juno_odd_job_report"
+    end
+
+    test "odd_job_report applies payout and consumes the receipt" do
+      effects = Events.get!("shunt9_bazaar_juno_odd_job_report").on_complete
+
+      assert {:inventory, "juno_odd_job_receipt", -1} in effects
+      assert {:scrip, scrip} = Enum.find(effects, &match?({:scrip, _}, &1))
+      assert scrip > 0
+      assert {:modify_rep, "juno", :trust, trust} =
+               Enum.find(effects, &match?({:modify_rep, "juno", :trust, _}, &1))
+
+      assert trust > 0
+    end
+  end
+
   defp location_ids(player) do
     player |> World.accessible_locations() |> Enum.map(& &1.id)
   end

@@ -27,7 +27,9 @@ defmodule Shunt.Events do
   end
 
   def choose(player, event_id, choice_label) do
-    if event_id in player.completed_events do
+    event = get!(event_id)
+
+    if not event.repeatable and event_id in player.completed_events do
       {:error, :already_completed}
     else
       step = current_step(player, event_id)
@@ -53,14 +55,17 @@ defmodule Shunt.Events do
 
   defp complete_event(player, event_id) do
     event = get!(event_id)
-    new_completed = Enum.uniq([event_id | player.completed_events])
     new_state = Map.delete(player.event_state, event_id)
 
-    effects =
-      event.on_complete ++
+    tracking_effects =
+      if event.repeatable do
+        [{:set, :event_state, new_state}]
+      else
+        new_completed = Enum.uniq([event_id | player.completed_events])
         [{:set, :completed_events, new_completed}, {:set, :event_state, new_state}]
+      end
 
-    {:ok, effects, %{granted_items: granted_items(event.on_complete)}}
+    {:ok, event.on_complete ++ tracking_effects, %{granted_items: granted_items(event.on_complete)}}
   end
 
   defp granted_items(effects) do

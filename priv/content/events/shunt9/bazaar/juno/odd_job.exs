@@ -1,21 +1,21 @@
 %Shunt.Events.Event{
   id: "shunt9_bazaar_juno_odd_job",
   title: "Odd Job",
+  repeatable: true,
 
   on_complete: [
-    {:scrip, 20},
-    {:modify_rep, "juno", :trust, 2}
+    {:inventory, "juno_odd_job_parcel", 1}
   ],
 
   steps: [
     %{
       id: "ask",
       text: """
-      "Always something needs moving." Juno jerks a thumb toward a crate. "Quick
-      one, if you've got the time."
+      "Always something needs moving." Juno slides a small parcel across the
+      table. "Food stalls. You know who."
       """,
       choices: [
-        %{label: "Handle it", complete: true},
+        %{label: "On it", complete: true},
         %{label: "Maybe later"}
       ]
     }

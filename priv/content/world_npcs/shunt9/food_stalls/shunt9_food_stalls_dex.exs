@@ -7,7 +7,8 @@
 
   conditional_events: [
     "shunt9_bazaar_juno_deliver_parcel",
-    "shunt9_bazaar_juno_collect_pickup"
+    "shunt9_bazaar_juno_collect_pickup",
+    "shunt9_bazaar_juno_odd_job_deliver"
   ],
 
   repeatable_events: []
