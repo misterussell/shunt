@@ -133,13 +133,69 @@ met only when **every** entry passes; an empty list is always met.
 `{:knows, ...}` replaces the older `{:flag, :atom}` form; all gating keys are now
 strings, consistent with the rest of the content model.
 
-<!-- TODO: document the {:has_item, key} requirement (met when player.inventory has key at
-count >= 1), the :quest_items content category, and the multi-location errand pattern. Cover
-the two task entry styles: "dispatch" (accept grants a carried item that gates leg 1) and
-"persistent-gate" (an existing knowledge/rep gate covers leg 1); both share the return-token
-mechanic (leg 1 grants a token, the report POI is gated by {:has_item, token}). Use the
-reworked Juno move_package / quiet_pickup / supplier_investigation errands as worked examples. -->
+`{:has_item, key}` is met when `player.inventory[key] >= 1` — i.e. the player is
+currently carrying at least one of the named quest item. Used to gate the
+mid-errand and report legs of multi-location tasks (see below).
 
+---
+
+# Quest Items (`:quest_items` category)
+
+Quest items are carried errand tokens — parcels, chits, receipts, dossiers. They
+live under `priv/content/quest_items/` and load into the `:quest_items` ETS table,
+separate from `:raws`. This isolation means they can never appear in scavenge pools,
+recipes, or fencing tables.
+
+Shape: `%{id: "key", name: "Display Name", flavor: "..."}`.
+
+Display names are resolved by `Shunt.Items.display_name/1`, which checks `:raws`
+first, then `:quest_items`.
+
+---
+
+# Multi-Location Errand Pattern
+
+Errands that span more than one location follow one of two entry styles, but share
+the same **return-token mechanic** for the report leg.
+
+## Entry styles
+
+**Dispatch** — the accept beat grants a carried item that gates leg 1:
+
+```
+[Bazaar: accept event]
+  on_complete: [{:inventory, "juno_parcel", 1}, ...]
+      ↓ player carries juno_parcel
+[Food Stalls: deliver POI]  requirements: [{:has_item, "juno_parcel"}]
+  on_complete: [{:inventory, "juno_parcel", -1}, {:inventory, "juno_delivery_receipt", 1}]
+      ↓ player carries juno_delivery_receipt
+[Bazaar: report POI]  requirements: [{:has_item, "juno_delivery_receipt"}]
+  on_complete: [{:inventory, "juno_delivery_receipt", -1}, {:scrip, 50}, ...]
+```
+
+*Example: Juno's `move_package` / `deliver_parcel` / `move_package_report`.*
+
+**Persistent-gate** — an existing knowledge or rep gate already controls access to
+leg 1; no outbound carried item is needed:
+
+```
+[Supplier Drop: field POI]  requirements: [{:knows, "juno_secret_supplier"}]
+  on_complete: [{:inventory, "juno_supplier_dossier", 1}]
+      ↓ player carries juno_supplier_dossier
+[Bazaar: report POI]  requirements: [{:has_item, "juno_supplier_dossier"}]
+  on_complete: [{:inventory, "juno_supplier_dossier", -1}, {:scrip, 150}, ...]
+```
+
+*Example: Juno's `supplier_investigation` / `supplier_investigation_report`.*
+
+## Return-token mechanic
+
+Both styles share the same report pattern: leg 1 grants a unique quest item (the
+"return token"), and the report POI at the origin location is gated by
+`{:has_item, token}`. Completing the report consumes the token
+(`{:inventory, token, -1}`) and pays out the final reward. The token is
+invisible to the player until they hold it — the report POI simply doesn't
+appear until then.
 
 ---
 
