@@ -1,12 +1,74 @@
 defmodule Shunt.RequirementsTest do
   use ExUnit.Case, async: true
 
-  # TODO: Test Shunt.Requirements.met?/2 per requirement type, building plain
-  # %Shunt.Players.Player{} structs as input (no DB needed):
-  #   - an empty requirements list is always met
-  #   - {:knows, key}: met only when key is in player.knowledge
-  #   - {:contact_known, key}: met only when key is in player.contacts
-  #   - {:rep_at_least, npc, :trust, n}: met when reputation trust >= n; unmet
-  #     when below n or when the npc/dim entry is absent (defaults to 0)
-  #   - a multi-requirement list requires ALL requirements to pass
+  alias Shunt.Players.Player
+  alias Shunt.Requirements
+
+  describe "met?/2 with an empty list" do
+    test "is always met" do
+      assert Requirements.met?(%Player{}, [])
+    end
+  end
+
+  describe "met?/2 with {:knows, key}" do
+    test "met when the key is in player.knowledge" do
+      player = %Player{knowledge: ["rook"]}
+
+      assert Requirements.met?(player, [{:knows, "rook"}])
+    end
+
+    test "unmet when the key is absent" do
+      refute Requirements.met?(%Player{knowledge: []}, [{:knows, "rook"}])
+    end
+  end
+
+  describe "met?/2 with {:contact_known, key}" do
+    test "met when the key is in player.contacts" do
+      player = %Player{contacts: ["rose_broker"]}
+
+      assert Requirements.met?(player, [{:contact_known, "rose_broker"}])
+    end
+
+    test "unmet when the key is absent" do
+      refute Requirements.met?(%Player{contacts: []}, [{:contact_known, "rose_broker"}])
+    end
+  end
+
+  describe "met?/2 with {:rep_at_least, npc, dim, n}" do
+    test "met when reputation for the npc/dim is at or above the threshold" do
+      player = %Player{reputation: %{"juno" => %{trust: 20}}}
+
+      assert Requirements.met?(player, [{:rep_at_least, "juno", :trust, 20}])
+    end
+
+    test "unmet when reputation is below the threshold" do
+      player = %Player{reputation: %{"juno" => %{trust: 5}}}
+
+      refute Requirements.met?(player, [{:rep_at_least, "juno", :trust, 20}])
+    end
+
+    test "treats a missing npc as 0" do
+      refute Requirements.met?(%Player{reputation: %{}}, [{:rep_at_least, "juno", :trust, 1}])
+    end
+
+    test "treats a missing dimension as 0" do
+      player = %Player{reputation: %{"juno" => %{trust: 50}}}
+
+      refute Requirements.met?(player, [{:rep_at_least, "juno", :favors, 1}])
+    end
+  end
+
+  describe "met?/2 with multiple requirements" do
+    test "requires every requirement to pass" do
+      player = %Player{knowledge: ["rook"], reputation: %{"juno" => %{trust: 20}}}
+
+      assert Requirements.met?(player, [{:knows, "rook"}, {:rep_at_least, "juno", :trust, 20}])
+    end
+
+    test "fails when any single requirement is unmet" do
+      player = %Player{knowledge: ["rook"], reputation: %{"juno" => %{trust: 5}}}
+
+      refute Requirements.met?(player, [{:knows, "rook"}, {:rep_at_least, "juno", :trust, 20}])
+    end
+  end
 end

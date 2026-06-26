@@ -93,14 +93,31 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, :discovered_locations, new_discovered), meta)
   end
 
-  # TODO: Add do_apply/4 clauses for The Web reward/effect types, following the
-  # immutable accumulator pattern above (read current from acc, fall back to
-  # player, write the result back into acc):
-  #   {:modify_rep, npc, dim, delta} -> update player.reputation[npc][dim] where
-  #       dim is :trust or :favors, clamped at a minimum of 0; create the npc and
-  #       dim entries if absent.
-  #   {:knowledge, key} -> append key to player.knowledge unless already present.
-  #   {:contact, key}   -> append key to player.contacts unless already present.
+  defp do_apply([{:modify_rep, npc, dim, delta} | rest], player, acc, meta) do
+    current_reputation = Map.get(acc, :reputation, player.reputation)
+    npc_rep = Map.get(current_reputation, npc, %{})
+    new_value = max(Map.get(npc_rep, dim, 0) + delta, 0)
+    new_reputation = Map.put(current_reputation, npc, Map.put(npc_rep, dim, new_value))
+    do_apply(rest, player, Map.put(acc, :reputation, new_reputation), meta)
+  end
+
+  defp do_apply([{:knowledge, key} | rest], player, acc, meta) do
+    current_knowledge = Map.get(acc, :knowledge, player.knowledge)
+
+    new_knowledge =
+      if key in current_knowledge, do: current_knowledge, else: current_knowledge ++ [key]
+
+    do_apply(rest, player, Map.put(acc, :knowledge, new_knowledge), meta)
+  end
+
+  defp do_apply([{:contact, key} | rest], player, acc, meta) do
+    current_contacts = Map.get(acc, :contacts, player.contacts)
+
+    new_contacts =
+      if key in current_contacts, do: current_contacts, else: current_contacts ++ [key]
+
+    do_apply(rest, player, Map.put(acc, :contacts, new_contacts), meta)
+  end
 
   defp maybe_append(list, true, item), do: list ++ [item]
   defp maybe_append(list, false, _item), do: list

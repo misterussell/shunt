@@ -6,15 +6,20 @@ defmodule Shunt.Requirements do
   not met. See priv/docs/SHUNT_the_web_v1.md.
   """
 
-  # TODO: Implement met?/2 returning true only when EVERY requirement in the list
-  # passes for the given player. An empty list is always met.
-  #   met?(_player, [])   => true
-  #   met?(player, reqs)  => Enum.all?(reqs, &check(player, &1))
+  alias Shunt.Players.Player
 
-  # TODO: Implement check/2 (private) for each requirement type:
-  #   {:knows, key}                -> key in player.knowledge
-  #   {:contact_known, key}        -> key in player.contacts
-  #   {:rep_at_least, npc, dim, n} -> reputation for npc/dim >= n, reading
-  #       player.reputation[npc][dim] and defaulting a missing npc or dim to 0.
-  #       dim is :trust or :favors.
+  def met?(%Player{} = player, requirements) do
+    Enum.all?(requirements, &check(player, &1))
+  end
+
+  defp check(player, {:knows, key}), do: key in player.knowledge
+
+  defp check(player, {:contact_known, key}), do: key in player.contacts
+
+  defp check(player, {:rep_at_least, npc, dim, threshold}) do
+    player.reputation
+    |> Map.get(npc, %{})
+    |> Map.get(dim, 0)
+    |> Kernel.>=(threshold)
+  end
 end

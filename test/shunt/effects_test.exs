@@ -252,4 +252,82 @@ defmodule Shunt.EffectsTest do
       assert changes.discovered_locations == ["shunt9_bazaar"]
     end
   end
+
+  describe "apply/2 - :modify_rep" do
+    test "creates the npc and dimension entries when absent" do
+      player = %Player{reputation: %{}}
+
+      {changes, _meta} = Effects.apply(player, [{:modify_rep, "juno", :trust, 10}])
+
+      assert changes.reputation == %{"juno" => %{trust: 10}}
+    end
+
+    test "increments an existing dimension without touching others" do
+      player = %Player{reputation: %{"juno" => %{trust: 10, favors: 2}}}
+
+      {changes, _meta} = Effects.apply(player, [{:modify_rep, "juno", :trust, 5}])
+
+      assert changes.reputation == %{"juno" => %{trust: 15, favors: 2}}
+    end
+
+    test "clamps a dimension at 0 when a delta would take it negative" do
+      player = %Player{reputation: %{"juno" => %{favors: 1}}}
+
+      {changes, _meta} = Effects.apply(player, [{:modify_rep, "juno", :favors, -5}])
+
+      assert changes.reputation == %{"juno" => %{favors: 0}}
+    end
+
+    test "accumulates multiple modify_rep effects across npcs and dimensions" do
+      player = %Player{reputation: %{}}
+
+      {changes, _meta} =
+        Effects.apply(player, [
+          {:modify_rep, "juno", :trust, 10},
+          {:modify_rep, "juno", :favors, 1},
+          {:modify_rep, "rose", :trust, 5}
+        ])
+
+      assert changes.reputation == %{
+               "juno" => %{trust: 10, favors: 1},
+               "rose" => %{trust: 5}
+             }
+    end
+  end
+
+  describe "apply/2 - :knowledge" do
+    test "appends a new key to a player's knowledge" do
+      player = %Player{knowledge: []}
+
+      {changes, _meta} = Effects.apply(player, [{:knowledge, "juno_secret_supplier"}])
+
+      assert changes.knowledge == ["juno_secret_supplier"]
+    end
+
+    test "does not duplicate a key already present in knowledge" do
+      player = %Player{knowledge: ["juno_secret_supplier"]}
+
+      {changes, _meta} = Effects.apply(player, [{:knowledge, "juno_secret_supplier"}])
+
+      assert changes.knowledge == ["juno_secret_supplier"]
+    end
+  end
+
+  describe "apply/2 - :contact" do
+    test "appends a new key to a player's contacts" do
+      player = %Player{contacts: []}
+
+      {changes, _meta} = Effects.apply(player, [{:contact, "rose_broker"}])
+
+      assert changes.contacts == ["rose_broker"]
+    end
+
+    test "does not duplicate a key already present in contacts" do
+      player = %Player{contacts: ["rose_broker"]}
+
+      {changes, _meta} = Effects.apply(player, [{:contact, "rose_broker"}])
+
+      assert changes.contacts == ["rose_broker"]
+    end
+  end
 end
