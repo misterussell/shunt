@@ -1,3 +1,9 @@
+# TODO: rework into the field-investigation leg of a persistent-gate task. Move this POI from
+# the Bazaar to the shunt9_supplier_drop location's events: list (remove it from the Bazaar's
+# events:). Keep requirements [{:knows, "juno_secret_supplier"}] — that existing gate covers
+# the outbound leg, so no carried-item is needed to reach it. Change on_complete to grant
+# {:inventory, "juno_supplier_dossier", 1} INSTEAD of paying out; the 150 scrip + trust 10 move
+# to the new shunt9_bazaar_juno_supplier_investigation_report POI at the Bazaar.
 %Shunt.Events.Event{
   id: "shunt9_bazaar_juno_supplier_investigation",
   title: "Supplier Investigation",

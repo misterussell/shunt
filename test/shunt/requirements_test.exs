@@ -58,6 +58,9 @@ defmodule Shunt.RequirementsTest do
     end
   end
 
+  # TODO: add a describe block for {:has_item, key} — met when player.inventory has the key at
+  # count >= 1, unmet when the count is 0 or the key is absent. Mirror the {:knows, key} block.
+
   describe "met?/2 with multiple requirements" do
     test "requires every requirement to pass" do
       player = %Player{knowledge: ["rook"], reputation: %{"juno" => %{trust: 20}}}

@@ -12,6 +12,12 @@ defmodule Shunt.Content.Store do
     {:skill_trees, "priv/content/skills"},
     {:locations, "priv/content/locations"},
     {:events, "priv/content/events"}
+    # TODO: register {:quest_items, "priv/content/quest_items"} as a content source (the
+    # generic load_source/2 already handles its %{id, name, flavor} map shape). Create that
+    # directory with the errand quest items: juno_parcel, juno_delivery_receipt,
+    # juno_pickup_chit, juno_pickup_goods, juno_supplier_dossier. Keeping them in their own
+    # category (not :raws) is the safeguard: scavenge/RawCatalog, recipes, and fencing never
+    # iterate :quest_items, so a quest item can't leak into those pools.
   ]
 
   def start_link(_opts) do

@@ -132,6 +132,14 @@ met only when **every** entry passes; an empty list is always met.
 `{:knows, ...}` replaces the older `{:flag, :atom}` form; all gating keys are now
 strings, consistent with the rest of the content model.
 
+<!-- TODO: document the {:has_item, key} requirement (met when player.inventory has key at
+count >= 1), the :quest_items content category, and the multi-location errand pattern. Cover
+the two task entry styles: "dispatch" (accept grants a carried item that gates leg 1) and
+"persistent-gate" (an existing knowledge/rep gate covers leg 1); both share the return-token
+mechanic (leg 1 grants a token, the report POI is gated by {:has_item, token}). Use the
+reworked Juno move_package / quiet_pickup / supplier_investigation errands as worked examples. -->
+
+
 ---
 
 # Where Requirements Apply (hide-entirely)

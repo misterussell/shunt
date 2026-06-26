@@ -1,3 +1,9 @@
+# TODO: rework into the "accept" beat of a round-trip dispatch task. on_complete should grant
+# ONLY the carried item {:inventory, "juno_parcel", 1} and
+# {:npc_progression, "shunt9_bazaar_juno", 1} — move the 50 scrip + trust 10 payout to the
+# return beat (new shunt9_bazaar_juno_move_package_report POI at the Bazaar). The "deliver" step
+# text should stop narrating the handoff in place and instead point the player to the Food
+# Stalls contact (the new recipient NPC).
 %Shunt.Events.Event{
   id: "shunt9_bazaar_juno_move_package",
   title: "Move a Package",

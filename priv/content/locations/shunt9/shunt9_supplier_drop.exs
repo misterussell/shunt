@@ -21,6 +21,9 @@ alias Shunt.World.Exit
     {:knows, "juno_secret_supplier"}
   ],
 
+  # TODO: add events: ["shunt9_bazaar_juno_supplier_investigation"] — the reworked field POI
+  # (gated by {:knows,"juno_secret_supplier"}) that grants juno_supplier_dossier. The location's
+  # own knowledge gate covers the outbound leg, so no carried-item gate is needed here.
   exits: [
     %Exit{
       id: "supplier_drop_to_bazaar",
