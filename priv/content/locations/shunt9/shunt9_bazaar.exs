@@ -22,20 +22,9 @@ alias Shunt.World.Exit
   ],
 
   events: [
-    # TODO: remove "shunt9_bazaar_juno_supplier_investigation" from here — it moves to the
-    # shunt9_supplier_drop location (it becomes the field-investigation leg).
-    "shunt9_bazaar_juno_supplier_investigation"
-    # TODO: add the report (return-beat) POIs, each gated by the return token it consumes.
-    # Create each event file under priv/content/events/shunt9/bazaar/juno/:
-    #   - shunt9_bazaar_juno_move_package_report  requirements [{:has_item,"juno_delivery_receipt"}];
-    #       on_complete {:inventory,"juno_delivery_receipt",-1}, {:scrip,50},
-    #       {:modify_rep,"juno",:trust,10}
-    #   - shunt9_bazaar_juno_quiet_pickup_report  requirements [{:has_item,"juno_pickup_goods"}];
-    #       on_complete {:inventory,"juno_pickup_goods",-1}, {:modify_rep,"juno",:trust,10},
-    #       {:modify_rep,"juno",:favors,1}, {:knowledge,"juno_secret_supplier"}
-    #   - shunt9_bazaar_juno_supplier_investigation_report requirements [{:has_item,"juno_supplier_dossier"}];
-    #       on_complete {:inventory,"juno_supplier_dossier",-1}, {:scrip,150},
-    #       {:modify_rep,"juno",:trust,10}
+    "shunt9_bazaar_juno_move_package_report",
+    "shunt9_bazaar_juno_quiet_pickup_report",
+    "shunt9_bazaar_juno_supplier_investigation_report"
   ],
 
   exits: [

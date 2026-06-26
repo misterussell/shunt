@@ -178,14 +178,10 @@ defmodule ShuntWeb.MovementLive do
     }
   end
 
-  # TODO: resolve granted-item display names from :quest_items as well as :raws so granting a
-  # quest item (e.g. juno_parcel) renders "+1 Sealed Parcel" instead of raising in
-  # RawCatalog.fetch!/1. Add a resolver (e.g. Shunt.Items.display_name/1 that checks :raws then
-  # :quest_items) and use it in reward_entry/2 below.
   defp reward_entry(event_id, granted_items) do
     text =
       Enum.map_join(granted_items, "\n", fn {key, qty} ->
-        "+#{qty} #{Shunt.Crafting.RawCatalog.fetch!(key).name}"
+        "+#{qty} #{Shunt.Items.display_name(key)}"
       end)
 
     %{
