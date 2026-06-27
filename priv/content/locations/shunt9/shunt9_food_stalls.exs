@@ -21,6 +21,10 @@ alias Shunt.World.Exit
     "shunt9_food_stalls_dex"
   ],
 
+  events: [
+    "shunt9_food_stalls_vendor_board"
+  ],
+
   exits: [
     %Exit{
       id: "food_stalls_to_bazaar",
