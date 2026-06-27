@@ -1956,14 +1956,11 @@
 
 /* ⌁ LATTICE ambient cue on the map's current-location panel */
 .lattice-cue {
-  display: inline-block;
-  margin-bottom: 6px;
-  padding: 1px 6px;
-  border: 1px solid color-mix(in srgb, var(--cyan) 40%, var(--border-c));
-  color: var(--cyan);
-  font-size: 0.68rem;
-  letter-spacing: 0.12em;
-  text-shadow: 0 0 10px color-mix(in srgb, var(--cyan) 35%, transparent);
+  display: block;
+  margin-bottom: 8px;
+  color: color-mix(in srgb, var(--cyan) 55%, var(--muted));
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
 }
 
 /* ── ICE terminal modal (lib/shunt_web/components/ice_terminal.ex) ─────────── */
@@ -2176,4 +2173,97 @@
   .ice-trace-gauge--danger .ice-trace-seg--high {
     animation: none;
   }
+}
+
+/* ── The Web — Investigation Board (lib/shunt_web/live/web_live.ex) ─────────── */
+
+.rumor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.rumor-card {
+  border: 1px solid var(--border-c);
+  background: linear-gradient(180deg, var(--p1), var(--p2));
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.rumor-card.selected {
+  border-color: var(--cyan);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cyan) 10%, var(--p1)), var(--p2));
+  box-shadow: 0 0 0 1px var(--cyan) inset;
+}
+
+.rumor-title {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.rumor-source {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.rumor-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.rumor-tag {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+  padding: 1px 5px;
+  text-transform: uppercase;
+}
+
+.theory-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.board-empty-text {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+  padding: 12px 0;
+}
+
+.status-bar {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+  border: 1px solid var(--border-c);
+  padding: 8px 12px;
+  background: var(--sunk);
+  text-transform: uppercase;
+}
+
+/* Active event panel — scoped so it doesn't fight the ghostwork event-log rules */
+#active-event .event-step-text {
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.55;
+  white-space: pre-line;
+  margin: 0 0 12px;
+}
+
+#active-event .event-choices {
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
 }

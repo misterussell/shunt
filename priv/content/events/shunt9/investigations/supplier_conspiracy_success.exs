@@ -4,7 +4,7 @@
   repeatable: false,
 
   on_complete: [
-    {:discover_location, "freight_tunnel"},
+    {:discover_location, "shunt9_freight_tunnel"},
     {:contact, "dex_broker"},
     {:rumor, "freight_tunnel_shipments"},
     {:scrip, 200}

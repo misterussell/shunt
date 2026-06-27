@@ -130,14 +130,14 @@ defmodule ShuntWeb.MovementLive do
         <div class="map-page-rail">
           <Chrome.section_header>LOCATION</Chrome.section_header>
           <Chrome.panel id="current-location">
+            <p class="location-name">{@location.name}</p>
             <span
               :if={Shunt.Ghostwork.lattice_active?(@player, @location, @ghostwork_tool_key)}
               id="lattice-cue"
               class="lattice-cue"
             >
-              ⌁ LATTICE
+              ⌁ lattice detected
             </span>
-            <p class="location-name">{@location.name}</p>
             <p class="location-description">{@location.description}</p>
             <div :if={@points_of_interest != []} id="location-events">
               <p class="location-events-label">Points of Interest</p>

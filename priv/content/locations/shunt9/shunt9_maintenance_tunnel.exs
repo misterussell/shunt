@@ -58,6 +58,11 @@ alias Shunt.World.Exit
     %Exit{
       id: "maintenance_tunnel_to_player_squat",
       to: "shunt9_player_squat"
+    },
+    %Exit{
+      id: "maintenance_tunnel_to_freight_tunnel",
+      to: "shunt9_freight_tunnel",
+      requirements: [{:contact_known, "dex_broker"}]
     }
   ]
 }
