@@ -126,6 +126,20 @@ defmodule Shunt.Content.StoreTest do
     end
   end
 
+  describe "all sources load at boot (web v2)" do
+    test "rumors: loads the example juno_supplier rumor from priv/content/rumors/" do
+      rumors = Content.all(:rumors)
+
+      assert Enum.any?(rumors, &(&1.id == "juno_supplier"))
+    end
+
+    test "rumor_connections: loads the example supplier_conspiracy connection" do
+      connections = Content.all(:rumor_connections)
+
+      assert Enum.any?(connections, &(&1.id == "supplier_conspiracy"))
+    end
+  end
+
   describe "load_source/2 for :skill_trees" do
     test "raises a clear error instead of a CaseClauseError when more than one file is found" do
       dir = "priv/content/skills"

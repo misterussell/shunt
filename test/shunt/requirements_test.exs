@@ -136,6 +136,18 @@ defmodule Shunt.RequirementsTest do
     end
   end
 
+  describe "met?/2 with {:has_rumor, key}" do
+    test "met when the key is in player.rumors" do
+      player = %Player{rumors: ["juno_supplier"]}
+
+      assert Requirements.met?(player, [{:has_rumor, "juno_supplier"}])
+    end
+
+    test "unmet when the key is absent from player.rumors" do
+      refute Requirements.met?(%Player{rumors: []}, [{:has_rumor, "juno_supplier"}])
+    end
+  end
+
   describe "met?/2 with multiple requirements" do
     test "requires every requirement to pass" do
       player = %Player{knowledge: ["rook"], reputation: %{"juno" => %{trust: 20}}}

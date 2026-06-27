@@ -136,8 +136,14 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, :contacts, new_contacts), meta)
   end
 
-  # TODO: add clause for {:rumor, key} — appends key to player.rumors (idempotent),
-  # mirroring the {:contact, key} clause above but reading/writing :rumors instead of :contacts.
+  defp do_apply([{:rumor, key} | rest], player, acc, meta) do
+    current_rumors = Map.get(acc, :rumors, player.rumors)
+
+    new_rumors =
+      if key in current_rumors, do: current_rumors, else: current_rumors ++ [key]
+
+    do_apply(rest, player, Map.put(acc, :rumors, new_rumors), meta)
+  end
 
   defp apply_node_op(node, {:bank_layer, n}), do: Map.put(node, "banked_layer", n)
   defp apply_node_op(node, :harden), do: Map.put(node, "hardened", true)

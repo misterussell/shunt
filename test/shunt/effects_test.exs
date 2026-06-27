@@ -430,4 +430,22 @@ defmodule Shunt.EffectsTest do
       assert changes.contacts == ["rose_broker"]
     end
   end
+
+  describe "apply/2 - :rumor" do
+    test "appends a new key to a player's rumors" do
+      player = %Player{rumors: []}
+
+      {changes, _meta} = Effects.apply(player, [{:rumor, "juno_supplier"}])
+
+      assert changes.rumors == ["juno_supplier"]
+    end
+
+    test "does not duplicate a key already present in rumors" do
+      player = %Player{rumors: ["juno_supplier"]}
+
+      {changes, _meta} = Effects.apply(player, [{:rumor, "juno_supplier"}])
+
+      assert changes.rumors == ["juno_supplier"]
+    end
+  end
 end

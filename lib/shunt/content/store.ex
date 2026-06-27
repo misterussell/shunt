@@ -23,9 +23,8 @@ defmodule Shunt.Content.Store do
     # since each entry exposes .id. Directories may be empty until Phase 5 content lands.
     {:ice_nodes, "priv/content/ice_nodes"},
     {:programs, "priv/content/programs"},
-    # TODO: add {:rumors, "priv/content/rumors"} and
-    # {:rumor_connections, "priv/content/rumor_connections"} here.
-    # Both use the generic load_source/2 — each entry exposes an :id field.
+    {:rumors, "priv/content/rumors"},
+    {:rumor_connections, "priv/content/rumor_connections"}
   ]
 
   def start_link(_opts) do
