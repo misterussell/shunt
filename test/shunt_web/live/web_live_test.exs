@@ -255,6 +255,25 @@ defmodule ShuntWeb.WebLiveTest do
     end
   end
 
+  describe "dev — seed rumors" do
+    test "renders the dev seed control", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "#seed-rumors-button")
+    end
+
+    test "clicking seed rumors populates the board with rumor cards", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "#board-empty")
+
+      view |> element("#seed-rumors-button") |> render_click()
+
+      assert has_element?(view, "#rumor-collection")
+      refute has_element?(view, "#board-empty")
+    end
+  end
+
   defp give_player_rumors(player, rumor_ids) do
     Shunt.Players.dispatch(player.id, fn _p ->
       {:ok, Enum.map(rumor_ids, &{:rumor, &1}), %{}}

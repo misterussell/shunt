@@ -7,12 +7,17 @@ defmodule ShuntWeb.WebLive do
   alias Shunt.Web.Rumor
   alias ShuntWeb.Chrome
 
+  @dev_routes Application.compile_env(:shunt, :dev_routes)
+
+  # Dev-only: the shunt9 rumor set seeded by the [ SEED RUMORS ] control so the board can be
+  # exercised without replaying the events that normally award these rumors.
+  @dev_seed_rumors ~w(juno_supplier missing_shipments vex_debts authority_involvement freight_tunnel_shipments)
+
   def mount(_params, _session, socket) do
     player_id = Players.get_player!().id
     player = Players.current(player_id)
 
     # TODO: replace the tap-to-select model with board-derived assigns:
-    #   :dev? -> Application.compile_env(:shunt, :dev_routes) (gates the dev seed/wipe controls)
     #   :intake -> Web.intake(player) mapped to Rumor structs (unsorted rail)
     #   :placed -> positioned rumor structs carrying their fractional x/y from web_board
     #   :wires -> player.web_board wires
@@ -26,6 +31,7 @@ defmodule ShuntWeb.WebLive do
      |> assign(:rumors, player_rumors(player))
      |> assign(:selected, MapSet.new())
      |> assign(:active_event_id, nil)
+     |> assign(:dev?, @dev_routes)
      |> assign(:status, nil)}
   end
 
@@ -44,10 +50,14 @@ defmodule ShuntWeb.WebLive do
   # event_id), and set :active_event_id, mirroring the success branch of the old "investigate" handler.
   # Resonance already guarantees an exact match, so there is no NO-MATCH path here.
 
-  # TODO: dev-only "seed_rumors" — when @dev?, dispatch the shunt9 rumor set as {:rumor, key} effects
-  # (juno_supplier, missing_shipments, vex_debts, authority_involvement, freight_tunnel_shipments) in
-  # one Players.dispatch returning {:ok, Enum.map(keys, &{:rumor, &1})}. Effects dedupe, so it is
-  # idempotent; new rumors land in intake. Refresh board assigns after.
+  def handle_event("seed_rumors", _params, socket) do
+    {:ok, player, _meta} =
+      Players.dispatch(socket.assigns.player_id, fn _p ->
+        {:ok, Enum.map(@dev_seed_rumors, &{:rumor, &1})}
+      end)
+
+    {:noreply, socket |> assign(:player, player) |> assign(:rumors, player_rumors(player))}
+  end
 
   # TODO: dev-only "wipe_board" — when @dev?, dispatch a Web op (or {:web_board, empty board}) that
   # resets web_board to %{"positions" => %{}, "wires" => []} so the UI can be re-tested from scratch.
@@ -129,6 +139,12 @@ defmodule ShuntWeb.WebLive do
     ~H"""
     <Layouts.app flash={@flash} player={@player} active={:web} status={@status}>
       <Chrome.section_header>INVESTIGATION BOARD</Chrome.section_header>
+
+      <div :if={@dev?} id="dev-controls" class="dev-controls">
+        <Chrome.btn id="seed-rumors-button" variant={:ghost} phx-click="seed_rumors">
+          [ SEED RUMORS ]
+        </Chrome.btn>
+      </div>
 
       <%= if @active_event_id do %>
         <% step = Events.current_step(@player, @active_event_id) %>

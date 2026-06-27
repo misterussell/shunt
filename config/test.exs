@@ -1,5 +1,9 @@
 import Config
 
+# Enable dev-only routes and controls (e.g. The Web board's dev seed/wipe) under test so they
+# can be exercised, mirroring the dev environment.
+config :shunt, dev_routes: true
+
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used
