@@ -241,4 +241,123 @@ defmodule Shunt.GhostworkTest do
       assert Ghostwork.weakness_known?(%Encounter{node: ice_node(), layer_index: 0, mastery: 3})
     end
   end
+
+  defp lattice_location(lattice), do: %{id: "loc", lattice: lattice}
+
+  defp lead(overrides) do
+    Map.merge(
+      %{
+        id: "relay_signal",
+        requirements: [],
+        text: "relay text",
+        on_intercept: [{:knowledge, "relay_found"}]
+      },
+      Map.new(overrides)
+    )
+  end
+
+  describe "scan/2" do
+    test "errors when the location carries no lattice" do
+      assert {:error, :no_lattice} = Ghostwork.scan(%Player{}, %{id: "loc"})
+    end
+
+    test "surfaces an eligible lead with its on_intercept and heat" do
+      location = lattice_location(%{leads: [lead([])], filler: []})
+
+      {:ok, effects, meta} = Ghostwork.scan(%Player{}, location)
+
+      assert {:knowledge, "relay_found"} in effects
+      assert {:heat, 4} in effects
+      assert meta == %{kind: :lead, signal_id: "relay_signal", text: "relay text"}
+    end
+
+    test "picks the first eligible lead in order" do
+      location =
+        lattice_location(%{
+          leads: [
+            lead(id: "first", on_intercept: [{:knowledge, "first_key"}]),
+            lead(id: "second", on_intercept: [{:knowledge, "second_key"}])
+          ],
+          filler: []
+        })
+
+      {:ok, _effects, meta} = Ghostwork.scan(%Player{}, location)
+
+      assert meta.signal_id == "first"
+    end
+
+    test "skips a lead whose granted knowledge the player already holds (swept)" do
+      location =
+        lattice_location(%{
+          leads: [lead([])],
+          filler: [%{weight: 1, text: "filler", on_intercept: [{:scrip, 3}]}]
+        })
+
+      {:ok, effects, meta} = Ghostwork.scan(%Player{knowledge: ["relay_found"]}, location)
+
+      assert meta.kind == :filler
+      assert {:scrip, 3} in effects
+    end
+
+    test "skips a lead whose requirements are unmet" do
+      location =
+        lattice_location(%{
+          leads: [lead(requirements: [{:knows, "gate"}])],
+          filler: [%{weight: 1, text: "filler", on_intercept: [{:scrip, 3}]}]
+        })
+
+      {:ok, _effects, meta} = Ghostwork.scan(%Player{}, location)
+
+      assert meta.kind == :filler
+    end
+
+    test "falls back to weighted-random filler when no lead is available" do
+      location =
+        lattice_location(%{
+          leads: [],
+          filler: [
+            %{weight: 3, text: "common", on_intercept: [{:scrip, 3}]},
+            %{weight: 1, text: "rare", on_intercept: [{:knowledge, "rumor"}]}
+          ]
+        })
+
+      texts =
+        for _ <- 1..400 do
+          {:ok, _effects, meta} = Ghostwork.scan(%Player{}, location)
+          meta.text
+        end
+
+      assert "common" in texts
+      assert "rare" in texts
+      assert Enum.all?(texts, &(&1 in ["common", "rare"]))
+    end
+
+    test "always applies scan heat even on filler" do
+      location =
+        lattice_location(%{
+          leads: [],
+          filler: [%{weight: 1, text: "filler", on_intercept: [{:scrip, 3}]}]
+        })
+
+      {:ok, effects, _meta} = Ghostwork.scan(%Player{}, location)
+
+      assert {:heat, 4} in effects
+    end
+
+    test "returns an empty scan (heat only) when no lead and no filler are available" do
+      location = lattice_location(%{leads: [], filler: []})
+
+      {:ok, effects, meta} = Ghostwork.scan(%Player{}, location)
+
+      assert effects == [{:heat, 4}]
+      assert meta == %{kind: :empty, text: nil}
+    end
+
+    test "treats missing :leads/:filler keys as empty" do
+      {:ok, effects, meta} = Ghostwork.scan(%Player{}, lattice_location(%{}))
+
+      assert effects == [{:heat, 4}]
+      assert meta.kind == :empty
+    end
+  end
 end
