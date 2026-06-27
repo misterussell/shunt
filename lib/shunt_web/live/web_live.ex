@@ -11,6 +11,14 @@ defmodule ShuntWeb.WebLive do
     player_id = Players.get_player!().id
     player = Players.current(player_id)
 
+    # TODO: replace the tap-to-select model with board-derived assigns:
+    #   :dev? -> Application.compile_env(:shunt, :dev_routes) (gates the dev seed/wipe controls)
+    #   :intake -> Web.intake(player) mapped to Rumor structs (unsorted rail)
+    #   :placed -> positioned rumor structs carrying their fractional x/y from web_board
+    #   :wires -> player.web_board wires
+    #   :resonant -> Web.resonant_clusters(player) (drives cluster glow + inline CONNECT)
+    # Drop :selected entirely. Add a board_assigns(socket) helper that recomputes intake/placed/
+    # wires/resonant from the current player so every handle_event can refresh in one call.
     {:ok,
      socket
      |> assign(:player_id, player_id)
@@ -20,6 +28,30 @@ defmodule ShuntWeb.WebLive do
      |> assign(:active_event_id, nil)
      |> assign(:status, nil)}
   end
+
+  # TODO: replace "toggle_rumor"/"investigate"/"clear" below with the board interaction events.
+  # The WebBoard hook pushes these; each dispatches the matching Shunt.Web op via Players.dispatch
+  # and then refreshes board assigns:
+  #   "place_rumor"  %{"id" => id, "x" => x, "y" => y}  -> Web.place_rumor/4 (intake -> board)
+  #   "move_rumor"   %{"id" => id, "x" => x, "y" => y}  -> Web.move_rumor/4 (debounced on drag-end)
+  #   "connect"      %{"a" => a, "b" => b}              -> Web.connect/3
+  #   "disconnect"   %{"a" => a, "b" => b}              -> Web.disconnect/3
+  #   "return_to_intake" %{"id" => id}                  -> Web.return_to_intake/2
+  # x/y arrive as strings from JS — parse to floats and clamp to 0.0..1.0 before dispatching.
+
+  # TODO: "connect_theory" %{"connection_id" => id} — fired by the inline [ CONNECT ] that appears on
+  # a resonant cluster. Look up the connection in @resonant, dispatch &Events.start(&1, conn.success_
+  # event_id), and set :active_event_id, mirroring the success branch of the old "investigate" handler.
+  # Resonance already guarantees an exact match, so there is no NO-MATCH path here.
+
+  # TODO: dev-only "seed_rumors" — when @dev?, dispatch the shunt9 rumor set as {:rumor, key} effects
+  # (juno_supplier, missing_shipments, vex_debts, authority_involvement, freight_tunnel_shipments) in
+  # one Players.dispatch returning {:ok, Enum.map(keys, &{:rumor, &1})}. Effects dedupe, so it is
+  # idempotent; new rumors land in intake. Refresh board assigns after.
+
+  # TODO: dev-only "wipe_board" — when @dev?, dispatch a Web op (or {:web_board, empty board}) that
+  # resets web_board to %{"positions" => %{}, "wires" => []} so the UI can be re-tested from scratch.
+  # Does not touch player.rumors — cards return to intake.
 
   def handle_event("toggle_rumor", %{"id" => id}, socket) do
     selected = socket.assigns.selected
@@ -78,6 +110,21 @@ defmodule ShuntWeb.WebLive do
     {:noreply, socket |> assign(:selected, MapSet.new()) |> assign(:status, nil)}
   end
 
+  # TODO: rework render for the board. Replace the .rumor-grid + theory-controls block with:
+  #   - an INTAKE rail listing @intake cards (draggable onto the board)
+  #   - a board container `<div id="web-board" phx-hook="WebBoard">` whose children are the @placed
+  #     cards, each with id={"rumor-#{id}"}, data-rumor-id, data-x/data-y (fractional), and state
+  #     attrs data-resonant / data-solved. The hook creates the SVG wire layer itself (do NOT render
+  #     wires in HEEx) and reads @wires from a data attribute / pushed payload.
+  #   - per-resonant-cluster inline [ CONNECT ] (phx-click="connect_theory", phx-value-connection_id),
+  #     rendered only for clusters in @resonant
+  #   - keep the empty-state panel for when @rumors == [] (NO RUMORS COLLECTED)
+  #   - a `:if={@dev?}` control strip with [ SEED RUMORS ] (phx-click="seed_rumors") and
+  #     [ WIPE BOARD ] (phx-click="wipe_board")
+  # The active-event panel block stays as-is. No phx-update="ignore" on #web-board — the hook
+  # re-applies layout in mounted()/updated() so server-added cards and state classes reconcile.
+  # TODO: frontend-design styling pass is deferred until the mechanics above work — cyberpunk
+  # case-graph surface, glowing fiber wires with a traveling pulse, resonance surge, SOLVED stamp.
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} player={@player} active={:web} status={@status}>

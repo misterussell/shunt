@@ -145,6 +145,11 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, :rumors, new_rumors), meta)
   end
 
+  # TODO: add a `do_apply([{:web_board, board} | rest], player, acc, meta)` clause that does
+  # `do_apply(rest, player, Map.put(acc, :web_board, board), meta)` — a plain field-set mirroring
+  # the other clauses. Board ops in Shunt.Web emit this effect so board mutations persist through
+  # the existing dispatch/Repo.update pipeline.
+
   defp apply_node_op(node, {:bank_layer, n}), do: Map.put(node, "banked_layer", n)
   defp apply_node_op(node, :harden), do: Map.put(node, "hardened", true)
   defp apply_node_op(node, :clear_hardened), do: Map.put(node, "hardened", false)

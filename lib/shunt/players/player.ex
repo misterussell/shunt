@@ -22,6 +22,12 @@ defmodule Shunt.Players.Player do
     field :contacts, {:array, :string}, default: []
     field :rumors, {:array, :string}, default: []
 
+    # TODO: add `field :web_board, :map, default: %{"positions" => %{}, "wires" => []}` here, backed
+    # by a new migration `add :web_board, :map, default: %{}` on the players table. `positions` maps
+    # rumor_id => %{"x" => float_0_1, "y" => float_0_1} (fractional board coords); `wires` is a list
+    # of sorted [id_a, id_b] string pairs. A rumor is "on the board" iff it has a positions entry;
+    # everything else in player.rumors is intake.
+
     field :ghostwork_state, :map, default: %{}
 
     field :location_id, :string, default: "shunt9_player_squat"

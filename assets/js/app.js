@@ -27,12 +27,15 @@ import topbar from "../vendor/topbar"
 import Clock from "./hooks/clock"
 import EventTerminal from "./hooks/event_terminal"
 import LatticeCarrier from "./hooks/lattice_carrier"
+// WebBoard is a no-op skeleton until hooks/web_board.js is implemented (see its TODOs); it is
+// registered now so #web-board's phx-hook="WebBoard" resolves once the board markup lands.
+import WebBoard from "./hooks/web_board"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, Clock, EventTerminal, LatticeCarrier},
+  hooks: {...colocatedHooks, Clock, EventTerminal, LatticeCarrier, WebBoard},
 })
 
 // Show progress bar on live navigation and form submits
