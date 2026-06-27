@@ -16,7 +16,7 @@ alias Shunt.World.Exit
     :underbelly
   ],
 
-  graph_position: {1350, 0},
+  graph_position: {1500, -90},
 
   events: [
     "liftworks_watch_office_terminal"

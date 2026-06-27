@@ -36,7 +36,7 @@
       progress_required: 12,
       trace_multiplier: 2.0,
       weakness: :backdoor,
-      reward: [{:knowledge, "watchlist_scrubbed"}]
+      reward: [{:heat, -20}]
     }
   ]
 }

@@ -30,8 +30,6 @@ alias Shunt.World.Exit
     %Exit{
       id: "the_risers_ascent_permit",
       to: "liftworks_upper_landing",
-      travel_text:
-        "You feed the permit to the reader. It chirps, the gate releases, and the lift takes your weight and begins to climb.",
       requirements: [
         {:has_item, "transit_permit"}
       ]
@@ -39,8 +37,6 @@ alias Shunt.World.Exit
     %Exit{
       id: "the_risers_ascent_spoof",
       to: "liftworks_upper_landing",
-      travel_text:
-        "Your deck answers the reader before it can ask — a clean tag the scan arch already swallowed. The gate believes you. The lift climbs.",
       requirements: [
         {:knows, "scan_arch_spoofed"}
       ]
@@ -48,8 +44,6 @@ alias Shunt.World.Exit
     %Exit{
       id: "the_risers_ascent_back_route",
       to: "liftworks_upper_landing",
-      travel_text:
-        "You skip the reader entirely. The Cold Stair lets out beside the open car, and you step on before anyone thinks to ask. The lift climbs.",
       requirements: [
         {:knows, "liftworks_back_route"}
       ]

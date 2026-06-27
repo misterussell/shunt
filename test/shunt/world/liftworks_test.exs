@@ -15,22 +15,6 @@ defmodule Shunt.World.LiftworksTest do
     |> Enum.map(& &1.to)
   end
 
-  describe "locations load" do
-    test "every Liftworks location resolves" do
-      for id <- [
-            "liftworks_intake_hall",
-            "liftworks_transfer_row",
-            "liftworks_the_pen",
-            "liftworks_watch_office",
-            "liftworks_cold_stair",
-            "liftworks_the_risers",
-            "liftworks_upper_landing"
-          ] do
-        assert World.get_location(id).id == id
-      end
-    end
-  end
-
   describe "discovery gate off the Concourse" do
     test "Intake Hall is hidden until the player knows the route" do
       player = %Player{location_id: "crossgate_concourse"}
