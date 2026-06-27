@@ -28,7 +28,7 @@
       progress_required: 10,
       trace_multiplier: 1.5,
       weakness: :decrypt,
-      reward: [{:knowledge, "permit_registry_indexed"}]
+      reward: [{:knowledge, "permit_registry_indexed"}, {:rumor, "scrubbed_watchlist"}]
     },
     %{
       id: "watchlist",

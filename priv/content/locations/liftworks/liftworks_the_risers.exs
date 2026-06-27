@@ -47,6 +47,13 @@ alias Shunt.World.Exit
       requirements: [
         {:knows, "liftworks_back_route"}
       ]
+    },
+    %Exit{
+      id: "the_risers_ascent_ghost_clearance",
+      to: "liftworks_upper_landing",
+      requirements: [
+        {:knows, "ghost_clearance"}
+      ]
     }
   ]
 }

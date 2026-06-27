@@ -4,7 +4,8 @@
 
   on_complete: [
     {:contact, "liftworks_proxy"},
-    {:npc_progression, "liftworks_proxy", 1}
+    {:npc_progression, "liftworks_proxy", 1},
+    {:rumor, "proxy_pipeline"}
   ],
 
   steps: [

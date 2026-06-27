@@ -19,7 +19,8 @@ alias Shunt.World.Exit
   graph_position: {1200, 0},
 
   events: [
-    "liftworks_cold_stair_back_route"
+    "liftworks_cold_stair_back_route",
+    "liftworks_cold_stair_off_hours"
   ],
 
   exits: [

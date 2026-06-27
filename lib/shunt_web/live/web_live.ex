@@ -11,7 +11,7 @@ defmodule ShuntWeb.WebLive do
 
   # Dev-only: the shunt9 rumor set seeded by the [ SEED RUMORS ] control so the board can be
   # exercised without replaying the events that normally award these rumors.
-  @dev_seed_rumors ~w(juno_supplier missing_shipments vex_debts authority_involvement freight_tunnel_shipments)
+  @dev_seed_rumors ~w(juno_supplier missing_shipments vex_debts authority_involvement freight_tunnel_shipments scrubbed_watchlist proxy_pipeline off_hours_passage cargo_discrepancy checkpoint_pressure)
 
   def mount(_params, _session, socket) do
     player_id = Players.get_player!().id

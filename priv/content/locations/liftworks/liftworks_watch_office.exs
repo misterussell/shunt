@@ -18,8 +18,13 @@ alias Shunt.World.Exit
 
   graph_position: {1500, -90},
 
+  npcs: [
+    "liftworks_writ"
+  ],
+
   events: [
-    "liftworks_watch_office_terminal"
+    "liftworks_watch_office_terminal",
+    "liftworks_watch_office_pressure"
   ],
 
   exits: [

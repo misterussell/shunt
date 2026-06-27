@@ -23,7 +23,8 @@ alias Shunt.World.Exit
   ],
 
   events: [
-    "liftworks_transfer_row_licensed_goods"
+    "liftworks_transfer_row_licensed_goods",
+    "liftworks_transfer_row_cargo_discrepancy"
   ],
 
   exits: [
