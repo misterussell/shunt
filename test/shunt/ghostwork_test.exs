@@ -252,6 +252,34 @@ defmodule Shunt.GhostworkTest do
     end
   end
 
+  describe "nodes_at/2 read status" do
+    defp relay_seeker(mastery) do
+      %Player{
+        knowledge: ["shunt9_abandoned_relay_found"],
+        location_id: "shunt9_maintenance_tunnel",
+        ghostwork_state: %{"mastery" => %{"ice_maintenance" => mastery}}
+      }
+    end
+
+    test "tags each node with the fog stage of its family's mastery" do
+      [entry] = Ghostwork.nodes_at(relay_seeker(1), "shunt9_maintenance_tunnel")
+      assert entry.read == :numbers
+
+      [weak] = Ghostwork.nodes_at(relay_seeker(3), "shunt9_maintenance_tunnel")
+      assert weak.read == :weakness
+    end
+
+    test "an unread family reads as :dark" do
+      player = %Player{
+        knowledge: ["shunt9_abandoned_relay_found"],
+        location_id: "shunt9_maintenance_tunnel"
+      }
+
+      [entry] = Ghostwork.nodes_at(player, "shunt9_maintenance_tunnel")
+      assert entry.read == :dark
+    end
+  end
+
   describe "mastery_summary/1" do
     test "summarizes each family sorted by name with its fog stage" do
       player = %Player{
