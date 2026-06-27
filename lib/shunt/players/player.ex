@@ -21,6 +21,8 @@ defmodule Shunt.Players.Player do
     field :knowledge, {:array, :string}, default: []
     field :contacts, {:array, :string}, default: []
 
+    field :ghostwork_state, :map, default: %{}
+
     field :location_id, :string, default: "shunt9_player_squat"
     field :discovered_locations, {:array, :string}, default: []
 

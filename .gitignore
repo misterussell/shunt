@@ -43,3 +43,6 @@ npm-debug.log
 
 # docker settings
 docker-compose.yml
+
+# Claude Code tool settings (local per-developer config)
+/.claude/

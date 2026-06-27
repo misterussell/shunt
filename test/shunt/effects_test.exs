@@ -162,6 +162,106 @@ defmodule Shunt.EffectsTest do
     end
   end
 
+  describe "apply/2 - :ghostwork_mastery" do
+    test "adds a new family mastery starting from zero" do
+      player = %Player{ghostwork_state: %{}}
+
+      {changes, _meta} = Effects.apply(player, [{:ghostwork_mastery, "ice_maintenance", 1}])
+
+      assert changes.ghostwork_state == %{"mastery" => %{"ice_maintenance" => 1}}
+    end
+
+    test "increments an existing family mastery" do
+      player = %Player{ghostwork_state: %{"mastery" => %{"ice_maintenance" => 3}}}
+
+      {changes, _meta} = Effects.apply(player, [{:ghostwork_mastery, "ice_maintenance", 1}])
+
+      assert changes.ghostwork_state == %{"mastery" => %{"ice_maintenance" => 4}}
+    end
+
+    test "clamps family mastery at a minimum of 0 when a delta would take it negative" do
+      player = %Player{ghostwork_state: %{"mastery" => %{"ice_maintenance" => 1}}}
+
+      {changes, _meta} = Effects.apply(player, [{:ghostwork_mastery, "ice_maintenance", -5}])
+
+      assert changes.ghostwork_state == %{"mastery" => %{"ice_maintenance" => 0}}
+    end
+
+    test "leaves the nodes map untouched when bumping mastery" do
+      player = %Player{
+        ghostwork_state: %{"nodes" => %{"relay" => %{"banked_layer" => 1, "hardened" => false}}}
+      }
+
+      {changes, _meta} = Effects.apply(player, [{:ghostwork_mastery, "ice_corp", 1}])
+
+      assert changes.ghostwork_state == %{
+               "mastery" => %{"ice_corp" => 1},
+               "nodes" => %{"relay" => %{"banked_layer" => 1, "hardened" => false}}
+             }
+    end
+  end
+
+  describe "apply/2 - :ghostwork_node" do
+    test "banks a layer on a missing node, defaulting hardened to false" do
+      player = %Player{ghostwork_state: %{}}
+
+      {changes, _meta} = Effects.apply(player, [{:ghostwork_node, "relay", {:bank_layer, 2}}])
+
+      assert changes.ghostwork_state == %{
+               "nodes" => %{"relay" => %{"banked_layer" => 2, "hardened" => false}}
+             }
+    end
+
+    test "hardens a missing node, defaulting banked_layer to -1" do
+      player = %Player{ghostwork_state: %{}}
+
+      {changes, _meta} = Effects.apply(player, [{:ghostwork_node, "relay", :harden}])
+
+      assert changes.ghostwork_state == %{
+               "nodes" => %{"relay" => %{"banked_layer" => -1, "hardened" => true}}
+             }
+    end
+
+    test "banking a layer preserves an existing hardened flag" do
+      player = %Player{
+        ghostwork_state: %{"nodes" => %{"relay" => %{"banked_layer" => 0, "hardened" => true}}}
+      }
+
+      {changes, _meta} = Effects.apply(player, [{:ghostwork_node, "relay", {:bank_layer, 1}}])
+
+      assert changes.ghostwork_state == %{
+               "nodes" => %{"relay" => %{"banked_layer" => 1, "hardened" => true}}
+             }
+    end
+
+    test "clears a hardened flag while preserving the banked layer" do
+      player = %Player{
+        ghostwork_state: %{"nodes" => %{"relay" => %{"banked_layer" => 1, "hardened" => true}}}
+      }
+
+      {changes, _meta} = Effects.apply(player, [{:ghostwork_node, "relay", :clear_hardened}])
+
+      assert changes.ghostwork_state == %{
+               "nodes" => %{"relay" => %{"banked_layer" => 1, "hardened" => false}}
+             }
+    end
+
+    test "mastery and node effects accumulate without clobbering each other" do
+      player = %Player{ghostwork_state: %{}}
+
+      {changes, _meta} =
+        Effects.apply(player, [
+          {:ghostwork_mastery, "ice_maintenance", 1},
+          {:ghostwork_node, "relay", {:bank_layer, 0}}
+        ])
+
+      assert changes.ghostwork_state == %{
+               "mastery" => %{"ice_maintenance" => 1},
+               "nodes" => %{"relay" => %{"banked_layer" => 0, "hardened" => false}}
+             }
+    end
+  end
+
   describe "apply/2 - :set" do
     test "sets a field to a literal value" do
       player = %Player{current_offer_key: "old_key"}

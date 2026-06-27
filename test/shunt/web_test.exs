@@ -99,6 +99,7 @@ defmodule Shunt.WebTest do
       player_with = %Player{inventory: %{"juno_parcel" => 1}}
 
       assert Shunt.World.Npcs.current_event(player_without, "shunt9_food_stalls_dex") == nil
+
       assert Shunt.World.Npcs.current_event(player_with, "shunt9_food_stalls_dex") ==
                "shunt9_bazaar_juno_deliver_parcel"
     end
@@ -112,6 +113,7 @@ defmodule Shunt.WebTest do
 
     test "talking to Juno while carrying juno_delivery_receipt routes to the report event" do
       player_without = %Player{completed_events: ["shunt9_bazaar_juno_move_package"]}
+
       player_with = %Player{
         completed_events: ["shunt9_bazaar_juno_move_package"],
         inventory: %{"juno_delivery_receipt" => 1}
@@ -130,6 +132,7 @@ defmodule Shunt.WebTest do
       assert {:inventory, "juno_delivery_receipt", -1} in effects
       assert {:scrip, scrip} = Enum.find(effects, &match?({:scrip, _}, &1))
       assert scrip > 0
+
       assert {:modify_rep, "juno", :trust, trust} =
                Enum.find(effects, &match?({:modify_rep, "juno", :trust, _}, &1))
 
@@ -180,6 +183,7 @@ defmodule Shunt.WebTest do
       player_with = %Player{inventory: %{"juno_odd_job_parcel" => 1}}
 
       assert Shunt.World.Npcs.current_event(player_without, "shunt9_food_stalls_dex") == nil
+
       assert Shunt.World.Npcs.current_event(player_with, "shunt9_food_stalls_dex") ==
                "shunt9_bazaar_juno_odd_job_deliver"
     end
@@ -208,6 +212,7 @@ defmodule Shunt.WebTest do
       assert {:inventory, "juno_odd_job_receipt", -1} in effects
       assert {:scrip, scrip} = Enum.find(effects, &match?({:scrip, _}, &1))
       assert scrip > 0
+
       assert {:modify_rep, "juno", :trust, trust} =
                Enum.find(effects, &match?({:modify_rep, "juno", :trust, _}, &1))
 

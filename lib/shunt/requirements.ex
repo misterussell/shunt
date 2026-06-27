@@ -24,4 +24,17 @@ defmodule Shunt.Requirements do
   end
 
   defp check(player, {:has_item, key}), do: Map.get(player.inventory, key, 0) >= 1
+
+  defp check(player, {:ghostwork_mastery_at_least, family, threshold}) do
+    player.ghostwork_state
+    |> Map.get("mastery", %{})
+    |> Map.get(family, 0)
+    |> Kernel.>=(threshold)
+  end
+
+  defp check(player, {:has_program, action}) do
+    player
+    |> Shunt.Ghostwork.Programs.owned()
+    |> Enum.any?(&(&1.action == action))
+  end
 end

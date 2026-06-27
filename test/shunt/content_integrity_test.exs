@@ -13,8 +13,15 @@ defmodule Shunt.ContentIntegrityTest do
     # events are written; event-level gates are the ones that can silently soft-lock an errand.
     all_requirements = Enum.flat_map(all_events, & &1.requirements)
 
-    # Collect grants from all events' on_complete
-    all_effects = Enum.flat_map(all_events, & &1.on_complete)
+    # Collect grants from all events' on_complete, plus ICE node layer rewards — a cracked
+    # Ghostwork layer dispatches its reward exactly like an event's on_complete, so a knowledge
+    # key a node grants is just as valid a gate source (e.g. "maintenance_log_decoded").
+    ice_node_rewards =
+      Content.all(:ice_nodes)
+      |> Enum.flat_map(& &1.layers)
+      |> Enum.flat_map(&Map.get(&1, :reward, []))
+
+    all_effects = Enum.flat_map(all_events, & &1.on_complete) ++ ice_node_rewards
 
     granted_items = MapSet.new(for {:inventory, k, n} <- all_effects, n > 0, do: k)
     granted_knowledge = MapSet.new(for {:knowledge, k} <- all_effects, do: k)

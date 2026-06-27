@@ -6,17 +6,74 @@
 @source "../js";
 @source "../../lib/shunt_web";
 
-/* TODO: self-host the three brief/prototype fonts in assets/fonts/ and declare them here
-   with @font-face — no external <link>/<script> is allowed per AGENTS.md. Source the
-   OFL-licensed .woff2 files for:
-     - Chakra Petch, weights 500/600/700 (display/UI labels: headers, nav, button labels)
-     - IBM Plex Mono, weights 400/500/600 (data/numeric readouts: Cred/Scrip/Heat, tier counts)
-     - Space Grotesk, weights 400/500/600 (body/flavor text: descriptions, offer text, NPC
-       dialogue — chosen over the brief's "Inter" to match what the prototype actually built)
-   Each @font-face needs font-family, font-weight, font-style: normal, font-display: swap,
-   and src: url("../fonts/<file>.woff2") format("woff2"). If outbound network access turns
-   out to be blocked when implementing this, stop and ask for the font files rather than
-   falling back to a CDN link. */
+/* Chakra Petch — display/UI labels: headers, nav, button labels */
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/chakra-petch-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/chakra-petch-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/chakra-petch-700.woff2") format("woff2");
+}
+
+/* IBM Plex Mono — data/numeric readouts: Cred/Scrip/Heat, tier counts */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/ibm-plex-mono-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/ibm-plex-mono-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/ibm-plex-mono-600.woff2") format("woff2");
+}
+
+/* Space Grotesk — body/flavor text: descriptions, offer text, NPC dialogue */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/space-grotesk-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/space-grotesk-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/space-grotesk-600.woff2") format("woff2");
+}
 
 /* A Tailwind plugin that makes "hero-#{ICON}" classes available.
    The heroicons installation itself is managed by your mix.exs */
@@ -165,8 +222,7 @@
 /* Cyberpunk component classes used by lib/shunt_web/components/chrome.ex and layouts.ex.
    All values reference the per-theme custom properties staged above (var(--cyan) etc), not
    literal hex, so switching data-theme recolors everything. Font stacks are generic
-   placeholders pending the self-hosted-fonts TODO above — mono for data readouts, a tracked
-   uppercase sans for UI labels, matching the brief's eventual font assignment. */
+   self-hosted fonts above — mono for data readouts, a tracked uppercase sans for UI labels. */
 
 .hatch,
 .btn-dead,
@@ -1658,3 +1714,466 @@
   }
 }
 
+
+/* ── Ghostwork deck (lib/shunt_web/live/ghostwork_live.ex) ─────────────────── */
+
+/* Deck panels render content flush to the hairline border without this. */
+#scan-panel,
+#nodes-panel,
+#loadout-panel,
+#codex-panel {
+  padding: 16px 18px;
+}
+
+/* Deck tether — the quiet structural device that makes location-gating visible. */
+.deck-tether {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-c);
+  font-family: ui-monospace, "SFMono-Regular", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.deck-tether-dot {
+  font-size: 9px;
+  color: var(--cyan);
+  text-shadow: 0 0 6px var(--cyan);
+}
+.deck-tether-state {
+  color: var(--text);
+}
+.deck-tether-at {
+  color: var(--cyan);
+}
+.deck-tether-rule {
+  flex: 1;
+  height: 0;
+  border-top: 1px dashed var(--border-c);
+}
+
+/* ── SIGNATURE: the lattice carrier ───────────────────────────────────────────
+   A thin oscilloscope strip at the top of the scan console: the deck "listening" to
+   the local lattice. Calm/horizontal/cyan by design so it never competes with the ICE
+   terminal's tense/segmented/red danger gauge. The scan burst (amplitude spike) is run
+   imperatively by the LatticeCarrier hook; CSS only provides the ambient drift. */
+.lattice-carrier {
+  height: 26px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-c);
+  background: var(--sunk);
+  overflow: hidden;
+}
+.lattice-carrier-trace {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.lattice-carrier-wave {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 1.4;
+  opacity: 0.5;
+}
+.lattice-carrier-flatline {
+  display: none;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.4;
+  opacity: 0.55;
+}
+.lattice-carrier--flat .lattice-carrier-wave {
+  display: none;
+}
+.lattice-carrier--flat .lattice-carrier-flatline {
+  display: inline;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lattice-carrier-wave {
+    animation: lattice-drift 6s linear infinite;
+  }
+}
+@keyframes lattice-drift {
+  to {
+    transform: translateX(-240px);
+  }
+}
+
+.ghostwork-page-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.ghostwork-main,
+.ghostwork-rail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ghostwork-scan-line {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+.ghostwork-signal-feed {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--sunk);
+  border: 1px solid var(--border-c);
+  padding: 8px 10px;
+}
+.ghostwork-signal-line {
+  color: var(--text);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+.ghostwork-signal-empty {
+  color: var(--border-c);
+  font-size: 0.82rem;
+}
+
+.ghostwork-node-row,
+.ghostwork-program-row,
+.ghostwork-mastery-row,
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-c);
+}
+.ghostwork-node-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.ghostwork-node-name {
+  color: var(--text);
+  font-weight: 600;
+}
+.ghostwork-node-family {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.ghostwork-node-hardened {
+  color: var(--amber);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+.ghostwork-node-read {
+  margin-top: 2px;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ghostwork-node-read--dark {
+  color: var(--muted);
+}
+.ghostwork-node-read--numbers,
+.ghostwork-node-read--weakness {
+  color: var(--cyan);
+}
+.ghostwork-empty {
+  color: var(--border-c);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  padding: 8px 0;
+}
+
+.ghostwork-program-name {
+  flex: 1;
+  color: var(--text);
+}
+.ghostwork-program-action {
+  color: var(--cyan);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+.ghostwork-program-stats {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.ghostwork-codex-mastery {
+  margin-bottom: 12px;
+}
+.ghostwork-mastery-family {
+  flex: 1;
+  color: var(--text);
+  font-weight: 600;
+}
+.ghostwork-mastery-cracks {
+  color: var(--muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.ghostwork-mastery-fog {
+  color: var(--cyan);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ghostwork-codex-label {
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+.title-row {
+  opacity: 0.4;
+}
+.title-row--earned {
+  opacity: 1;
+}
+.title-tier {
+  color: var(--cyan);
+  font-size: 0.72rem;
+  width: 2rem;
+}
+.title-name {
+  flex: 1;
+  color: var(--text);
+}
+.title-state {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+/* ⌁ LATTICE ambient cue on the map's current-location panel */
+.lattice-cue {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 40%, var(--border-c));
+  color: var(--cyan);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--cyan) 35%, transparent);
+}
+
+/* ── ICE terminal modal (lib/shunt_web/components/ice_terminal.ex) ─────────── */
+
+.ice-terminal-panel {
+  width: min(520px, 92vw);
+}
+.ice-terminal-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Layer descent: where you are in the node, Trace carrying through. */
+.ice-layer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ice-layer-title {
+  color: var(--text);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ice-layer-stack {
+  display: flex;
+  gap: 4px;
+}
+.ice-layer-pip {
+  width: 14px;
+  height: 3px;
+  background: var(--border-c);
+}
+.ice-layer-pip--done {
+  background: color-mix(in srgb, var(--cyan) 45%, transparent);
+}
+.ice-layer-pip--current {
+  background: var(--cyan);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 50%, transparent);
+}
+
+.ice-meters {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ice-meter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "label readout" "track track";
+  gap: 5px 8px;
+  align-items: center;
+}
+.ice-meter-label {
+  grid-area: label;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ice-meter-readout {
+  grid-area: readout;
+  color: var(--text);
+  font-size: 0.74rem;
+}
+.ice-meter-readout--trace {
+  color: var(--muted);
+}
+.ice-meter-track {
+  grid-area: track;
+  height: 8px;
+  background: var(--sunk);
+  border: 1px solid var(--border-c);
+  overflow: hidden;
+}
+.ice-meter-fill {
+  height: 100%;
+  background: var(--cyan);
+  transition: width 200ms ease-out;
+}
+
+/* Signature: Trace as a segmented detection heartbeat. */
+.ice-trace-gauge {
+  grid-area: track;
+  display: flex;
+  gap: 2px;
+}
+.ice-trace-seg {
+  flex: 1;
+  height: 12px;
+  background: var(--sunk);
+  border: 1px solid var(--border-c);
+  transition: background-color 180ms ease-out;
+}
+.ice-trace-seg--dim {
+  background: var(--sunk);
+}
+.ice-trace-seg--low {
+  background: var(--cyan);
+  border-color: var(--cyan);
+}
+.ice-trace-seg--mid {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+.ice-trace-seg--high {
+  background: var(--red);
+  border-color: var(--red);
+}
+.ice-trace-gauge--danger .ice-trace-seg--high {
+  animation: ice-trace-pulse 900ms ease-in-out infinite;
+}
+@keyframes ice-trace-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 9px 0 color-mix(in srgb, var(--red) 70%, transparent);
+  }
+}
+
+/* Fog-of-war as redaction: values un-redact as mastery rises. */
+.ice-redact {
+  display: inline-block;
+  color: color-mix(in srgb, var(--cyan) 55%, var(--muted));
+  background: color-mix(in srgb, var(--cyan) 12%, transparent);
+  letter-spacing: -0.05em;
+  user-select: none;
+}
+.ice-redact--wide {
+  letter-spacing: 0.04em;
+  padding: 0 2px;
+}
+.ice-weakness {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.ice-weakness-tell {
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ice-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ice-action {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--sunk);
+  border: 1px solid var(--border-c);
+  color: var(--text);
+  font: inherit;
+  letter-spacing: 0.04em;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease-out,
+    background-color 140ms ease-out;
+}
+.ice-action:hover {
+  border-color: var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 8%, var(--sunk));
+}
+.ice-action:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 1px;
+}
+.ice-action--retreat:hover {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 8%, var(--sunk));
+}
+.ice-action-name {
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.ice-action-cost,
+.ice-action-hint {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.ice-end-line {
+  color: var(--text);
+  font-size: 0.84rem;
+  margin-bottom: 4px;
+}
+.ice-accent--danger {
+  color: var(--red);
+}
+.ice-accent--good {
+  color: var(--cyan);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ice-meter-fill,
+  .ice-trace-seg {
+    transition: none;
+  }
+  .ice-trace-gauge--danger .ice-trace-seg--high {
+    animation: none;
+  }
+}

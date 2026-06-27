@@ -76,6 +76,23 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, :npc_progression, new_progression), meta)
   end
 
+  defp do_apply([{:ghostwork_mastery, family, delta} | rest], player, acc, meta) do
+    state = Map.get(acc, :ghostwork_state, player.ghostwork_state)
+    mastery = Map.get(state, "mastery", %{})
+    new_count = max(Map.get(mastery, family, 0) + delta, 0)
+    new_state = Map.put(state, "mastery", Map.put(mastery, family, new_count))
+    do_apply(rest, player, Map.put(acc, :ghostwork_state, new_state), meta)
+  end
+
+  defp do_apply([{:ghostwork_node, node_id, op} | rest], player, acc, meta) do
+    state = Map.get(acc, :ghostwork_state, player.ghostwork_state)
+    nodes = Map.get(state, "nodes", %{})
+    node = Map.get(nodes, node_id, %{"banked_layer" => -1, "hardened" => false})
+    new_node = apply_node_op(node, op)
+    new_state = Map.put(state, "nodes", Map.put(nodes, node_id, new_node))
+    do_apply(rest, player, Map.put(acc, :ghostwork_state, new_state), meta)
+  end
+
   defp do_apply([{:set, field, value} | rest], player, acc, meta) do
     do_apply(rest, player, Map.put(acc, field, value), meta)
   end
@@ -118,6 +135,10 @@ defmodule Shunt.Effects do
 
     do_apply(rest, player, Map.put(acc, :contacts, new_contacts), meta)
   end
+
+  defp apply_node_op(node, {:bank_layer, n}), do: Map.put(node, "banked_layer", n)
+  defp apply_node_op(node, :harden), do: Map.put(node, "hardened", true)
+  defp apply_node_op(node, :clear_hardened), do: Map.put(node, "hardened", false)
 
   defp maybe_append(list, true, item), do: list ++ [item]
   defp maybe_append(list, false, _item), do: list

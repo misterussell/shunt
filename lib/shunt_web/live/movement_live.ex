@@ -13,12 +13,14 @@ defmodule ShuntWeb.MovementLive do
   def mount(_params, _session, socket) do
     player_id = Players.get_player!().id
     player = Players.current(player_id)
+    ghostwork_tool_key = Shunt.Skills.Catalog.fetch!("ghostwork").tool_key
 
     {:ok,
      socket
      |> assign(player_id: player_id)
      |> assign(:status, nil)
      |> assign(:active_event_id, nil)
+     |> assign(:ghostwork_tool_key, ghostwork_tool_key)
      |> stream(:narrative, [], limit: -20)
      |> stream(:event_log, [], limit: -50)
      |> assign_location(player)}
@@ -128,6 +130,13 @@ defmodule ShuntWeb.MovementLive do
         <div class="map-page-rail">
           <Chrome.section_header>LOCATION</Chrome.section_header>
           <Chrome.panel id="current-location">
+            <span
+              :if={Shunt.Ghostwork.lattice_active?(@player, @location, @ghostwork_tool_key)}
+              id="lattice-cue"
+              class="lattice-cue"
+            >
+              ⌁ LATTICE
+            </span>
             <p class="location-name">{@location.name}</p>
             <p class="location-description">{@location.description}</p>
             <div :if={@points_of_interest != []} id="location-events">
