@@ -32,6 +32,34 @@ defmodule Shunt.Ghostwork do
   # Heat applied by every scan (scanning is mildly loud, like Crafting.scavenge).
   @scan_heat 4
 
+  # Earned-title milestones (doc "Progression"): a ghostwork tree tier is earned when the
+  # player holds a deck AND total cracks (sum of all family mastery) reaches the threshold.
+  # Tuning only — adjust freely. T1 "Feed Skimmer" is earned just by jacking in.
+  @title_thresholds %{1 => 0, 2 => 1, 3 => 3, 4 => 7, 5 => 15}
+
+  # TODO: nodes_at(player, location_id) -> [%{node: %IceNode{}, status: :breakable | :hardened}].
+  #   The deck is location-aware: every IceNode (Shunt.Ghostwork.IceNode.all/0) whose
+  #   :location_id == location_id, whose :requirements pass (Shunt.Requirements.met?/2), and
+  #   that is not fully cracked (banked_layer + 1 < length(layers); banked_layer default -1 from
+  #   player.ghostwork_state["nodes"][id]). status is :hardened when the node is hardened AND
+  #   player.heat >= node.cool_threshold (can't break now), otherwise :breakable.
+
+  # TODO: fog_stage(mastery_count) -> :dark | :numbers | :weakness, from @mastery_numbers /
+  #   @mastery_weakness (the same thresholds numbers_known?/weakness_known? use, but keyed off a
+  #   raw count for the Codex readout, which has no live encounter).
+
+  # TODO: mastery_summary(player) -> [%{family: String.t, cracks: integer, fog_stage: atom}] for
+  #   each family in player.ghostwork_state["mastery"], sorted by family. Drives the Codex.
+
+  # TODO: titles(player) -> [%{tier: integer, name: String.t, earned?: boolean}] from the
+  #   ghostwork skill tree's :tiers (Shunt.Skills.Catalog.fetch!("ghostwork")). earned? is true
+  #   when the player holds the deck (tree.tool_key in inventory, count >= 1) AND total cracks
+  #   (sum of player.ghostwork_state["mastery"] values) >= @title_thresholds[tier].
+
+  # TODO: lattice_active?(player, location) -> boolean for the MovementLive "⌁ LATTICE" cue:
+  #   the location map has a :lattice key AND the player holds the deck (ghostwork tree.tool_key
+  #   in inventory, count >= 1).
+
   def scan(player, location) do
     case Map.fetch(location, :lattice) do
       :error ->

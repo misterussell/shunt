@@ -19,6 +19,9 @@ defmodule ShuntWeb.Router do
 
     live "/", HubLive
     live "/map", MovementLive
+    # TODO: repoint to GhostworkLive (the deck) once Phase 4 GhostworkLive is implemented:
+    #   live "/skills/ghostwork", GhostworkLive
+    # The other three skills keep SkillsLive.
     live "/skills/ghostwork", SkillsLive, :ghostwork
     live "/skills/chrome-meat", SkillsLive, :chrome_meat
     live "/skills/the-web", SkillsLive, :web

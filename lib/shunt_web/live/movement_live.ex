@@ -128,6 +128,11 @@ defmodule ShuntWeb.MovementLive do
         <div class="map-page-rail">
           <Chrome.section_header>LOCATION</Chrome.section_header>
           <Chrome.panel id="current-location">
+            <%!-- TODO: "⌁ LATTICE" ambient cue — a single glyph (id="lattice-cue"), shown only
+              when Shunt.Ghostwork.lattice_active?(@player, @location) (location carries lattice
+              traffic AND the player holds a deck). One glyph, never a list of nodes/POIs; the
+              physical map stays clean (doc "The deck is the interaction surface"). Style as a
+              small muted-cyan chip via a .lattice-cue class in app.css. --%>
             <p class="location-name">{@location.name}</p>
             <p class="location-description">{@location.description}</p>
             <div :if={@points_of_interest != []} id="location-events">
