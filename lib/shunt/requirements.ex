@@ -32,6 +32,8 @@ defmodule Shunt.Requirements do
     |> Kernel.>=(threshold)
   end
 
-  # NOTE: {:has_program, action} from the doc is intentionally deferred to Phase 2 — it
-  # depends on the Shunt.Ghostwork.Programs catalog, which doesn't exist until then.
+  # TODO: check(player, {:has_program, action}) -> true when the player owns any program whose
+  # :action matches — Shunt.Ghostwork.Programs.owned(player) |> Enum.any?(& &1.action == action).
+  # Gates deep scan leads and high-class nodes behind owning the right tool (see doc
+  # "Requirement Reuse"). Now unblocked by the Phase 2 Programs catalog.
 end

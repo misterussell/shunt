@@ -16,7 +16,14 @@ defmodule Shunt.Content.Store do
     # category — not :raws — so scavenge/RawCatalog, recipes, and fencing never iterate them and
     # a quest item can't leak into those pools. The generic load_source/2 handles their
     # %{id, name, flavor} map shape.
-    {:quest_items, "priv/content/quest_items"}
+    {:quest_items, "priv/content/quest_items"},
+    # TODO: Ghostwork (Phase 2) — two new content categories. ICE nodes are breakable
+    # Latticework nodes (content files build %Shunt.Ghostwork.IceNode{} structs); programs are
+    # deck-software items (plain %{id, action, progress, trace, ...} maps). The generic
+    # load_source/2 handles both shapes since each entry exposes .id. Directories may be empty
+    # until Phase 5 content lands.
+    {:ice_nodes, "priv/content/ice_nodes"},
+    {:programs, "priv/content/programs"}
   ]
 
   def start_link(_opts) do
