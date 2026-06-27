@@ -82,7 +82,7 @@ defmodule ShuntWeb.Components.IceTerminal do
                 <div
                   id="ice-progress"
                   class="ice-meter-fill ice-meter-fill--progress"
-                  style={bar_style(@encounter.progress, @layer.progress_required)}
+                  style={"width: #{Shunt.Ghostwork.progress_percent(@encounter.progress, @layer.progress_required)}%"}
                 >
                 </div>
               </div>
@@ -198,11 +198,6 @@ defmodule ShuntWeb.Components.IceTerminal do
   defp end_line(:cracked), do: "Node owned. Data banked."
   defp end_line(:busted), do: "Trace maxed — connection burned. Node hardened."
   defp end_line(:retreated), do: "Pulled out clean. Banked layers kept."
-
-  defp bar_style(value, max) do
-    percent = if max > 0, do: min(100, round(value / max * 100)), else: 0
-    "width: #{percent}%"
-  end
 
   defp weakness_text(nil), do: "none"
   defp weakness_text(action), do: to_string(action)

@@ -40,9 +40,13 @@ defmodule ShuntWeb.GhostworkLive do
 
     case Players.dispatch(socket.assigns.player_id, &Ghostwork.scan(&1, location)) do
       {:ok, player, meta} ->
+        socket =
+          if meta.kind == :empty,
+            do: socket,
+            else: stream_insert(socket, :signal_feed, signal_entry(meta), at: 0)
+
         {:noreply,
          socket
-         |> stream_insert(:signal_feed, signal_entry(meta), at: 0)
          |> flash_heat_event(Map.get(meta, :heat_event))
          |> assign(:status, "SCAN // #{String.upcase(to_string(meta.kind))}")
          |> assign(:lattice_live?, true)
@@ -86,10 +90,15 @@ defmodule ShuntWeb.GhostworkLive do
   end
 
   def handle_event("act", %{"action" => action}, socket) do
-    encounter = socket.assigns.encounter
+    case socket.assigns.encounter do
+      nil -> {:noreply, socket}
+      encounter -> dispatch_act(socket, encounter, decode_action(action))
+    end
+  end
 
+  defp dispatch_act(socket, encounter, decoded) do
     resolver = fn player ->
-      case Ghostwork.act(encounter, player, decode_action(action)) do
+      case Ghostwork.act(encounter, player, decoded) do
         {:ok, updated, effects} -> {:ok, effects, %{encounter: updated}}
         {:error, reason} -> {:error, reason}
       end
@@ -105,8 +114,14 @@ defmodule ShuntWeb.GhostworkLive do
   end
 
   def handle_event("retreat", _params, socket) do
-    {:ok, encounter, _effects} = Ghostwork.retreat(socket.assigns.encounter)
-    {:noreply, assign(socket, :encounter, encounter)}
+    case socket.assigns.encounter do
+      nil ->
+        {:noreply, socket}
+
+      encounter ->
+        {:ok, updated, _effects} = Ghostwork.retreat(encounter)
+        {:noreply, assign(socket, :encounter, updated)}
+    end
   end
 
   def handle_event("close_encounter", _params, socket) do
@@ -245,6 +260,7 @@ defmodule ShuntWeb.GhostworkLive do
 
   defp decode_action("probe"), do: :probe
   defp decode_action("program:" <> id), do: {:program, id}
+  defp decode_action(_), do: :unknown
 
   defp node_count_label([]), do: "no nodes exposed"
   defp node_count_label([_]), do: "1 node exposed"

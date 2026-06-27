@@ -62,12 +62,12 @@ defmodule ShuntWeb.GhostworkLiveTest do
     %{player_id: player_id}
   end
 
-  test "the deck page renders scan and a tier-1 earned title", %{conn: conn} do
+  test "the deck page renders scan, empty loadout, and the first tier as current", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
 
     assert has_element?(view, "#scan-button")
     assert has_element?(view, "#loadout-empty")
-    assert has_element?(view, "#title-1.title-row--earned")
+    assert has_element?(view, ".ladder-segment--current")
   end
 
   test "the deck tether names the jacked-in location", %{conn: conn} do
@@ -159,5 +159,45 @@ defmodule ShuntWeb.GhostworkLiveTest do
 
     assert has_element?(view, "#ice-close")
     refute "gw_node_cracked" in Players.get_player!().knowledge
+  end
+
+  test "scanning an empty lattice does not insert a blank entry into the signal feed",
+       %{conn: conn, player_id: pid} do
+    :ets.insert(:locations, {"gw_empty_loc", %{id: "gw_empty_loc", name: "Void", lattice: %{}}})
+    on_exit(fn -> :ets.delete(:locations, "gw_empty_loc") end)
+
+    Players.dispatch(pid, fn _player ->
+      {:ok, [{:set, :location_id, "gw_empty_loc"}], %{}}
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+    view |> element("#scan-button") |> render_click()
+    view |> element("#scan-button") |> render_click()
+
+    assert has_element?(view, "#signal-feed-empty")
+  end
+
+  test "a duplicate retreat event does not crash the LiveView", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+    view |> element("#scan-button") |> render_click()
+    view |> element("#break-gw_test_node") |> render_click()
+
+    view |> element("#ice-retreat") |> render_click()
+    view |> element("#ice-close") |> render_click()
+
+    assert Process.alive?(view.pid)
+    assert has_element?(view, "#scan-button")
+  end
+
+  test "a stale act event after close does not crash the LiveView", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+    view |> element("#scan-button") |> render_click()
+    view |> element("#break-gw_test_node") |> render_click()
+
+    view |> element("#ice-retreat") |> render_click()
+    view |> element("#ice-close") |> render_click()
+
+    assert Process.alive?(view.pid)
+    assert has_element?(view, "#scan-button")
   end
 end

@@ -92,10 +92,15 @@ defmodule Shunt.Ghostwork do
     end)
   end
 
-  def lattice_active?(player, location) do
-    tree = Shunt.Skills.Catalog.fetch!("ghostwork")
-    Map.has_key?(location, :lattice) and Map.get(player.inventory, tree.tool_key, 0) >= 1
+  def lattice_active?(player, location, tool_key \\ nil) do
+    key = tool_key || Shunt.Skills.Catalog.fetch!("ghostwork").tool_key
+    Map.has_key?(location, :lattice) and Map.get(player.inventory, key, 0) >= 1
   end
+
+  def progress_percent(progress, required) when required > 0,
+    do: min(100, round(progress / required * 100))
+
+  def progress_percent(_progress, _required), do: 0
 
   def scan(player, location) do
     tree = Shunt.Skills.Catalog.fetch!("ghostwork")
@@ -125,18 +130,27 @@ defmodule Shunt.Ghostwork do
   end
 
   defp available_lead?(lead, player) do
-    Shunt.Requirements.met?(player, lead.requirements) and
-      Enum.any?(lead.on_intercept, fn
-        {:knowledge, key} -> key not in player.knowledge
-        _ -> false
-      end)
+    Shunt.Requirements.met?(player, lead.requirements) and not swept?(lead, player)
+  end
+
+  defp swept?(lead, player) do
+    case Enum.filter(lead.on_intercept, &match?({:knowledge, _}, &1)) do
+      [] -> false
+      kfx -> Enum.all?(kfx, fn {:knowledge, key} -> key in player.knowledge end)
+    end
   end
 
   defp resolve_scan([]), do: {:ok, [{:heat, @scan_heat}], %{kind: :empty, text: nil}}
 
   defp resolve_scan(filler) do
-    chosen = weighted_pick(filler)
-    {:ok, chosen.on_intercept ++ [{:heat, @scan_heat}], %{kind: :filler, text: chosen.text}}
+    case Enum.filter(filler, &(&1.weight > 0)) do
+      [] ->
+        resolve_scan([])
+
+      available ->
+        chosen = weighted_pick(available)
+        {:ok, chosen.on_intercept ++ [{:heat, @scan_heat}], %{kind: :filler, text: chosen.text}}
+    end
   end
 
   defp weighted_pick(items) do
@@ -196,18 +210,17 @@ defmodule Shunt.Ghostwork do
   defp profile(:probe, _player, _layer),
     do: {:ok, %{progress: @probe_progress, trace: @probe_trace}}
 
+  defp profile(:unknown, _player, _layer), do: {:error, :unknown_action}
+
   defp profile({:program, id}, player, layer) do
-    program = Shunt.Ghostwork.Programs.fetch!(id)
+    if Map.get(player.inventory, id, 0) >= 1 do
+      program = Shunt.Ghostwork.Programs.fetch!(id)
 
-    cond do
-      not Enum.any?(Shunt.Ghostwork.Programs.owned(player), &(&1.id == id)) ->
-        {:error, :program_not_owned}
-
-      program.action == layer.weakness ->
-        {:ok, program.on_weakness}
-
-      true ->
-        {:ok, %{progress: program.progress, trace: program.trace}}
+      if program.action == layer.weakness,
+        do: {:ok, program.on_weakness},
+        else: {:ok, %{progress: program.progress, trace: program.trace}}
+    else
+      {:error, :program_not_owned}
     end
   end
 

@@ -220,6 +220,21 @@ defmodule Shunt.GhostworkTest do
       assert {:error, :program_not_owned} =
                Ghostwork.act(enc, %Player{inventory: %{}}, {:program, "test_spoof_prog"})
     end
+
+    test "errors without crashing when the program id does not exist in the catalog" do
+      enc = %Encounter{node: ice_node(), layer_index: 0, mastery: 1}
+
+      assert {:error, :program_not_owned} =
+               Ghostwork.act(enc, %Player{inventory: %{}}, {:program, "totally_bogus_id"})
+    end
+  end
+
+  describe "act/3 with unknown action" do
+    test "returns :unknown_action error for an unrecognized action atom" do
+      enc = %Encounter{node: ice_node(), layer_index: 0, mastery: 1}
+
+      assert {:error, :unknown_action} = Ghostwork.act(enc, %Player{}, :unknown)
+    end
   end
 
   describe "retreat/1" do
@@ -434,14 +449,18 @@ defmodule Shunt.GhostworkTest do
   end
 
   describe "scan/2" do
+    test "errors without a deck" do
+      assert {:error, :no_deck} = Ghostwork.scan(%Player{}, lattice_location(%{}))
+    end
+
     test "errors when the location carries no lattice" do
-      assert {:error, :no_lattice} = Ghostwork.scan(%Player{}, %{id: "loc"})
+      assert {:error, :no_lattice} = Ghostwork.scan(with_deck(%Player{}), %{id: "loc"})
     end
 
     test "surfaces an eligible lead with its on_intercept and heat" do
       location = lattice_location(%{leads: [lead([])], filler: []})
 
-      {:ok, effects, meta} = Ghostwork.scan(%Player{}, location)
+      {:ok, effects, meta} = Ghostwork.scan(with_deck(%Player{}), location)
 
       assert {:knowledge, "relay_found"} in effects
       assert {:heat, 4} in effects
@@ -458,7 +477,7 @@ defmodule Shunt.GhostworkTest do
           filler: []
         })
 
-      {:ok, _effects, meta} = Ghostwork.scan(%Player{}, location)
+      {:ok, _effects, meta} = Ghostwork.scan(with_deck(%Player{}), location)
 
       assert meta.signal_id == "first"
     end
@@ -470,7 +489,8 @@ defmodule Shunt.GhostworkTest do
           filler: [%{weight: 1, text: "filler", on_intercept: [{:scrip, 3}]}]
         })
 
-      {:ok, effects, meta} = Ghostwork.scan(%Player{knowledge: ["relay_found"]}, location)
+      {:ok, effects, meta} =
+        Ghostwork.scan(with_deck(%Player{knowledge: ["relay_found"]}), location)
 
       assert meta.kind == :filler
       assert {:scrip, 3} in effects
@@ -483,7 +503,7 @@ defmodule Shunt.GhostworkTest do
           filler: [%{weight: 1, text: "filler", on_intercept: [{:scrip, 3}]}]
         })
 
-      {:ok, _effects, meta} = Ghostwork.scan(%Player{}, location)
+      {:ok, _effects, meta} = Ghostwork.scan(with_deck(%Player{}), location)
 
       assert meta.kind == :filler
     end
@@ -500,7 +520,7 @@ defmodule Shunt.GhostworkTest do
 
       texts =
         for _ <- 1..400 do
-          {:ok, _effects, meta} = Ghostwork.scan(%Player{}, location)
+          {:ok, _effects, meta} = Ghostwork.scan(with_deck(%Player{}), location)
           meta.text
         end
 
@@ -516,7 +536,7 @@ defmodule Shunt.GhostworkTest do
           filler: [%{weight: 1, text: "filler", on_intercept: [{:scrip, 3}]}]
         })
 
-      {:ok, effects, _meta} = Ghostwork.scan(%Player{}, location)
+      {:ok, effects, _meta} = Ghostwork.scan(with_deck(%Player{}), location)
 
       assert {:heat, 4} in effects
     end
@@ -524,17 +544,40 @@ defmodule Shunt.GhostworkTest do
     test "returns an empty scan (heat only) when no lead and no filler are available" do
       location = lattice_location(%{leads: [], filler: []})
 
-      {:ok, effects, meta} = Ghostwork.scan(%Player{}, location)
+      {:ok, effects, meta} = Ghostwork.scan(with_deck(%Player{}), location)
 
       assert effects == [{:heat, 4}]
       assert meta == %{kind: :empty, text: nil}
     end
 
     test "treats missing :leads/:filler keys as empty" do
-      {:ok, effects, meta} = Ghostwork.scan(%Player{}, lattice_location(%{}))
+      {:ok, effects, meta} = Ghostwork.scan(with_deck(%Player{}), lattice_location(%{}))
 
       assert effects == [{:heat, 4}]
       assert meta.kind == :empty
+    end
+
+    test "surfaces a lead whose on_intercept contains only non-knowledge effects" do
+      scrip_lead = lead(on_intercept: [{:scrip, 10}])
+      location = lattice_location(%{leads: [scrip_lead], filler: []})
+
+      {:ok, effects, meta} = Ghostwork.scan(with_deck(%Player{}), location)
+
+      assert meta.kind == :lead
+      assert {:scrip, 10} in effects
+    end
+
+    test "filler with all zero weights falls back to empty scan without crashing" do
+      location =
+        lattice_location(%{
+          leads: [],
+          filler: [%{weight: 0, text: "ghost", on_intercept: [{:scrip, 1}]}]
+        })
+
+      {:ok, effects, meta} = Ghostwork.scan(with_deck(%Player{}), location)
+
+      assert meta.kind == :empty
+      assert effects == [{:heat, 4}]
     end
   end
 end
