@@ -22,6 +22,7 @@ defmodule ShuntWeb.Router do
     # Ghostwork is the live deck (GhostworkLive); the other three skills keep SkillsLive.
     live "/skills/ghostwork", GhostworkLive
     live "/skills/chrome-meat", SkillsLive, :chrome_meat
+    # TODO: replace with `live "/skills/the-web", WebLive` once ShuntWeb.WebLive is implemented.
     live "/skills/the-web", SkillsLive, :web
     live "/skills/street-alchemy", SkillsLive, :street_alchemy
   end

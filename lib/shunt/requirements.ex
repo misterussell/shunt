@@ -14,6 +14,9 @@ defmodule Shunt.Requirements do
 
   defp check(player, {:knows, key}), do: key in player.knowledge
 
+  # TODO: add `defp check(player, {:has_rumor, key}), do: key in player.rumors`
+  # Gates content behind rumor possession, mirroring {:knows, key} but reading player.rumors.
+
   defp check(player, {:contact_known, key}), do: key in player.contacts
 
   defp check(player, {:rep_at_least, npc, dim, threshold}) do

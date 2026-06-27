@@ -20,6 +20,9 @@ defmodule Shunt.Players.Player do
     field :reputation, :map, default: %{}
     field :knowledge, {:array, :string}, default: []
     field :contacts, {:array, :string}, default: []
+    # TODO: add `field :rumors, {:array, :string}, default: []` here, after running the
+    # add_rumors_to_players migration. Kept separate from :knowledge so the investigation
+    # board can enumerate rumors directly without filtering all knowledge strings.
 
     field :ghostwork_state, :map, default: %{}
 
