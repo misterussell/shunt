@@ -76,6 +76,18 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, :npc_progression, new_progression), meta)
   end
 
+  # TODO: handle {:ghostwork_mastery, family, delta} — bump the per-family crack count in
+  # ghostwork_state["mastery"][family], clamped at a minimum of 0 (like :npc_progression but
+  # nested one level deeper). Read current state from acc first, falling back to
+  # player.ghostwork_state, then put the updated map back on acc under :ghostwork_state.
+
+  # TODO: handle {:ghostwork_node, node_id, op} — mutate ghostwork_state["nodes"][node_id],
+  # defaulting a missing node to %{"banked_layer" => -1, "hardened" => false}. Ops:
+  #   {:bank_layer, n} -> put "banked_layer" => n
+  #   :harden          -> put "hardened" => true
+  #   :clear_hardened  -> put "hardened" => false
+  # Same acc-or-player read pattern as above; put the updated state back on acc.
+
   defp do_apply([{:set, field, value} | rest], player, acc, meta) do
     do_apply(rest, player, Map.put(acc, field, value), meta)
   end
