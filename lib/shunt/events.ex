@@ -65,7 +65,8 @@ defmodule Shunt.Events do
         [{:set, :completed_events, new_completed}, {:set, :event_state, new_state}]
       end
 
-    {:ok, event.on_complete ++ tracking_effects, %{granted_items: granted_items(event.on_complete)}}
+    {:ok, event.on_complete ++ tracking_effects,
+     %{granted_items: granted_items(event.on_complete)}}
   end
 
   defp granted_items(effects) do

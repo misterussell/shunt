@@ -76,6 +76,32 @@ defmodule Shunt.RequirementsTest do
     end
   end
 
+  describe "met?/2 with {:ghostwork_mastery_at_least, family, n}" do
+    test "met when family mastery is at or above the threshold" do
+      player = %Player{ghostwork_state: %{"mastery" => %{"ice_corp" => 2}}}
+
+      assert Requirements.met?(player, [{:ghostwork_mastery_at_least, "ice_corp", 2}])
+    end
+
+    test "unmet when family mastery is below the threshold" do
+      player = %Player{ghostwork_state: %{"mastery" => %{"ice_corp" => 1}}}
+
+      refute Requirements.met?(player, [{:ghostwork_mastery_at_least, "ice_corp", 2}])
+    end
+
+    test "treats a missing family as 0" do
+      player = %Player{ghostwork_state: %{"mastery" => %{}}}
+
+      refute Requirements.met?(player, [{:ghostwork_mastery_at_least, "ice_corp", 1}])
+    end
+
+    test "treats absent ghostwork state as 0" do
+      refute Requirements.met?(%Player{ghostwork_state: %{}}, [
+               {:ghostwork_mastery_at_least, "ice_corp", 1}
+             ])
+    end
+  end
+
   describe "met?/2 with multiple requirements" do
     test "requires every requirement to pass" do
       player = %Player{knowledge: ["rook"], reputation: %{"juno" => %{trust: 20}}}
