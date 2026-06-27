@@ -12,17 +12,15 @@ defmodule Shunt.World.Npcs do
     progression = Map.get(player.npc_progression, npc_key, 0)
     current_arc = Enum.at(npc.story_arcs, progression)
 
-    cond do
-      current_arc != nil and current_arc not in player.completed_events ->
-        current_arc
+    if current_arc != nil and current_arc not in player.completed_events do
+      current_arc
+    else
+      conditional =
+        Enum.find(npc.conditional_events, fn event_id ->
+          Requirements.met?(player, Events.get!(event_id).requirements)
+        end)
 
-      true ->
-        conditional =
-          Enum.find(npc.conditional_events, fn event_id ->
-            Requirements.met?(player, Events.get!(event_id).requirements)
-          end)
-
-        conditional || if npc.repeatable_events != [], do: Enum.random(npc.repeatable_events)
+      conditional || if npc.repeatable_events != [], do: Enum.random(npc.repeatable_events)
     end
   end
 end
