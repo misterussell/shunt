@@ -1,5 +1,6 @@
 defmodule Shunt.WebResolveTest do
-  use ExUnit.Case, async: true
+  # Not async: mutates the shared global :rumor_connections ETS table (same as web_live_test).
+  use ExUnit.Case
 
   alias Shunt.Players.Player
   alias Shunt.Web
