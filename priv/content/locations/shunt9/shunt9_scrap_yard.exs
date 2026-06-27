@@ -46,6 +46,7 @@ alias Shunt.World.Exit
   ],
 
   events: [
+    "shunt9_scrap_yard_watchman",
     "shunt9_scrap_yard_dead_terminal"
   ],
 

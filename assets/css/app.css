@@ -1956,14 +1956,11 @@
 
 /* ⌁ LATTICE ambient cue on the map's current-location panel */
 .lattice-cue {
-  display: inline-block;
-  margin-bottom: 6px;
-  padding: 1px 6px;
-  border: 1px solid color-mix(in srgb, var(--cyan) 40%, var(--border-c));
-  color: var(--cyan);
-  font-size: 0.68rem;
-  letter-spacing: 0.12em;
-  text-shadow: 0 0 10px color-mix(in srgb, var(--cyan) 35%, transparent);
+  display: block;
+  margin-bottom: 8px;
+  color: color-mix(in srgb, var(--cyan) 55%, var(--muted));
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
 }
 
 /* ── ICE terminal modal (lib/shunt_web/components/ice_terminal.ex) ─────────── */
@@ -2176,4 +2173,358 @@
   .ice-trace-gauge--danger .ice-trace-seg--high {
     animation: none;
   }
+}
+
+/* ── The Web — Investigation Board (lib/shunt_web/live/web_live.ex) ─────────── */
+
+.rumor-card {
+  border: 1px solid var(--border-c);
+  background: linear-gradient(180deg, var(--p1), var(--p2));
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.rumor-title {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.rumor-source {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.rumor-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.rumor-tag {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+  padding: 1px 5px;
+  text-transform: uppercase;
+}
+
+.board-empty-text {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+  padding: 12px 0;
+}
+
+/* Active event panel — scoped so it doesn't fight the ghostwork event-log rules */
+#active-event .event-step-text {
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.55;
+  white-space: pre-line;
+  margin: 0 0 12px;
+}
+
+#active-event .event-choices {
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── The Web — board surface, cards, wires (Step 4 design pass) ───────────────
+   The wire is the signature: a fiber string that surges when a cluster resonates.
+   Everything around it stays quiet so that surge reads. Layout/coords are still
+   set inline by the WebBoard hook; only the look lives here. */
+
+.dev-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+/* Intake rail — collected rumors waiting to be pinned; warm edge = unprocessed. */
+.intake-rail {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px dashed var(--border-c);
+}
+
+.intake-card {
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  padding-left: 16px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.intake-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--amber);
+  opacity: 0.7;
+}
+
+.intake-card:active {
+  cursor: grabbing;
+}
+
+/* The forensic plotting surface — graph grid + inset depth + corner brackets. */
+.web-board {
+  position: relative;
+  min-height: 62vh;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-c);
+  background-color: var(--sunk);
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--cyan) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--cyan) 6%, transparent) 1px, transparent 1px);
+  background-size: 30px 30px;
+  box-shadow: inset 0 1px 0 0 var(--hi), inset 0 0 120px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.web-board::before,
+.web-board::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.web-board::before {
+  top: 6px;
+  left: 6px;
+  border-top: 2px solid var(--cyan);
+  border-left: 2px solid var(--cyan);
+}
+
+.web-board::after {
+  bottom: 6px;
+  right: 6px;
+  border-bottom: 2px solid var(--cyan);
+  border-right: 2px solid var(--cyan);
+}
+
+.wire-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.board-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.5;
+}
+
+/* Pinned evidence — fixed width, a pin dot, lifting off the surface. */
+.board-card {
+  width: 164px;
+  cursor: grab;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+  touch-action: none;
+}
+
+.board-card:active {
+  cursor: grabbing;
+}
+
+.board-card::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+/* Resonant card — echoes its surging wires. */
+.board-card[data-resonant="true"] {
+  border-color: var(--cyan);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--cyan) inset,
+    0 0 18px color-mix(in srgb, var(--cyan) 35%, transparent);
+}
+
+.board-card[data-resonant="true"]::before {
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+}
+
+/* Solved card — closed work: it settles flat into the board and recedes. */
+.board-card[data-solved="true"] {
+  cursor: default;
+  opacity: 0.3;
+  filter: saturate(0.3) brightness(0.8);
+  border-color: color-mix(in srgb, var(--green) 35%, var(--border-c));
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.board-card[data-solved="true"]::before {
+  background: var(--green);
+}
+
+.rumor-stamp {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-14deg);
+  padding: 2px 8px;
+  border: 2px solid var(--green);
+  border-radius: 2px;
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  pointer-events: none;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--green) 40%, transparent);
+}
+
+.wire-port {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 0 2px var(--sunk), 0 0 6px color-mix(in srgb, var(--cyan) 60%, transparent);
+  cursor: crosshair;
+  touch-action: none;
+  transition: box-shadow 140ms ease, transform 140ms ease;
+}
+
+.wire-port:hover {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 2px var(--sunk), 0 0 12px var(--cyan);
+}
+
+/* Wires — the signature. Default is a faint connection; resonant surges. */
+.wire {
+  stroke: color-mix(in srgb, var(--cyan) 40%, var(--muted));
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  pointer-events: stroke;
+  cursor: pointer;
+  transition: stroke 160ms ease, stroke-width 160ms ease;
+}
+
+.wire:hover {
+  stroke: var(--red);
+  stroke-width: 2.5;
+}
+
+.wire--draft {
+  stroke: var(--cyan);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+
+.wire--resonant {
+  stroke: var(--cyan);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--cyan) 75%, transparent));
+}
+
+.wire--solved {
+  stroke: color-mix(in srgb, var(--green) 25%, var(--muted));
+  stroke-width: 1.5;
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wire--resonant {
+    stroke-dasharray: 7 9;
+    animation: wire-surge 0.7s linear infinite;
+  }
+}
+
+@keyframes wire-surge {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+/* Resonance strip — a quiet alert that gives the [ CONNECT ] button its meaning. */
+.resonance-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 9px 12px;
+  border: 1px solid var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 6%, var(--sunk));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .resonance-controls {
+    animation: resonance-breathe 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes resonance-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 14px color-mix(in srgb, var(--cyan) 30%, transparent);
+  }
+}
+
+.resonance-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--cyan) 40%, transparent);
+}
+
+.resonance-eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+  animation: recblink 1.6s steps(1) infinite;
 }

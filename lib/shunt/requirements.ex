@@ -14,6 +14,8 @@ defmodule Shunt.Requirements do
 
   defp check(player, {:knows, key}), do: key in player.knowledge
 
+  defp check(player, {:has_rumor, key}), do: key in player.rumors
+
   defp check(player, {:contact_known, key}), do: key in player.contacts
 
   defp check(player, {:rep_at_least, npc, dim, threshold}) do

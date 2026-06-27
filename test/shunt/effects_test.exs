@@ -4,6 +4,17 @@ defmodule Shunt.EffectsTest do
   alias Shunt.Effects
   alias Shunt.Players.Player
 
+  describe "apply/2 - :web_board" do
+    test "sets the web_board to the given map" do
+      board = %{"positions" => %{"a" => %{"x" => 0.1, "y" => 0.2}}, "wires" => [["a", "b"]]}
+      player = %Player{}
+
+      {changes, _meta} = Effects.apply(player, [{:web_board, board}])
+
+      assert changes.web_board == board
+    end
+  end
+
   describe "apply/2 - :scrip and :cred" do
     test "adds a positive scrip delta" do
       player = %Player{scrip: 10}
@@ -428,6 +439,24 @@ defmodule Shunt.EffectsTest do
       {changes, _meta} = Effects.apply(player, [{:contact, "rose_broker"}])
 
       assert changes.contacts == ["rose_broker"]
+    end
+  end
+
+  describe "apply/2 - :rumor" do
+    test "appends a new key to a player's rumors" do
+      player = %Player{rumors: []}
+
+      {changes, _meta} = Effects.apply(player, [{:rumor, "juno_supplier"}])
+
+      assert changes.rumors == ["juno_supplier"]
+    end
+
+    test "does not duplicate a key already present in rumors" do
+      player = %Player{rumors: ["juno_supplier"]}
+
+      {changes, _meta} = Effects.apply(player, [{:rumor, "juno_supplier"}])
+
+      assert changes.rumors == ["juno_supplier"]
     end
   end
 end

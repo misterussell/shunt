@@ -33,16 +33,6 @@ defmodule ShuntWeb.SkillsLiveTest do
            )
   end
 
-  test "web renders the dormant stub panel with its stub text", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-    assert has_element?(
-             view,
-             "#skill-tree-stub",
-             "No threads pulled. The Web is listening, not talking."
-           )
-  end
-
   test "street_alchemy does not render the dormant stub, renders the crafting body", %{
     conn: conn
   } do

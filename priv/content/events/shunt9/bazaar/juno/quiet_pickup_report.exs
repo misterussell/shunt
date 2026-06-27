@@ -10,7 +10,8 @@
     {:inventory, "juno_pickup_goods", -1},
     {:modify_rep, "juno", :trust, 10},
     {:modify_rep, "juno", :favors, 1},
-    {:knowledge, "juno_secret_supplier"}
+    {:knowledge, "juno_secret_supplier"},
+    {:rumor, "juno_supplier"}
   ],
 
   steps: [

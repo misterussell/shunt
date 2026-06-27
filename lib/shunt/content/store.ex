@@ -22,7 +22,9 @@ defmodule Shunt.Content.Store do
     # %{id, action, progress, trace, ...} maps). The generic load_source/2 handles both shapes
     # since each entry exposes .id. Directories may be empty until Phase 5 content lands.
     {:ice_nodes, "priv/content/ice_nodes"},
-    {:programs, "priv/content/programs"}
+    {:programs, "priv/content/programs"},
+    {:rumors, "priv/content/rumors"},
+    {:rumor_connections, "priv/content/rumor_connections"}
   ]
 
   def start_link(_opts) do
