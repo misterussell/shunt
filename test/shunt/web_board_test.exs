@@ -65,6 +65,38 @@ defmodule Shunt.WebBoardTest do
     end
   end
 
+  describe "placed/1" do
+    test "returns {id, x, y} tuples for placed rumors, sorted by id" do
+      player = %Player{
+        web_board: %{
+          "positions" => %{
+            "b" => %{"x" => 0.2, "y" => 0.3},
+            "a" => %{"x" => 0.8, "y" => 0.9}
+          },
+          "wires" => []
+        }
+      }
+
+      assert Web.placed(player) == [{"a", 0.8, 0.9}, {"b", 0.2, 0.3}]
+    end
+
+    test "is empty for an unset board" do
+      assert Web.placed(%Player{web_board: nil}) == []
+    end
+  end
+
+  describe "wires/1" do
+    test "returns the board's wire pairs" do
+      player = %Player{web_board: %{"positions" => %{}, "wires" => [["a", "b"]]}}
+
+      assert Web.wires(player) == [["a", "b"]]
+    end
+
+    test "is empty for an unset board" do
+      assert Web.wires(%Player{web_board: nil}) == []
+    end
+  end
+
   describe "clusters/1" do
     test "groups wired placed rumors into connected components, singletons included" do
       player = %Player{
@@ -143,6 +175,33 @@ defmodule Shunt.WebBoardTest do
       player = %{board_with(@supplier_rumors) | completed_events: ["supplier_conspiracy_success"]}
 
       assert Web.resonant_clusters(player) == []
+    end
+  end
+
+  describe "solved_clusters/1" do
+    @supplier_rumors ~w(juno_supplier missing_shipments vex_debts)
+
+    defp solved_board(rumors) do
+      %Player{
+        rumors: rumors,
+        web_board: %{
+          "positions" => Map.new(rumors, &{&1, %{"x" => 0.1, "y" => 0.1}}),
+          "wires" => rumors |> Enum.chunk_every(2, 1, :discard) |> Enum.map(&Enum.sort/1)
+        }
+      }
+    end
+
+    test "returns clusters whose connection success event is completed" do
+      player = %{
+        solved_board(@supplier_rumors)
+        | completed_events: ["supplier_conspiracy_success"]
+      }
+
+      assert Web.solved_clusters(player) == [MapSet.new(@supplier_rumors)]
+    end
+
+    test "returns nothing for an exact-but-unsolved cluster" do
+      assert Web.solved_clusters(solved_board(@supplier_rumors)) == []
     end
   end
 

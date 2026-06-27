@@ -82,6 +82,16 @@ defmodule Shunt.Web do
     player.rumors -- Map.keys(board(player)["positions"])
   end
 
+  @doc "Placed rumors as {id, x, y} tuples (fractional coords), sorted by id."
+  def placed(player) do
+    board(player)["positions"]
+    |> Enum.map(fn {id, %{"x" => x, "y" => y}} -> {id, x, y} end)
+    |> Enum.sort()
+  end
+
+  @doc "The board's wire pairs."
+  def wires(player), do: board(player)["wires"]
+
   @doc """
   Connected components of the board, as a list of MapSets of rumor ids. Only placed rumors are
   considered; a wire with an unplaced endpoint is ignored. A placed rumor with no wires is its
@@ -117,12 +127,33 @@ defmodule Shunt.Web do
   near-misses).
   """
   def resonant_clusters(player) do
+    player
+    |> matched_clusters()
+    |> Enum.reject(fn {_cluster, conn} -> solved?(player, conn) end)
+  end
+
+  @doc """
+  Clusters that exactly match an already-cracked connection, as a list of MapSets. These are the
+  solved cases — stamped and locked on the board.
+  """
+  def solved_clusters(player) do
+    player
+    |> matched_clusters()
+    |> Enum.filter(fn {_cluster, conn} -> solved?(player, conn) end)
+    |> Enum.map(fn {cluster, _conn} -> cluster end)
+  end
+
+  # Clusters that exactly match an authored connection, as {cluster_set, connection} pairs. Only
+  # exact set matches qualify — partial/threshold overlaps are excluded.
+  defp matched_clusters(player) do
     connections = RumorConnection.all()
 
-    Enum.flat_map(clusters(player), fn cluster ->
+    player
+    |> clusters()
+    |> Enum.flat_map(fn cluster ->
       case Enum.find(connections, &(MapSet.new(&1.rumors) == cluster)) do
         nil -> []
-        conn -> if solved?(player, conn), do: [], else: [{cluster, conn}]
+        conn -> [{cluster, conn}]
       end
     end)
   end

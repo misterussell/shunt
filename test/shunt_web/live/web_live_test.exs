@@ -8,7 +8,7 @@ defmodule ShuntWeb.WebLiveTest do
   alias Shunt.Web.RumorConnection
 
   # Connection: a, b, c — partial_threshold: 2
-  # d, e are unrelated (no overlap with any connection — used for no-match test)
+  # d, e are unrelated (no overlap with any connection)
   setup do
     player = Shunt.Players.create_player!()
 
@@ -68,24 +68,14 @@ defmodule ShuntWeb.WebLiveTest do
       on_complete: [{:scrip, 100}]
     }
 
-    partial_event = %Event{
-      id: "test_web_partial",
-      title: "A Lead",
-      steps: [
-        %{id: "hint", text: "You're close.", choices: [%{label: "Understood", complete: true}]}
-      ],
-      on_complete: [{:rumor, "test_rumor_c"}]
-    }
-
     :ets.insert(:rumors, Enum.map(rumors, &{&1.id, &1}))
     :ets.insert(:rumor_connections, {conn.id, conn})
-    :ets.insert(:events, [{success_event.id, success_event}, {partial_event.id, partial_event}])
+    :ets.insert(:events, [{success_event.id, success_event}])
 
     on_exit(fn ->
       Enum.each(rumors, &:ets.delete(:rumors, &1.id))
       :ets.delete(:rumor_connections, conn.id)
       :ets.delete(:events, success_event.id)
-      :ets.delete(:events, partial_event.id)
     end)
 
     %{player: player}
@@ -96,96 +86,141 @@ defmodule ShuntWeb.WebLiveTest do
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
 
       assert has_element?(view, "#board-empty")
-      refute has_element?(view, "#rumor-collection")
+      refute has_element?(view, "#web-board")
     end
   end
 
-  describe "board — rumor collection" do
-    test "renders a card for each collected rumor", %{conn: conn, player: player} do
+  describe "intake rail" do
+    test "collected but unplaced rumors appear in the intake rail", %{conn: conn, player: player} do
       give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
 
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
 
-      assert has_element?(view, "#rumor-collection")
-      assert has_element?(view, "#rumor-test_rumor_a", "Intel A")
-      assert has_element?(view, "#rumor-test_rumor_b", "Intel B")
+      assert has_element?(view, "#web-board")
+      assert has_element?(view, "#intake-test_rumor_a", "Intel A")
+      assert has_element?(view, "#intake-test_rumor_b", "Intel B")
       refute has_element?(view, "#board-empty")
     end
+  end
 
-    test "does not render a card for rumors the player has not collected", %{
+  describe "place_rumor" do
+    test "moves a rumor from the intake rail onto the board", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      render_hook(view, "place_rumor", %{"id" => "test_rumor_a", "x" => "0.5", "y" => "0.5"})
+
+      assert has_element?(view, "#rumor-test_rumor_a[data-x='0.5'][data-y='0.5']")
+      refute has_element?(view, "#intake-test_rumor_a")
+    end
+
+    test "clamps out-of-range coordinates into 0.0..1.0", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      render_hook(view, "place_rumor", %{"id" => "test_rumor_a", "x" => "2.5", "y" => "-1.0"})
+
+      assert has_element?(view, "#rumor-test_rumor_a[data-x='1.0'][data-y='0.0']")
+    end
+  end
+
+  describe "move_rumor" do
+    test "repositions an already-placed rumor", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      render_hook(view, "place_rumor", %{"id" => "test_rumor_a", "x" => "0.1", "y" => "0.1"})
+      render_hook(view, "move_rumor", %{"id" => "test_rumor_a", "x" => "0.8", "y" => "0.9"})
+
+      assert has_element?(view, "#rumor-test_rumor_a[data-x='0.8'][data-y='0.9']")
+    end
+  end
+
+  describe "connect / disconnect" do
+    test "connect wires two placed rumors together", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      render_hook(view, "place_rumor", %{"id" => "test_rumor_a", "x" => "0.1", "y" => "0.1"})
+      render_hook(view, "place_rumor", %{"id" => "test_rumor_b", "x" => "0.2", "y" => "0.2"})
+      render_hook(view, "connect", %{"a" => "test_rumor_a", "b" => "test_rumor_b"})
+
+      assert Shunt.Players.get_player!().web_board["wires"] == [["test_rumor_a", "test_rumor_b"]]
+    end
+
+    test "disconnect removes the wire", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      render_hook(view, "connect", %{"a" => "test_rumor_a", "b" => "test_rumor_b"})
+      render_hook(view, "disconnect", %{"a" => "test_rumor_a", "b" => "test_rumor_b"})
+
+      assert Shunt.Players.get_player!().web_board["wires"] == []
+    end
+  end
+
+  describe "return_to_intake" do
+    test "pulls a placed rumor back to the intake rail", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      render_hook(view, "place_rumor", %{"id" => "test_rumor_a", "x" => "0.5", "y" => "0.5"})
+      render_hook(view, "return_to_intake", %{"id" => "test_rumor_a"})
+
+      assert has_element?(view, "#intake-test_rumor_a")
+      refute has_element?(view, "#rumor-test_rumor_a")
+    end
+  end
+
+  describe "resonance" do
+    test "an exact wired cluster surfaces the inline CONNECT control", %{
       conn: conn,
       player: player
     } do
-      give_player_rumors(player, ["test_rumor_a"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-      assert has_element?(view, "#rumor-test_rumor_a")
-      refute has_element?(view, "#rumor-test_rumor_b")
-    end
-  end
-
-  describe "toggle_rumor" do
-    test "clicking a rumor card selects it", %{conn: conn, player: player} do
-      give_player_rumors(player, ["test_rumor_a"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-      view |> element("#rumor-test_rumor_a") |> render_click()
-
-      assert has_element?(view, "#rumor-test_rumor_a.selected")
-    end
-
-    test "clicking a selected rumor card deselects it", %{conn: conn, player: player} do
-      give_player_rumors(player, ["test_rumor_a"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-      view |> element("#rumor-test_rumor_a") |> render_click()
-      view |> element("#rumor-test_rumor_a") |> render_click()
-
-      refute has_element?(view, "#rumor-test_rumor_a.selected")
-    end
-  end
-
-  describe "investigate button" do
-    test "is disabled when fewer than 2 rumors are selected", %{conn: conn, player: player} do
-      give_player_rumors(player, ["test_rumor_a"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-      view |> element("#rumor-test_rumor_a") |> render_click()
-
-      assert has_element?(view, "#investigate-button[disabled]")
-    end
-
-    test "is enabled once 2 or more rumors are selected", %{conn: conn, player: player} do
-      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-      view |> element("#rumor-test_rumor_a") |> render_click()
-      view |> element("#rumor-test_rumor_b") |> render_click()
-
-      refute has_element?(view, "#investigate-button[disabled]")
-    end
-  end
-
-  describe "investigate — success" do
-    test "an exact-match theory opens the success event panel", %{conn: conn, player: player} do
       give_player_rumors(player, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
 
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
 
-      view |> element("#rumor-test_rumor_a") |> render_click()
-      view |> element("#rumor-test_rumor_b") |> render_click()
-      view |> element("#rumor-test_rumor_c") |> render_click()
-      view |> element("#investigate-button") |> render_click()
+      build_cluster(view, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+
+      assert has_element?(view, "#connect-test_conn")
+      assert has_element?(view, "#rumor-test_rumor_a[data-resonant='true']")
+    end
+
+    test "a partial cluster stays silent (no CONNECT)", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b"])
+
+      refute has_element?(view, "#connect-test_conn")
+      assert has_element?(view, "#rumor-test_rumor_a[data-resonant='false']")
+    end
+  end
+
+  describe "connect_theory" do
+    test "clicking CONNECT on a resonant cluster opens the success event", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+      view |> element("#connect-test_conn") |> render_click()
 
       assert has_element?(view, "#active-event", "The pieces fit.")
     end
 
-    test "completing the success event applies rewards and closes the event panel", %{
+    test "completing the event applies rewards and locks the solved cluster", %{
       conn: conn,
       player: player
     } do
@@ -193,10 +228,8 @@ defmodule ShuntWeb.WebLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
 
-      view |> element("#rumor-test_rumor_a") |> render_click()
-      view |> element("#rumor-test_rumor_b") |> render_click()
-      view |> element("#rumor-test_rumor_c") |> render_click()
-      view |> element("#investigate-button") |> render_click()
+      build_cluster(view, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+      view |> element("#connect-test_conn") |> render_click()
 
       view
       |> element("#active-event [phx-click='event_choice']", "Continue")
@@ -204,54 +237,7 @@ defmodule ShuntWeb.WebLiveTest do
 
       refute has_element?(view, "#active-event")
       assert Shunt.Players.get_player!().scrip == 100
-    end
-  end
-
-  describe "investigate — partial" do
-    test "a partial-match theory opens the partial event panel", %{conn: conn, player: player} do
-      # Submitting a and b (2 of 3) meets partial_threshold: 2 but is not exact
-      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-      view |> element("#rumor-test_rumor_a") |> render_click()
-      view |> element("#rumor-test_rumor_b") |> render_click()
-      view |> element("#investigate-button") |> render_click()
-
-      assert has_element?(view, "#active-event", "You're close.")
-    end
-  end
-
-  describe "investigate — no match" do
-    test "a theory with no connection overlap shows the no-match status message", %{
-      conn: conn,
-      player: player
-    } do
-      # d and e have zero overlap with the connection [a, b, c]
-      give_player_rumors(player, ["test_rumor_d", "test_rumor_e"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-      view |> element("#rumor-test_rumor_d") |> render_click()
-      view |> element("#rumor-test_rumor_e") |> render_click()
-      view |> element("#investigate-button") |> render_click()
-
-      assert has_element?(view, "#status-bar", "NO MATCHING INVESTIGATION")
-    end
-  end
-
-  describe "clear" do
-    test "clicking clear deselects all selected rumors", %{conn: conn, player: player} do
-      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-      view |> element("#rumor-test_rumor_a") |> render_click()
-      view |> element("#rumor-test_rumor_b") |> render_click()
-      view |> element("#clear-button") |> render_click()
-
-      refute has_element?(view, "#rumor-test_rumor_a.selected")
-      refute has_element?(view, "#rumor-test_rumor_b.selected")
+      assert has_element?(view, "#rumor-test_rumor_a[data-solved='true']")
     end
   end
 
@@ -262,14 +248,14 @@ defmodule ShuntWeb.WebLiveTest do
       assert has_element?(view, "#seed-rumors-button")
     end
 
-    test "clicking seed rumors populates the board with rumor cards", %{conn: conn} do
+    test "clicking seed rumors populates the intake rail", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
 
       assert has_element?(view, "#board-empty")
 
       view |> element("#seed-rumors-button") |> render_click()
 
-      assert has_element?(view, "#rumor-collection")
+      assert has_element?(view, "#web-board")
       refute has_element?(view, "#board-empty")
     end
   end
@@ -290,6 +276,17 @@ defmodule ShuntWeb.WebLiveTest do
 
       assert Shunt.Players.get_player!().web_board == %{"positions" => %{}, "wires" => []}
     end
+  end
+
+  # Places every rumor and wires them into one connected cluster (chain), as the JS hook would.
+  defp build_cluster(view, rumor_ids) do
+    Enum.each(rumor_ids, fn id ->
+      render_hook(view, "place_rumor", %{"id" => id, "x" => "0.3", "y" => "0.3"})
+    end)
+
+    rumor_ids
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.each(fn [a, b] -> render_hook(view, "connect", %{"a" => a, "b" => b}) end)
   end
 
   defp give_player_rumors(player, rumor_ids) do
