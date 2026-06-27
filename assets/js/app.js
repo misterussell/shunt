@@ -26,13 +26,13 @@ import {hooks as colocatedHooks} from "phoenix-colocated/shunt"
 import topbar from "../vendor/topbar"
 import Clock from "./hooks/clock"
 import EventTerminal from "./hooks/event_terminal"
-// TODO: import LatticeCarrier from "./hooks/lattice_carrier" and add it to the hooks map below.
+import LatticeCarrier from "./hooks/lattice_carrier"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, Clock, EventTerminal},
+  hooks: {...colocatedHooks, Clock, EventTerminal, LatticeCarrier},
 })
 
 // Show progress bar on live navigation and form submits

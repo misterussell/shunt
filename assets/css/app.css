@@ -1661,18 +1661,92 @@
 
 /* ── Ghostwork deck (lib/shunt_web/live/ghostwork_live.ex) ─────────────────── */
 
-/* TODO: deck reshape styles. Add (all from existing tokens — no new hues/fonts):
-   - .deck-tether — full-width hairline-ruled strip above the grid; mono, --muted text, a
-     cyan ◉ dot; sits between the app top bar and .ghostwork-page-grid.
-   - .lattice-carrier / .lattice-carrier-trace — the SIGNATURE. Thin framed strip at the top
-     of #scan-panel; the SVG trace is dim --cyan. Ambient: a slow left-scroll drift of the
-     waveform conveying "listening to the local lattice." .lattice-carrier--flat = a dead
-     straight dash (no traffic). The scan burst is run by the JS hook, not CSS.
-     Wrap ALL motion (drift) in @media (prefers-reduced-motion: no-preference){...}; the
-     carrier must be legible and still when reduced motion is preferred.
-   - Give the deck panels (#scan-panel/#nodes-panel/#loadout-panel/#codex-panel) deliberate
-     padding (they currently render flush to the border) and the node read-status line a
-     muted/cyan treatment. Keep the rail (LOADOUT/CODEX) quiet — boldness lives in the carrier. */
+/* Deck panels render content flush to the hairline border without this. */
+#scan-panel,
+#nodes-panel,
+#loadout-panel,
+#codex-panel {
+  padding: 16px 18px;
+}
+
+/* Deck tether — the quiet structural device that makes location-gating visible. */
+.deck-tether {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-c);
+  font-family: ui-monospace, "SFMono-Regular", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.deck-tether-dot {
+  font-size: 9px;
+  color: var(--cyan);
+  text-shadow: 0 0 6px var(--cyan);
+}
+.deck-tether-state {
+  color: var(--text);
+}
+.deck-tether-at {
+  color: var(--cyan);
+}
+.deck-tether-rule {
+  flex: 1;
+  height: 0;
+  border-top: 1px dashed var(--border-c);
+}
+
+/* ── SIGNATURE: the lattice carrier ───────────────────────────────────────────
+   A thin oscilloscope strip at the top of the scan console: the deck "listening" to
+   the local lattice. Calm/horizontal/cyan by design so it never competes with the ICE
+   terminal's tense/segmented/red danger gauge. The scan burst (amplitude spike) is run
+   imperatively by the LatticeCarrier hook; CSS only provides the ambient drift. */
+.lattice-carrier {
+  height: 26px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-c);
+  background: var(--sunk);
+  overflow: hidden;
+}
+.lattice-carrier-trace {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.lattice-carrier-wave {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 1.4;
+  opacity: 0.5;
+}
+.lattice-carrier-flatline {
+  display: none;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.4;
+  opacity: 0.55;
+}
+.lattice-carrier--flat .lattice-carrier-wave {
+  display: none;
+}
+.lattice-carrier--flat .lattice-carrier-flatline {
+  display: inline;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lattice-carrier-wave {
+    animation: lattice-drift 6s linear infinite;
+  }
+}
+@keyframes lattice-drift {
+  to {
+    transform: translateX(-240px);
+  }
+}
 
 .ghostwork-page-grid {
   display: grid;
@@ -1743,6 +1817,19 @@
   color: var(--amber);
   font-size: 0.78rem;
   letter-spacing: 0.04em;
+}
+.ghostwork-node-read {
+  margin-top: 2px;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ghostwork-node-read--dark {
+  color: var(--muted);
+}
+.ghostwork-node-read--numbers,
+.ghostwork-node-read--weakness {
+  color: var(--cyan);
 }
 .ghostwork-empty {
   color: var(--border-c);

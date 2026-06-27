@@ -30,9 +30,7 @@ defmodule ShuntWeb.GhostworkLive do
      |> assign(:tree, SkillsCatalog.fetch!("ghostwork"))
      |> assign(:status, nil)
      |> assign(:encounter, nil)
-     # TODO: assign :lattice_live? (default true). It drives the carrier signature: true =
-     # ambient live trace, false = flatline. Set false in the scan handler's {:error,
-     # :no_lattice} branch and back to true on a successful scan (see handle_event/3 below).
+     |> assign(:lattice_live?, true)
      |> stream(:signal_feed, [])
      |> assign_deck(player)}
   end
@@ -42,19 +40,20 @@ defmodule ShuntWeb.GhostworkLive do
 
     case Players.dispatch(socket.assigns.player_id, &Ghostwork.scan(&1, location)) do
       {:ok, player, meta} ->
-        # TODO: on a successful scan, assign(:lattice_live?, true) and push_event(socket,
-        # "lattice:pulse", %{}) so the LatticeCarrier hook fires one amplitude burst on the
-        # carrier trace (the action-to-instrument connective tissue). assert_push_event covers it.
         {:noreply,
          socket
          |> stream_insert(:signal_feed, signal_entry(meta), at: 0)
          |> flash_heat_event(Map.get(meta, :heat_event))
          |> assign(:status, "SCAN // #{String.upcase(to_string(meta.kind))}")
-         |> assign_deck(player)}
+         |> assign(:lattice_live?, true)
+         |> assign_deck(player)
+         |> push_event("lattice:pulse", %{})}
 
       {:error, :no_lattice} ->
-        # TODO: assign(:lattice_live?, false) here so the carrier flatlines (dead dash).
-        {:noreply, assign(socket, :status, "NO LATTICE TRAFFIC HERE")}
+        {:noreply,
+         socket
+         |> assign(:status, "NO LATTICE TRAFFIC HERE")
+         |> assign(:lattice_live?, false)}
     end
   end
 
@@ -120,28 +119,44 @@ defmodule ShuntWeb.GhostworkLive do
         programs={@programs}
       />
 
-      <%!-- TODO: render a full-width deck tether above the grid: <div id="deck-tether"
-            class="deck-tether"> with a ◉ "JACKED IN" indicator, @location.name, and the
-            exposed-node count (length(@nodes)) e.g. "@ NEON_BAZAAR · 3 nodes exposed". This is
-            the quiet structural device that makes location-gating visible. Style .deck-tether
-            in app.css: hairline rule, mono, muted text, cyan ◉ dot. --%>
+      <div id="deck-tether" class="deck-tether">
+        <span class="deck-tether-dot" aria-hidden="true">◉</span>
+        <span class="deck-tether-state">JACKED IN</span>
+        <span class="deck-tether-at">@ {@location.name}</span>
+        <span class="deck-tether-rule"></span>
+        <span class="deck-tether-exposed">{node_count_label(@nodes)}</span>
+      </div>
+
       <div id="ghostwork-deck" class="ghostwork-page-grid">
         <div class="ghostwork-main">
           <Chrome.section_header secondary="⚠ DRAWS HEAT" secondary_amber>
             SCAN
           </Chrome.section_header>
           <Chrome.panel id="scan-panel">
-            <%!-- TODO: SIGNATURE — the lattice carrier. Render <div id="lattice-carrier"
-                  class={["lattice-carrier", !@lattice_live? && "lattice-carrier--flat"]}
-                  phx-hook="LatticeCarrier" phx-update="ignore"> at the top of the scan console,
-                  containing a server-rendered inline <svg class="lattice-carrier-trace"> with a
-                  horizontal oscilloscope <path>/<polyline> baseline. CSS gives it an ambient
-                  left-scrolling drift (a quiet cyan "listening" hum); the --flat modifier swaps
-                  it for a dead straight dash. The LatticeCarrier JS hook fires one amplitude
-                  burst (Web Animations API on the trace) when the server pushes "lattice:pulse",
-                  guarded by prefers-reduced-motion. Keep it thin and dim — this is the deck's
-                  one bold element and must NOT compete with the ICE terminal's danger gauge:
-                  calm/horizontal/cyan/listening vs tense/segmented/red/detection. --%>
+            <div
+              id="lattice-carrier"
+              class={["lattice-carrier", !@lattice_live? && "lattice-carrier--flat"]}
+              phx-hook="LatticeCarrier"
+              role="img"
+              aria-label={
+                if @lattice_live?,
+                  do: "local lattice carrier: live",
+                  else: "local lattice carrier: no traffic"
+              }
+            >
+              <svg
+                class="lattice-carrier-trace"
+                viewBox="0 0 240 24"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path
+                  class="lattice-carrier-wave"
+                  d="M0 12 q15 -4 30 0 q15 4 30 0 q15 -4 30 0 q15 4 30 0 q15 -4 30 0 q15 4 30 0 q15 -4 30 0 q15 4 30 0 q15 -4 30 0 q15 4 30 0 q15 -4 30 0 q15 4 30 0 q15 -4 30 0 q15 4 30 0 q15 -4 30 0 q15 4 30 0"
+                />
+                <path class="lattice-carrier-flatline" d="M0 12 H110 M118 12 H122 M130 12 H240" />
+              </svg>
+            </div>
             <p class="ghostwork-scan-line">
               Jack a probe into the local lattice and skim for stray signals.
             </p>
@@ -237,6 +252,10 @@ defmodule ShuntWeb.GhostworkLive do
   defp decode_action("probe"), do: :probe
   defp decode_action("program:" <> id), do: {:program, id}
 
+  defp node_count_label([]), do: "no nodes exposed"
+  defp node_count_label([_]), do: "1 node exposed"
+  defp node_count_label(nodes), do: "#{length(nodes)} nodes exposed"
+
   defp fog_label(:dark), do: "dark"
   defp fog_label(:numbers), do: "numbers"
   defp fog_label(:weakness), do: "weakness"
@@ -246,10 +265,9 @@ defmodule ShuntWeb.GhostworkLive do
   end
 
   defp assign_deck(socket, player) do
-    # TODO: assign :location = World.get_location(player.location_id) so the deck tether can
-    # name the physical place the body is jacked in from (the location-gating truth made visible).
     socket
     |> assign(:player, player)
+    |> assign(:location, World.get_location(player.location_id))
     |> assign(:current_tier, SkillsCatalog.current_tier(player, socket.assigns.tree))
     |> assign(:nodes, Ghostwork.nodes_at(player, player.location_id))
     |> assign(:programs, Ghostwork.Programs.owned(player))

@@ -70,6 +70,38 @@ defmodule ShuntWeb.GhostworkLiveTest do
     assert has_element?(view, "#title-1.title-row--earned")
   end
 
+  test "the deck tether names the jacked-in location", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+
+    assert has_element?(view, "#deck-tether", "Relay Vault")
+  end
+
+  test "the lattice carrier is live and bursts on a successful scan", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+
+    assert has_element?(view, "#lattice-carrier")
+    refute has_element?(view, "#lattice-carrier.lattice-carrier--flat")
+
+    view |> element("#scan-button") |> render_click()
+
+    assert_push_event(view, "lattice:pulse", %{})
+  end
+
+  test "the carrier flatlines where there is no lattice traffic", %{conn: conn, player_id: pid} do
+    :ets.insert(
+      :locations,
+      {"gw_dead_loc", %{id: "gw_dead_loc", name: "Dead Air", description: "Silence."}}
+    )
+
+    on_exit(fn -> :ets.delete(:locations, "gw_dead_loc") end)
+    Players.dispatch(pid, fn _player -> {:ok, [{:set, :location_id, "gw_dead_loc"}], %{}} end)
+
+    {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+    view |> element("#scan-button") |> render_click()
+
+    assert has_element?(view, "#lattice-carrier.lattice-carrier--flat")
+  end
+
   test "a node stays hidden until a scan reveals it", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
 

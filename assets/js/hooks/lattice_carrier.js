@@ -5,10 +5,24 @@
 // a transient class), guarded by prefers-reduced-motion.
 export default {
   mounted() {
-    // TODO: handleEvent("lattice:pulse", ...) -> if prefers-reduced-motion is "no-preference",
-    // run a brief amplitude burst on the .lattice-carrier-trace element via el.animate(...)
-    // (e.g. transform: scaleY(1) -> scaleY(~2.4) -> scaleY(1) over ~700ms, transform-origin
-    // center). Do nothing when reduced motion is preferred. No-op if the carrier is flatlined
-    // (.lattice-carrier--flat present).
+    this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
+    this.handleEvent("lattice:pulse", () => this.burst())
+  },
+
+  burst() {
+    if (this.reducedMotion.matches) return
+    if (this.el.classList.contains("lattice-carrier--flat")) return
+
+    const trace = this.el.querySelector(".lattice-carrier-trace")
+    if (!trace) return
+
+    trace.animate(
+      [
+        {transform: "scaleY(1)", opacity: 1},
+        {transform: "scaleY(2.6)", opacity: 1, offset: 0.25},
+        {transform: "scaleY(1)", opacity: 1}
+      ],
+      {duration: 700, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)"}
+    )
   }
 }
