@@ -34,11 +34,7 @@ defmodule Shunt.Requirements do
     |> Kernel.>=(threshold)
   end
 
-  # TODO: add a `{:infra_state, id, state}` check returning
-  #   `Shunt.Repair.state(player, id) == state`. This is the keystone for world-state
-  #   changes: exits/events/NPC conditional_events gate on a repairable's state with no
-  #   bespoke unlock code (e.g. a maintenance-bay exit requires {:infra_state, gen, "repaired"};
-  #   Coil's "generator's acting up" line requires {:infra_state, gen, "broken"}).
+  defp check(player, {:infra_state, id, state}), do: Shunt.Repair.state(player, id) == state
 
   defp check(player, {:has_program, action}) do
     player

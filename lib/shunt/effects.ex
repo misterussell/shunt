@@ -93,9 +93,10 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, :ghostwork_state, new_state), meta)
   end
 
-  # TODO: add a `{:infrastructure, id, state}` clause that sets player.infrastructure[id] =
-  #   state, threading through acc like the other map-field clauses (see :ghostwork_mastery).
-  #   Emitted by Shunt.Repair.repair/3 to persist Broken/Patched/Repaired transitions.
+  defp do_apply([{:infrastructure, id, state} | rest], player, acc, meta) do
+    current = Map.get(acc, :infrastructure, player.infrastructure)
+    do_apply(rest, player, Map.put(acc, :infrastructure, Map.put(current, id, state)), meta)
+  end
 
   defp do_apply([{:set, field, value} | rest], player, acc, meta) do
     do_apply(rest, player, Map.put(acc, field, value), meta)

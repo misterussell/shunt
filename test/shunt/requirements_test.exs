@@ -22,6 +22,20 @@ defmodule Shunt.RequirementsTest do
     end
   end
 
+  describe "met?/2 with {:infra_state, id, state}" do
+    test "met when the repairable is in the given state" do
+      player = %Player{infrastructure: %{"gen" => "repaired"}}
+
+      assert Requirements.met?(player, [{:infra_state, "gen", "repaired"}])
+    end
+
+    test "unmet when the repairable is in a different state" do
+      player = %Player{infrastructure: %{"gen" => "broken"}}
+
+      refute Requirements.met?(player, [{:infra_state, "gen", "repaired"}])
+    end
+  end
+
   describe "met?/2 with {:contact_known, key}" do
     test "met when the key is in player.contacts" do
       player = %Player{contacts: ["rose_broker"]}

@@ -29,10 +29,9 @@ defmodule Shunt.Players.Player do
 
     field :ghostwork_state, :map, default: %{}
 
-    # TODO: add `field :infrastructure, :map, default: %{}` mapping repairable_id =>
-    #   "broken" | "patched" | "repaired". Absence of a key means the repairable's
-    #   initial_state (resolved by Shunt.Repair.state/2). Backed by the
-    #   add_infrastructure_to_players migration.
+    # repairable_id => "broken" | "patched" | "repaired". Absence of a key means the
+    # repairable's initial_state (resolved by Shunt.Repair.state/2).
+    field :infrastructure, :map, default: %{}
 
     field :location_id, :string, default: "shunt9_player_squat"
     field :discovered_locations, {:array, :string}, default: []
