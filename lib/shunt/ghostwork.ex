@@ -22,15 +22,15 @@ defmodule Shunt.Ghostwork do
   @trace_bust 100
 
   # Bust Heat = base + per-layer * layer_index (deeper busts hurt more).
-  @bust_heat_base 12
-  @bust_heat_per_layer 4
+  @bust_heat_base 8
+  @bust_heat_per_layer 3
 
   # Mastery fog-of-war thresholds (per-family crack count).
   @mastery_numbers 1
   @mastery_weakness 3
 
   # Heat applied by every scan (scanning is mildly loud, like Crafting.scavenge).
-  @scan_heat 4
+  @scan_heat 2
 
   # Earned-title milestones (doc "Progression"): a ghostwork tree tier is earned when the
   # player holds a deck AND total cracks (sum of all family mastery) reaches the threshold.

@@ -6,7 +6,7 @@ defmodule Shunt.Npcs do
 
   @flesh_tithe_input_raw_key "cracked_bone_plate"
   @flesh_tithe_gain_scrip 15
-  @flesh_tithe_heat_cost 5
+  @flesh_tithe_heat_cost 3
   @flesh_tithe_npc_key "mother_graft"
   @loyalty_gain 5
 

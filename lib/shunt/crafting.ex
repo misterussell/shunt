@@ -7,7 +7,7 @@ defmodule Shunt.Crafting do
 
   def scavenge(%Player{}) do
     raw = Enum.random(RawCatalog.items())
-    {:ok, [{:inventory, raw.id, 1}, {:heat, 4}], %{gained_raw: raw.id}}
+    {:ok, [{:inventory, raw.id, 1}, {:heat, 2}], %{gained_raw: raw.id}}
   end
 
   def craftable?(%Player{} = player, recipe) do

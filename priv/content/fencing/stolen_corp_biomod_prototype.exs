@@ -4,7 +4,7 @@
   tier: :hot,
   buy_cost: 55,
   sell_value: 110,
-  heat_cost: 28,
+  heat_cost: 18,
   cred_gain: 4,
   offer_text:
     "Sealed casing, corp serials filed off. Whoever lost this is already looking for it.",

@@ -48,18 +48,18 @@ defmodule Shunt.HeatTest do
       assert Heat.resolve(65, 50) == {50, nil}
     end
 
-    test "fires a :low event and drops heat to 25 when crossing upward into :low" do
-      assert {25, event} = Heat.resolve(10, 35)
+    test "fires a :low event and pins heat to the low threshold when crossing upward into :low" do
+      assert {30, event} = Heat.resolve(10, 35)
       assert event.band == :low
     end
 
-    test "fires a :medium event and drops heat to 55 when crossing upward into :medium" do
-      assert {55, event} = Heat.resolve(40, 65)
+    test "fires a :medium event and pins heat to the medium threshold when crossing upward into :medium" do
+      assert {60, event} = Heat.resolve(40, 65)
       assert event.band == :medium
     end
 
-    test "fires a :high event and drops heat to 80 when crossing upward into :high" do
-      assert {80, event} = Heat.resolve(70, 90)
+    test "fires a :high event and pins heat to the high threshold when crossing upward into :high" do
+      assert {85, event} = Heat.resolve(70, 90)
       assert event.band == :high
     end
   end

@@ -7,10 +7,10 @@ defmodule Shunt.CraftingTest do
   alias Shunt.Players.Player
 
   describe "scavenge/1" do
-    test "returns effects for a random raw and a heat increase of 4, naming the raw gained" do
+    test "returns effects for a random raw and a heat increase of 2, naming the raw gained" do
       player = %Player{}
 
-      assert {:ok, [{:inventory, key, 1}, {:heat, 4}], %{gained_raw: key}} =
+      assert {:ok, [{:inventory, key, 1}, {:heat, 2}], %{gained_raw: key}} =
                Crafting.scavenge(player)
 
       raw_keys = Enum.map(RawCatalog.items(), & &1.id)

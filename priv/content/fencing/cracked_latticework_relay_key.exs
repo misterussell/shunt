@@ -4,7 +4,7 @@
   tier: :warm,
   buy_cost: 30,
   sell_value: 55,
-  heat_cost: 15,
+  heat_cost: 10,
   cred_gain: 3,
   offer_text:
     "A stolen access token. Somewhere uptown, it's still pinging for a body that isn't yours.",

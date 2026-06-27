@@ -22,7 +22,7 @@ defmodule Shunt.Heat do
 
     if @band_rank[new_band] > @band_rank[old_band] do
       event = Enum.random(Catalog.events_for_band(new_band))
-      {threshold_for(new_band) - 5, event}
+      {threshold_for(new_band), event}
     else
       {new_heat, nil}
     end

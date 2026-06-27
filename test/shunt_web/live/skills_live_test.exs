@@ -149,7 +149,7 @@ defmodule ShuntWeb.SkillsLiveTest do
 
     assert html =~ "Scrip"
     assert has_element?(view, "#flash-error")
-    assert Shunt.Players.get_player!().heat == 80
+    assert Shunt.Players.get_player!().heat == 85
   end
 
   test "the assembled section shows a BENCH CLEAN empty state when nothing is assembled", %{

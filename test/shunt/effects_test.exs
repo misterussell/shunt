@@ -54,7 +54,7 @@ defmodule Shunt.EffectsTest do
       {changes, meta} = Effects.apply(player, [{:heat, 30}, {:scrip, 15}, {:cred, 3}])
 
       assert meta.heat_event.band == :high
-      assert changes.heat == 80
+      assert changes.heat == 85
       assert changes.scrip == max(100 + 15 - meta.heat_event.scrip_loss, 0)
       assert changes.cred == max(20 + 3 - meta.heat_event.cred_loss, 0)
     end
@@ -328,7 +328,7 @@ defmodule Shunt.EffectsTest do
         ])
 
       assert meta.heat_event.band == :high
-      assert changes.heat == 80
+      assert changes.heat == 85
       assert changes.scrip == max(100 + 15 - meta.heat_event.scrip_loss, 0)
       assert changes.cred == max(20 + 3 - meta.heat_event.cred_loss, 0)
       assert changes.held_item_key == nil

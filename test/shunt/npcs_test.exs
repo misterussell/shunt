@@ -114,7 +114,7 @@ defmodule Shunt.NpcsTest do
                {:ok,
                 [
                   {:inventory, "cracked_bone_plate", -1},
-                  {:heat, 5},
+                  {:heat, 3},
                   {:scrip, 15},
                   {:npc_loyalty, "mother_graft", 5}
                 ]}

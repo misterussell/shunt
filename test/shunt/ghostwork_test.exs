@@ -159,7 +159,7 @@ defmodule Shunt.GhostworkTest do
 
       assert enc2.status == :busted
       assert enc2.trace == 100
-      assert {:heat, 12} in effects
+      assert {:heat, 8} in effects
       assert {:ghostwork_node, "relay", :harden} in effects
     end
 
@@ -168,7 +168,7 @@ defmodule Shunt.GhostworkTest do
 
       {:ok, _enc2, effects} = Ghostwork.act(enc, %Player{}, :probe)
 
-      assert {:heat, 16} in effects
+      assert {:heat, 11} in effects
     end
 
     test "a bust takes priority over a same-action crack" do
@@ -463,7 +463,7 @@ defmodule Shunt.GhostworkTest do
       {:ok, effects, meta} = Ghostwork.scan(with_deck(%Player{}), location)
 
       assert {:knowledge, "relay_found"} in effects
-      assert {:heat, 4} in effects
+      assert {:heat, 2} in effects
       assert meta == %{kind: :lead, signal_id: "relay_signal", text: "relay text"}
     end
 
@@ -538,7 +538,7 @@ defmodule Shunt.GhostworkTest do
 
       {:ok, effects, _meta} = Ghostwork.scan(with_deck(%Player{}), location)
 
-      assert {:heat, 4} in effects
+      assert {:heat, 2} in effects
     end
 
     test "returns an empty scan (heat only) when no lead and no filler are available" do
@@ -546,14 +546,14 @@ defmodule Shunt.GhostworkTest do
 
       {:ok, effects, meta} = Ghostwork.scan(with_deck(%Player{}), location)
 
-      assert effects == [{:heat, 4}]
+      assert effects == [{:heat, 2}]
       assert meta == %{kind: :empty, text: nil}
     end
 
     test "treats missing :leads/:filler keys as empty" do
       {:ok, effects, meta} = Ghostwork.scan(with_deck(%Player{}), lattice_location(%{}))
 
-      assert effects == [{:heat, 4}]
+      assert effects == [{:heat, 2}]
       assert meta.kind == :empty
     end
 
@@ -577,7 +577,7 @@ defmodule Shunt.GhostworkTest do
       {:ok, effects, meta} = Ghostwork.scan(with_deck(%Player{}), location)
 
       assert meta.kind == :empty
-      assert effects == [{:heat, 4}]
+      assert effects == [{:heat, 2}]
     end
   end
 end
