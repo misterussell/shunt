@@ -81,6 +81,13 @@ defmodule ShuntWeb.GhostworkLiveTest do
     assert has_element?(view, "#break-gw_test_node")
   end
 
+  test "a revealed node shows its read status, dark before any mastery", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+    view |> element("#scan-button") |> render_click()
+
+    assert has_element?(view, "#node-read-gw_test_node.ghostwork-node-read--dark")
+  end
+
   test "breaking a node opens the ICE terminal", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
     view |> element("#scan-button") |> render_click()

@@ -162,18 +162,19 @@ defmodule ShuntWeb.GhostworkLive do
               NO NODES IN RANGE · scan for signals
             </p>
             <div
-              :for={%{node: node, status: status} <- @nodes}
+              :for={%{node: node, status: status, read: read} <- @nodes}
               id={"node-#{node.id}"}
               class="ghostwork-node-row"
             >
               <div class="ghostwork-node-info">
                 <span class="ghostwork-node-name">{node.name}</span>
                 <span class="ghostwork-node-family">{node.family}</span>
-                <%!-- TODO: render a read-status line driven by the node entry's :read fog stage
-                      (from nodes_at/2): "read · dark" (muted) when :dark, "read · numbers"
-                      / "read · weakness" (cyan) once mastery has un-fogged it. Reuse fog_label/1.
-                      This is the visible link between a NODES row and CODEX mastery. Note the
-                      :for above must destructure read alongside node/status. --%>
+                <span
+                  id={"node-read-#{node.id}"}
+                  class={["ghostwork-node-read", "ghostwork-node-read--#{read}"]}
+                >
+                  read · {fog_label(read)}
+                </span>
               </div>
               <%= if status == :breakable do %>
                 <Chrome.btn
