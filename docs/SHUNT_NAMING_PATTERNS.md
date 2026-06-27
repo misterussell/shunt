@@ -142,7 +142,7 @@ Examples:
 * Docker
 * Ash
 
-Avoid excessive cyberpunk clichés.
+Avoid excessive cyberpunk clichés. Don't rely on occupational nicknames, use sparingly.
 
 ---
 
