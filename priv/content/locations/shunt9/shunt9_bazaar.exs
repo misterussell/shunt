@@ -17,8 +17,39 @@ alias Shunt.World.Exit
 
   graph_position: {250, 400},
 
+  lattice: %{
+    leads: [
+      %{
+        id: "vendor_squeeze_signal",
+        requirements: [],
+        text:
+          "Under the market's open chatter, a tight little data loop — stall IDs and a recurring debit none of the vendors will name out loud.",
+        on_intercept: [{:rumor, "vendor_squeeze"}]
+      }
+    ],
+    filler: [
+      %{
+        weight: 3,
+        text: "A wash of haggling and terminal pings, too many voices to pull one clear.",
+        on_intercept: []
+      },
+      %{
+        weight: 2,
+        text: "Loose credit fragments drift past on an unsecured till feed.",
+        on_intercept: [{:scrip, 3}]
+      },
+      %{
+        weight: 2,
+        text: "Two stalls negotiating a trade in the clear. Nothing you can use — but you hear how the market breathes.",
+        on_intercept: []
+      }
+    ]
+  },
+
   npcs: [
-    "shunt9_bazaar_juno"
+    "shunt9_bazaar_juno",
+    "shunt9_bazaar_wrench",
+    "shunt9_bazaar_nickel"
   ],
 
   exits: [

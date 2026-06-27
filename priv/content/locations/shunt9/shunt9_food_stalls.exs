@@ -17,8 +17,30 @@ alias Shunt.World.Exit
 
   graph_position: {250, 570},
 
+  lattice: %{
+    leads: [],
+    filler: [
+      %{
+        weight: 3,
+        text: "Order chatter and the hiss of woks drowns the channel. People here talk with their mouths, not their decks.",
+        on_intercept: []
+      },
+      %{
+        weight: 2,
+        text: "A vendor's tab-reader leaks a few stray credit fragments onto the open feed.",
+        on_intercept: [{:scrip, 2}]
+      },
+      %{
+        weight: 2,
+        text: "Snatches of gossip riding a cheap comm — debts, grudges, who's short on supply this week.",
+        on_intercept: []
+      }
+    ]
+  },
+
   npcs: [
-    "shunt9_food_stalls_dex"
+    "shunt9_food_stalls_dex",
+    "shunt9_food_stalls_ladle"
   ],
 
   events: [
