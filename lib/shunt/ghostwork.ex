@@ -98,11 +98,18 @@ defmodule Shunt.Ghostwork do
   end
 
   def scan(player, location) do
-    case Map.fetch(location, :lattice) do
-      :error ->
+    tree = Shunt.Skills.Catalog.fetch!("ghostwork")
+    deck? = Map.get(player.inventory, tree.tool_key, 0) >= 1
+
+    cond do
+      not deck? ->
+        {:error, :no_deck}
+
+      not Map.has_key?(location, :lattice) ->
         {:error, :no_lattice}
 
-      {:ok, lattice} ->
+      true ->
+        lattice = Map.fetch!(location, :lattice)
         leads = Map.get(lattice, :leads, [])
         filler = Map.get(lattice, :filler, [])
 

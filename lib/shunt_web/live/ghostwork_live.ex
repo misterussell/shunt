@@ -49,6 +49,12 @@ defmodule ShuntWeb.GhostworkLive do
          |> assign_deck(player)
          |> push_event("lattice:pulse", %{})}
 
+      {:error, :no_deck} ->
+        {:noreply,
+         socket
+         |> assign(:status, "NO DECK · acquire a ghostdeck to scan")
+         |> assign(:lattice_live?, false)}
+
       {:error, :no_lattice} ->
         {:noreply,
          socket
@@ -230,18 +236,6 @@ defmodule ShuntWeb.GhostworkLive do
                 <span class="ghostwork-mastery-fog">fog: {fog_label(m.fog_stage)}</span>
               </div>
             </div>
-            <div class="ghostwork-codex-titles">
-              <p class="ghostwork-codex-label">TITLES</p>
-              <div
-                :for={title <- @titles}
-                id={"title-#{title.tier}"}
-                class={["title-row", title.earned? && "title-row--earned"]}
-              >
-                <span class="title-tier">T{title.tier}</span>
-                <span class="title-name">{title.name}</span>
-                <span class="title-state">{if title.earned?, do: "[earned]", else: "[locked]"}</span>
-              </div>
-            </div>
           </Chrome.panel>
         </div>
       </div>
@@ -257,7 +251,7 @@ defmodule ShuntWeb.GhostworkLive do
   defp node_count_label(nodes), do: "#{length(nodes)} nodes exposed"
 
   defp fog_label(:dark), do: "dark"
-  defp fog_label(:numbers), do: "numbers"
+  defp fog_label(:numbers), do: "P/T mapped"
   defp fog_label(:weakness), do: "weakness"
 
   defp signal_entry(meta) do
@@ -272,7 +266,6 @@ defmodule ShuntWeb.GhostworkLive do
     |> assign(:nodes, Ghostwork.nodes_at(player, player.location_id))
     |> assign(:programs, Ghostwork.Programs.owned(player))
     |> assign(:mastery, Ghostwork.mastery_summary(player))
-    |> assign(:titles, Ghostwork.titles(player))
   end
 
   defp flash_heat_event(socket, nil), do: socket
