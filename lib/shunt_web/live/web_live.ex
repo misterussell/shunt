@@ -138,6 +138,7 @@ defmodule ShuntWeb.WebLive do
         </div>
 
         <div :if={@resonant != []} id="resonance-controls" class="resonance-controls">
+          <span class="resonance-eyebrow">Resonance</span>
           <Chrome.btn
             :for={{_cluster, conn} <- @resonant}
             id={"connect-#{conn.id}"}
@@ -149,25 +150,15 @@ defmodule ShuntWeb.WebLive do
           </Chrome.btn>
         </div>
 
-        <%!-- Temporary functional boundary/hint so the drop zone is discoverable while testing
-              the mechanics; the Step 4 frontend-design pass owns the real surface. --%>
         <div
           id="web-board"
-          class="web-board relative min-h-[60vh] rounded border-2 border-dashed border-zinc-600"
+          class="web-board"
           phx-hook="WebBoard"
           data-wires={Jason.encode!(@wires)}
         >
           <%!-- JS-owned wire layer: ignored so morphdom leaves the hook's drawn paths alone. --%>
-          <svg
-            id="wire-layer"
-            class="wire-layer pointer-events-none absolute inset-0 h-full w-full"
-            phx-update="ignore"
-          >
-          </svg>
-          <p
-            :if={@placed == []}
-            class="board-hint pointer-events-none absolute inset-0 flex items-center justify-center text-zinc-500"
-          >
+          <svg id="wire-layer" class="wire-layer" phx-update="ignore"></svg>
+          <p :if={@placed == []} class="board-hint">
             DRAG RUMORS HERE TO INVESTIGATE
           </p>
           <div
@@ -185,6 +176,7 @@ defmodule ShuntWeb.WebLive do
             <div :if={card.rumor.tags != []} class="rumor-tags">
               <span :for={tag <- card.rumor.tags} class="rumor-tag">{tag}</span>
             </div>
+            <span :if={card.solved} class="rumor-stamp">SOLVED</span>
           </div>
         </div>
       <% end %>

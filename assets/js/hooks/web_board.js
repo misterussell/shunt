@@ -65,7 +65,8 @@ export default {
       card.style.left = `${parseFloat(card.dataset.x) * 100}%`
       card.style.top = `${parseFloat(card.dataset.y) * 100}%`
       card.style.transform = "translate(-50%, -50%)"
-      card.style.zIndex = "1"
+      // Solved cards recede beneath live ones so a dragged card always reads on top.
+      card.style.zIndex = card.dataset.solved === "true" ? "0" : "1"
       this.ensurePort(card)
     })
   },
@@ -77,16 +78,6 @@ export default {
     const port = document.createElement("div")
     port.dataset.port = ""
     port.className = "wire-port"
-    Object.assign(port.style, {
-      position: "absolute",
-      top: "-6px",
-      right: "-6px",
-      width: "12px",
-      height: "12px",
-      borderRadius: "50%",
-      background: "#0ff",
-      cursor: "crosshair"
-    })
     card.appendChild(port)
   },
 
@@ -113,12 +104,10 @@ export default {
         "class",
         ["wire", resonant && "wire--resonant", solved && "wire--solved"].filter(Boolean).join(" ")
       )
-      line.style.stroke = solved ? "#666" : resonant ? "#0ff" : "#888"
-      line.style.strokeWidth = "2"
 
+      // Solved wires are locked (.wire--solved sets pointer-events: none); only live wires
+      // are clickable to disconnect.
       if (!solved) {
-        line.style.pointerEvents = "stroke"
-        line.style.cursor = "pointer"
         line.addEventListener("click", () => this.pushEvent("disconnect", {a, b}))
       }
       this.svg.appendChild(line)
@@ -218,9 +207,7 @@ export default {
 
     const line = document.createElementNS(SVG_NS, "line")
     line.setAttribute("data-temp-wire", "")
-    line.style.stroke = "#0ff"
-    line.style.strokeWidth = "2"
-    line.style.pointerEvents = "none"
+    line.setAttribute("class", "wire wire--draft")
     this.svg.appendChild(line)
 
     this.wire = {fromId: card.dataset.rumorId, line}
