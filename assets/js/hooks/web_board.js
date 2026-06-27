@@ -21,7 +21,6 @@ const clampUnit = (n) => Math.max(0, Math.min(1, n))
 
 export default {
   mounted() {
-    this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
     this.boundIntake = new WeakSet()
 
     // The wire layer is server-rendered with phx-update="ignore" (project guideline: a hook that

@@ -2177,25 +2177,12 @@
 
 /* ── The Web — Investigation Board (lib/shunt_web/live/web_live.ex) ─────────── */
 
-.rumor-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
 .rumor-card {
   border: 1px solid var(--border-c);
   background: linear-gradient(180deg, var(--p1), var(--p2));
   padding: 12px 14px;
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease;
-}
-
-.rumor-card.selected {
-  border-color: var(--cyan);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--cyan) 10%, var(--p1)), var(--p2));
-  box-shadow: 0 0 0 1px var(--cyan) inset;
 }
 
 .rumor-title {
@@ -2229,28 +2216,12 @@
   text-transform: uppercase;
 }
 
-.theory-controls {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
 .board-empty-text {
   font-size: 12px;
   letter-spacing: 0.1em;
   color: var(--muted);
   text-transform: uppercase;
   padding: 12px 0;
-}
-
-.status-bar {
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--amber);
-  border: 1px solid var(--border-c);
-  padding: 8px 12px;
-  background: var(--sunk);
-  text-transform: uppercase;
 }
 
 /* Active event panel — scoped so it doesn't fight the ghostwork event-log rules */
