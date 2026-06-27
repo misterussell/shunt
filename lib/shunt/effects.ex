@@ -97,17 +97,8 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, field, value), meta)
   end
 
-  defp do_apply([{:discover_location, location_key} | rest], player, acc, meta) do
-    current_discovered = Map.get(acc, :discovered_locations, player.discovered_locations)
-
-    new_discovered =
-      if location_key in current_discovered do
-        current_discovered
-      else
-        current_discovered ++ [location_key]
-      end
-
-    do_apply(rest, player, Map.put(acc, :discovered_locations, new_discovered), meta)
+  defp do_apply([{:discover_location, key} | rest], player, acc, meta) do
+    append_distinct(rest, player, acc, meta, :discovered_locations, key)
   end
 
   defp do_apply([{:modify_rep, npc, dim, delta} | rest], player, acc, meta) do
@@ -119,30 +110,15 @@ defmodule Shunt.Effects do
   end
 
   defp do_apply([{:knowledge, key} | rest], player, acc, meta) do
-    current_knowledge = Map.get(acc, :knowledge, player.knowledge)
-
-    new_knowledge =
-      if key in current_knowledge, do: current_knowledge, else: current_knowledge ++ [key]
-
-    do_apply(rest, player, Map.put(acc, :knowledge, new_knowledge), meta)
+    append_distinct(rest, player, acc, meta, :knowledge, key)
   end
 
   defp do_apply([{:contact, key} | rest], player, acc, meta) do
-    current_contacts = Map.get(acc, :contacts, player.contacts)
-
-    new_contacts =
-      if key in current_contacts, do: current_contacts, else: current_contacts ++ [key]
-
-    do_apply(rest, player, Map.put(acc, :contacts, new_contacts), meta)
+    append_distinct(rest, player, acc, meta, :contacts, key)
   end
 
   defp do_apply([{:rumor, key} | rest], player, acc, meta) do
-    current_rumors = Map.get(acc, :rumors, player.rumors)
-
-    new_rumors =
-      if key in current_rumors, do: current_rumors, else: current_rumors ++ [key]
-
-    do_apply(rest, player, Map.put(acc, :rumors, new_rumors), meta)
+    append_distinct(rest, player, acc, meta, :rumors, key)
   end
 
   defp do_apply([{:web_board, board} | rest], player, acc, meta) do
@@ -152,6 +128,13 @@ defmodule Shunt.Effects do
   defp apply_node_op(node, {:bank_layer, n}), do: Map.put(node, "banked_layer", n)
   defp apply_node_op(node, :harden), do: Map.put(node, "hardened", true)
   defp apply_node_op(node, :clear_hardened), do: Map.put(node, "hardened", false)
+
+  # Appends key to a list-valued player field unless already present, threading through acc.
+  defp append_distinct(rest, player, acc, meta, field, key) do
+    current = Map.get(acc, field, Map.fetch!(player, field))
+    new = if key in current, do: current, else: current ++ [key]
+    do_apply(rest, player, Map.put(acc, field, new), meta)
+  end
 
   defp maybe_append(list, true, item), do: list ++ [item]
   defp maybe_append(list, false, _item), do: list

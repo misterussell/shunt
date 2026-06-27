@@ -3,42 +3,6 @@ defmodule Shunt.Web do
 
   alias Shunt.Web.RumorConnection
 
-  @doc """
-  Evaluates a player's submitted rumor theory against all authored RumorConnections.
-
-  Returns:
-    {:success, event_id}  — submitted set exactly matches a connection's rumors
-    {:partial, event_id}  — overlap count >= connection.partial_threshold, not exact
-    {:failure, event_id}  — some overlap but below partial_threshold (best candidate wins)
-    {:no_match, nil}      — zero overlap with every connection
-  """
-  def resolve_theory(_player, rumor_ids) do
-    submitted = MapSet.new(rumor_ids)
-
-    {result, _best_overlap} =
-      Enum.reduce_while(RumorConnection.all(), {{:no_match, nil}, 0}, fn conn,
-                                                                         {_best, best_overlap} ->
-        required = MapSet.new(conn.rumors)
-        overlap = submitted |> MapSet.intersection(required) |> MapSet.size()
-
-        cond do
-          submitted == required ->
-            {:halt, {{:success, conn.success_event_id}, overlap}}
-
-          overlap >= conn.partial_threshold ->
-            {:halt, {{:partial, conn.partial_event_id}, overlap}}
-
-          overlap > best_overlap ->
-            {:cont, {{:failure, conn.failure_event_id}, overlap}}
-
-          true ->
-            {:cont, {{:no_match, nil}, best_overlap}}
-        end
-      end)
-
-    result
-  end
-
   @empty_board %{"positions" => %{}, "wires" => []}
 
   @doc "Clears all positions and wires. Leaves player.rumors untouched (cards return to intake)."
@@ -49,32 +13,55 @@ defmodule Shunt.Web do
   intake -> board drop and subsequent moves — both just set positions[id].
   """
   def place_rumor(player, id, x, y) do
-    board = board(player)
-    new_positions = Map.put(board["positions"], id, %{"x" => x, "y" => y})
-    {:ok, [{:web_board, %{board | "positions" => new_positions}}]}
+    cond do
+      # Only rumors the player actually holds may go on the board — otherwise a client could place
+      # (and resonate) a connection's rumors it never collected, since clusters read board state.
+      id not in player.rumors ->
+        {:ok, []}
+
+      locked?(player, id) ->
+        {:ok, []}
+
+      true ->
+        board = board(player)
+        new_positions = Map.put(board["positions"], id, %{"x" => x, "y" => y})
+        {:ok, [{:web_board, %{board | "positions" => new_positions}}]}
+    end
   end
 
   @doc "Wires two rumors together. Stored as a sorted pair; idempotent and order-independent."
   def connect(player, a, b) do
-    board = board(player)
-    pair = Enum.sort([a, b])
-    new_wires = if pair in board["wires"], do: board["wires"], else: board["wires"] ++ [pair]
-    {:ok, [{:web_board, %{board | "wires" => new_wires}}]}
+    if locked_either?(player, a, b) do
+      {:ok, []}
+    else
+      board = board(player)
+      pair = Enum.sort([a, b])
+      new_wires = if pair in board["wires"], do: board["wires"], else: board["wires"] ++ [pair]
+      {:ok, [{:web_board, %{board | "wires" => new_wires}}]}
+    end
   end
 
   @doc "Removes the wire between two rumors, if present. Order-independent."
   def disconnect(player, a, b) do
-    board = board(player)
-    new_wires = List.delete(board["wires"], Enum.sort([a, b]))
-    {:ok, [{:web_board, %{board | "wires" => new_wires}}]}
+    if locked_either?(player, a, b) do
+      {:ok, []}
+    else
+      board = board(player)
+      new_wires = List.delete(board["wires"], Enum.sort([a, b]))
+      {:ok, [{:web_board, %{board | "wires" => new_wires}}]}
+    end
   end
 
   @doc "Pulls a rumor off the board: drops its position and every wire that touches it."
   def return_to_intake(player, id) do
-    board = board(player)
-    new_positions = Map.delete(board["positions"], id)
-    new_wires = Enum.reject(board["wires"], fn [a, b] -> a == id or b == id end)
-    {:ok, [{:web_board, %{"positions" => new_positions, "wires" => new_wires}}]}
+    if locked?(player, id) do
+      {:ok, []}
+    else
+      board = board(player)
+      new_positions = Map.delete(board["positions"], id)
+      new_wires = Enum.reject(board["wires"], fn [a, b] -> a == id or b == id end)
+      {:ok, [{:web_board, %{"positions" => new_positions, "wires" => new_wires}}]}
+    end
   end
 
   @doc "Rumors the player holds that are not yet placed on the board (the intake tray)."
@@ -143,9 +130,13 @@ defmodule Shunt.Web do
     |> Enum.map(fn {cluster, _conn} -> cluster end)
   end
 
-  # Clusters that exactly match an authored connection, as {cluster_set, connection} pairs. Only
-  # exact set matches qualify — partial/threshold overlaps are excluded.
-  defp matched_clusters(player) do
+  @doc """
+  Clusters that exactly match an authored connection, as {cluster_set, connection} pairs (solved
+  and unsolved alike). Only exact set matches qualify — partial/threshold overlaps are excluded.
+  Callers that need both the resonant and solved partitions should compute this once and split on
+  `solved?/2` rather than calling `resonant_clusters/1` and `solved_clusters/1` separately.
+  """
+  def matched_clusters(player) do
     connections = RumorConnection.all()
 
     player
@@ -161,6 +152,24 @@ defmodule Shunt.Web do
   @doc "Whether a connection has already been cracked (its success event is completed)."
   def solved?(player, connection) do
     connection.success_event_id in player.completed_events
+  end
+
+  @doc """
+  Rumor ids that belong to a solved (locked) cluster. Mutating board ops refuse to touch these,
+  so a cracked case stays stamped and intact even if a stale or out-of-band board event arrives
+  (the JS hook also blocks the gesture, but the server is the source of truth).
+  """
+  def locked_rumor_ids(player) do
+    player
+    |> solved_clusters()
+    |> Enum.reduce(MapSet.new(), &MapSet.union(&2, &1))
+  end
+
+  defp locked?(player, id), do: MapSet.member?(locked_rumor_ids(player), id)
+
+  defp locked_either?(player, a, b) do
+    locked = locked_rumor_ids(player)
+    MapSet.member?(locked, a) or MapSet.member?(locked, b)
   end
 
   defp board(player) do

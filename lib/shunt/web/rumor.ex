@@ -8,5 +8,7 @@ defmodule Shunt.Web.Rumor do
 
   def fetch!(id), do: Content.fetch!(:rumors, id)
 
+  def fetch(id), do: Content.fetch(:rumors, id)
+
   def all, do: Content.all(:rumors)
 end

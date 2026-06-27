@@ -1,5 +1,6 @@
 defmodule Shunt.Web.RumorTest do
-  use ExUnit.Case, async: true
+  # Not async: mutates the shared global :rumors ETS table (same as rumor_connection_test).
+  use ExUnit.Case
 
   alias Shunt.Web.Rumor
 

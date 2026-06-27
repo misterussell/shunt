@@ -46,20 +46,28 @@ defmodule ShuntWeb.WebLive do
     dispatch_board(socket, &Web.return_to_intake(&1, id))
   end
 
-  # Fired by the inline [ CONNECT ] on a resonant cluster. Resonance already guarantees an exact
-  # match, so this always opens the connection's success event — there is no no-match path.
+  # Fired by the inline [ CONNECT ] on a resonant cluster. Ignored when an event is already open
+  # (re-clicking must not restart an in-progress event via Events.start) or when the cluster is no
+  # longer resonant for this connection_id (a stale/duplicate client click — Enum.find would
+  # otherwise return nil and crash the match).
   def handle_event("connect_theory", %{"connection_id" => connection_id}, socket) do
-    {_cluster, conn} =
+    resonant_conn =
       Enum.find(socket.assigns.resonant, fn {_cluster, conn} -> conn.id == connection_id end)
 
-    {:ok, player, _meta} =
-      Players.dispatch(socket.assigns.player_id, &Events.start(&1, conn.success_event_id))
+    case {socket.assigns.active_event_id, resonant_conn} do
+      {nil, {_cluster, conn}} ->
+        {:ok, player, _meta} =
+          Players.dispatch(socket.assigns.player_id, &Events.start(&1, conn.success_event_id))
 
-    {:noreply,
-     socket
-     |> assign(:player, player)
-     |> assign(:active_event_id, conn.success_event_id)
-     |> board_assigns()}
+        {:noreply,
+         socket
+         |> assign(:player, player)
+         |> assign(:active_event_id, conn.success_event_id)
+         |> board_assigns()}
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event("event_choice", %{"event_id" => event_id, "choice" => choice}, socket) do
@@ -73,16 +81,22 @@ defmodule ShuntWeb.WebLive do
         {:noreply, socket}
 
       {:error, _reason} ->
-        {:noreply, socket}
+        {:noreply, put_flash(socket, :error, "That choice is no longer available.")}
     end
   end
 
-  def handle_event("seed_rumors", _params, socket) do
+  def handle_event("seed_rumors", _params, %{assigns: %{dev?: true}} = socket) do
     dispatch_board(socket, fn _p -> {:ok, Enum.map(@dev_seed_rumors, &{:rumor, &1})} end)
   end
 
-  def handle_event("wipe_board", _params, socket) do
+  def handle_event("wipe_board", _params, %{assigns: %{dev?: true}} = socket) do
     dispatch_board(socket, &Web.wipe_board/1)
+  end
+
+  # The dev seed/wipe controls are hidden outside dev, but the channel still accepts the event;
+  # ignore it server-side so it can't run in production.
+  def handle_event(event, _params, socket) when event in ["seed_rumors", "wipe_board"] do
+    {:noreply, socket}
   end
 
   def render(assigns) do
@@ -137,7 +151,11 @@ defmodule ShuntWeb.WebLive do
           </div>
         </div>
 
-        <div :if={@resonant != []} id="resonance-controls" class="resonance-controls">
+        <div
+          :if={@resonant != [] and is_nil(@active_event_id)}
+          id="resonance-controls"
+          class="resonance-controls"
+        >
           <span class="resonance-eyebrow">Resonance</span>
           <Chrome.btn
             :for={{_cluster, conn} <- @resonant}
@@ -177,6 +195,7 @@ defmodule ShuntWeb.WebLive do
               <span :for={tag <- card.rumor.tags} class="rumor-tag">{tag}</span>
             </div>
             <span :if={card.solved} class="rumor-stamp">SOLVED</span>
+            <div :if={not card.solved} class="wire-port" data-port="true"></div>
           </div>
         </div>
       <% end %>
@@ -188,24 +207,37 @@ defmodule ShuntWeb.WebLive do
   # in one call.
   defp board_assigns(socket) do
     player = socket.assigns.player
-    resonant = Web.resonant_clusters(player)
+
+    {solved, resonant} =
+      player
+      |> Web.matched_clusters()
+      |> Enum.split_with(fn {_cluster, conn} -> Web.solved?(player, conn) end)
+
     resonant_ids = cluster_ids(Enum.map(resonant, fn {cluster, _conn} -> cluster end))
-    solved_ids = cluster_ids(Web.solved_clusters(player))
+    solved_ids = cluster_ids(Enum.map(solved, fn {cluster, _conn} -> cluster end))
 
     placed =
-      Enum.map(Web.placed(player), fn {id, x, y} ->
-        %{
-          rumor: Rumor.fetch!(id),
-          x: x,
-          y: y,
-          resonant: MapSet.member?(resonant_ids, id),
-          solved: MapSet.member?(solved_ids, id)
-        }
+      Enum.flat_map(Web.placed(player), fn {id, x, y} ->
+        case Rumor.fetch(id) do
+          {:ok, rumor} ->
+            [
+              %{
+                rumor: rumor,
+                x: x,
+                y: y,
+                resonant: MapSet.member?(resonant_ids, id),
+                solved: MapSet.member?(solved_ids, id)
+              }
+            ]
+
+          :error ->
+            []
+        end
       end)
 
     socket
     |> assign(:rumors, player.rumors)
-    |> assign(:intake, Enum.map(Web.intake(player), &Rumor.fetch!/1))
+    |> assign(:intake, Enum.flat_map(Web.intake(player), &fetch_rumor/1))
     |> assign(:placed, placed)
     |> assign(:wires, Web.wires(player))
     |> assign(:resonant, resonant)
@@ -217,6 +249,14 @@ defmodule ShuntWeb.WebLive do
   end
 
   defp cluster_ids(clusters), do: Enum.reduce(clusters, MapSet.new(), &MapSet.union(&2, &1))
+
+  # Skips ids that no longer resolve to a rumor (renamed/removed content) instead of crashing.
+  defp fetch_rumor(id) do
+    case Rumor.fetch(id) do
+      {:ok, rumor} -> [rumor]
+      :error -> []
+    end
+  end
 
   defp clamp_unit(value), do: value |> parse_float() |> max(0.0) |> min(1.0)
 

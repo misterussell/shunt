@@ -241,6 +241,72 @@ defmodule ShuntWeb.WebLiveTest do
     end
   end
 
+  describe "connect_theory — guards" do
+    test "an unknown/stale connection_id is a no-op (no MatchError crash)", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+      render_hook(view, "connect_theory", %{"connection_id" => "no_such_connection"})
+
+      refute has_element?(view, "#active-event")
+      assert has_element?(view, "#connect-test_conn")
+    end
+
+    test "the CONNECT control is hidden while an event is already open", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+      view |> element("#connect-test_conn") |> render_click()
+
+      assert has_element?(view, "#active-event")
+      refute has_element?(view, "#connect-test_conn")
+    end
+
+    test "a re-pushed connect_theory while an event is open does not restart it", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+      view |> element("#connect-test_conn") |> render_click()
+      render_hook(view, "connect_theory", %{"connection_id" => "test_conn"})
+
+      assert has_element?(view, "#active-event", "The pieces fit.")
+    end
+  end
+
+  describe "board — missing content is tolerated" do
+    test "a placed rumor whose content was removed is skipped, not crashed", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, _p, _m} =
+        Shunt.Players.dispatch(player.id, &Shunt.Web.place_rumor(&1, "test_rumor_a", 0.5, 0.5))
+
+      :ets.delete(:rumors, "test_rumor_a")
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "#web-board")
+      refute has_element?(view, "#rumor-test_rumor_a")
+    end
+  end
+
   describe "dev — seed rumors" do
     test "renders the dev seed control", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")

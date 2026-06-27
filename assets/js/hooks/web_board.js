@@ -66,18 +66,7 @@ export default {
       card.style.transform = "translate(-50%, -50%)"
       // Solved cards recede beneath live ones so a dragged card always reads on top.
       card.style.zIndex = card.dataset.solved === "true" ? "0" : "1"
-      this.ensurePort(card)
     })
-  },
-
-  ensurePort(card) {
-    if (card.dataset.solved === "true") return
-    if (card.querySelector("[data-port]")) return
-
-    const port = document.createElement("div")
-    port.dataset.port = ""
-    port.className = "wire-port"
-    card.appendChild(port)
   },
 
   drawWires() {
@@ -149,6 +138,10 @@ export default {
   startDrag(card, e, fromIntake) {
     if (card.dataset.solved === "true") return
 
+    // Capture the pointer so we still get pointerup if the cursor leaves the window mid-drag,
+    // instead of stranding the card at position:fixed.
+    card.setPointerCapture?.(e.pointerId)
+
     const r = card.getBoundingClientRect()
     this.drag = {
       card,
@@ -203,6 +196,9 @@ export default {
 
   startWire(card, e) {
     if (!card || card.dataset.solved === "true") return
+
+    // Capture so a release outside the window still ends the wire gesture (see startDrag).
+    card.setPointerCapture?.(e.pointerId)
 
     const line = document.createElementNS(SVG_NS, "line")
     line.setAttribute("data-temp-wire", "")

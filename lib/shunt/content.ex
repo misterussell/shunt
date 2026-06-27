@@ -11,4 +11,11 @@ defmodule Shunt.Content do
       [] -> raise "unknown #{table} key: #{inspect(key)}"
     end
   end
+
+  def fetch(table, key) do
+    case :ets.lookup(table, key) do
+      [{_key, item}] -> {:ok, item}
+      [] -> :error
+    end
+  end
 end

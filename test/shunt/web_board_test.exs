@@ -7,15 +7,22 @@ defmodule Shunt.WebBoardTest do
 
   describe "place_rumor/4" do
     test "adds a fractional position for the rumor" do
-      player = %Player{web_board: %{"positions" => %{}, "wires" => []}}
+      player = %Player{rumors: ["a"], web_board: %{"positions" => %{}, "wires" => []}}
 
       {:ok, [{:web_board, board}]} = Web.place_rumor(player, "a", 0.25, 0.5)
 
       assert board["positions"]["a"] == %{"x" => 0.25, "y" => 0.5}
     end
 
+    test "is a no-op for a rumor the player does not hold" do
+      player = %Player{rumors: [], web_board: %{"positions" => %{}, "wires" => []}}
+
+      assert Web.place_rumor(player, "a", 0.25, 0.5) == {:ok, []}
+    end
+
     test "overwrites the position when the rumor is already placed (reposition)" do
       player = %Player{
+        rumors: ["a"],
         web_board: %{"positions" => %{"a" => %{"x" => 0.1, "y" => 0.1}}, "wires" => []}
       }
 
@@ -230,6 +237,42 @@ defmodule Shunt.WebBoardTest do
 
       refute Map.has_key?(board["positions"], "b")
       assert board["wires"] == []
+    end
+  end
+
+  describe "solved-cluster locking" do
+    @supplier_rumors ~w(juno_supplier missing_shipments vex_debts)
+
+    defp locked_player do
+      %Player{
+        rumors: @supplier_rumors,
+        completed_events: ["supplier_conspiracy_success"],
+        web_board: %{
+          "positions" => Map.new(@supplier_rumors, &{&1, %{"x" => 0.1, "y" => 0.1}}),
+          "wires" =>
+            @supplier_rumors |> Enum.chunk_every(2, 1, :discard) |> Enum.map(&Enum.sort/1)
+        }
+      }
+    end
+
+    test "locked_rumor_ids returns the ids of every solved cluster" do
+      assert Web.locked_rumor_ids(locked_player()) == MapSet.new(@supplier_rumors)
+    end
+
+    test "place_rumor (move) is a no-op for a rumor in a solved cluster" do
+      assert Web.place_rumor(locked_player(), "juno_supplier", 0.9, 0.9) == {:ok, []}
+    end
+
+    test "return_to_intake is a no-op for a rumor in a solved cluster" do
+      assert Web.return_to_intake(locked_player(), "juno_supplier") == {:ok, []}
+    end
+
+    test "disconnect is a no-op when an endpoint is in a solved cluster" do
+      assert Web.disconnect(locked_player(), "juno_supplier", "missing_shipments") == {:ok, []}
+    end
+
+    test "connect is a no-op when an endpoint is in a solved cluster" do
+      assert Web.connect(locked_player(), "juno_supplier", "vex_debts") == {:ok, []}
     end
   end
 end
