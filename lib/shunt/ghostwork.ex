@@ -37,28 +37,58 @@ defmodule Shunt.Ghostwork do
   # Tuning only — adjust freely. T1 "Feed Skimmer" is earned just by jacking in.
   @title_thresholds %{1 => 0, 2 => 1, 3 => 3, 4 => 7, 5 => 15}
 
-  # TODO: nodes_at(player, location_id) -> [%{node: %IceNode{}, status: :breakable | :hardened}].
-  #   The deck is location-aware: every IceNode (Shunt.Ghostwork.IceNode.all/0) whose
-  #   :location_id == location_id, whose :requirements pass (Shunt.Requirements.met?/2), and
-  #   that is not fully cracked (banked_layer + 1 < length(layers); banked_layer default -1 from
-  #   player.ghostwork_state["nodes"][id]). status is :hardened when the node is hardened AND
-  #   player.heat >= node.cool_threshold (can't break now), otherwise :breakable.
+  def nodes_at(player, location_id) do
+    nodes = Map.get(player.ghostwork_state, "nodes", %{})
 
-  # TODO: fog_stage(mastery_count) -> :dark | :numbers | :weakness, from @mastery_numbers /
-  #   @mastery_weakness (the same thresholds numbers_known?/weakness_known? use, but keyed off a
-  #   raw count for the Codex readout, which has no live encounter).
+    Shunt.Ghostwork.IceNode.all()
+    |> Enum.filter(fn node ->
+      node.location_id == location_id and Shunt.Requirements.met?(player, node.requirements) and
+        not fully_cracked?(nodes, node)
+    end)
+    |> Enum.map(fn node -> %{node: node, status: node_status(nodes, node, player.heat)} end)
+  end
 
-  # TODO: mastery_summary(player) -> [%{family: String.t, cracks: integer, fog_stage: atom}] for
-  #   each family in player.ghostwork_state["mastery"], sorted by family. Drives the Codex.
+  defp fully_cracked?(nodes, node) do
+    banked_layer(nodes, node) + 1 >= length(node.layers)
+  end
 
-  # TODO: titles(player) -> [%{tier: integer, name: String.t, earned?: boolean}] from the
-  #   ghostwork skill tree's :tiers (Shunt.Skills.Catalog.fetch!("ghostwork")). earned? is true
-  #   when the player holds the deck (tree.tool_key in inventory, count >= 1) AND total cracks
-  #   (sum of player.ghostwork_state["mastery"] values) >= @title_thresholds[tier].
+  defp banked_layer(nodes, node) do
+    nodes |> Map.get(node.id, %{}) |> Map.get("banked_layer", -1)
+  end
 
-  # TODO: lattice_active?(player, location) -> boolean for the MovementLive "⌁ LATTICE" cue:
-  #   the location map has a :lattice key AND the player holds the deck (ghostwork tree.tool_key
-  #   in inventory, count >= 1).
+  defp node_status(nodes, node, heat) do
+    hardened = nodes |> Map.get(node.id, %{}) |> Map.get("hardened", false)
+    if hardened and heat >= node.cool_threshold, do: :hardened, else: :breakable
+  end
+
+  def fog_stage(count) when count >= @mastery_weakness, do: :weakness
+  def fog_stage(count) when count >= @mastery_numbers, do: :numbers
+  def fog_stage(_count), do: :dark
+
+  def mastery_summary(player) do
+    player.ghostwork_state
+    |> Map.get("mastery", %{})
+    |> Enum.sort_by(fn {family, _} -> family end)
+    |> Enum.map(fn {family, cracks} ->
+      %{family: family, cracks: cracks, fog_stage: fog_stage(cracks)}
+    end)
+  end
+
+  def titles(player) do
+    tree = Shunt.Skills.Catalog.fetch!("ghostwork")
+    deck? = Map.get(player.inventory, tree.tool_key, 0) >= 1
+    total = player.ghostwork_state |> Map.get("mastery", %{}) |> Map.values() |> Enum.sum()
+
+    Enum.map(tree.tiers, fn tier ->
+      earned? = deck? and total >= Map.fetch!(@title_thresholds, tier.tier)
+      %{tier: tier.tier, name: tier.name, earned?: earned?}
+    end)
+  end
+
+  def lattice_active?(player, location) do
+    tree = Shunt.Skills.Catalog.fetch!("ghostwork")
+    Map.has_key?(location, :lattice) and Map.get(player.inventory, tree.tool_key, 0) >= 1
+  end
 
   def scan(player, location) do
     case Map.fetch(location, :lattice) do

@@ -242,6 +242,139 @@ defmodule Shunt.GhostworkTest do
     end
   end
 
+  describe "fog_stage/1" do
+    test "maps mastery count to a fog stage" do
+      assert Ghostwork.fog_stage(0) == :dark
+      assert Ghostwork.fog_stage(1) == :numbers
+      assert Ghostwork.fog_stage(2) == :numbers
+      assert Ghostwork.fog_stage(3) == :weakness
+      assert Ghostwork.fog_stage(9) == :weakness
+    end
+  end
+
+  describe "mastery_summary/1" do
+    test "summarizes each family sorted by name with its fog stage" do
+      player = %Player{
+        ghostwork_state: %{"mastery" => %{"ice_maintenance" => 2, "ice_corp" => 4}}
+      }
+
+      assert Ghostwork.mastery_summary(player) == [
+               %{family: "ice_corp", cracks: 4, fog_stage: :weakness},
+               %{family: "ice_maintenance", cracks: 2, fog_stage: :numbers}
+             ]
+    end
+
+    test "is empty when the player has no mastery" do
+      assert Ghostwork.mastery_summary(%Player{}) == []
+    end
+  end
+
+  describe "titles/1" do
+    defp with_deck(player), do: %{player | inventory: Map.put(player.inventory, "jury_rigged_terminal", 1)}
+
+    defp earned_tiers(player) do
+      player |> Ghostwork.titles() |> Enum.filter(& &1.earned?) |> Enum.map(& &1.tier)
+    end
+
+    test "earns only tier 1 when holding the deck with no cracks" do
+      assert earned_tiers(with_deck(%Player{})) == [1]
+    end
+
+    test "earns higher tiers as total cracks cross thresholds" do
+      player = with_deck(%Player{ghostwork_state: %{"mastery" => %{"a" => 2, "b" => 1}}})
+
+      assert earned_tiers(player) == [1, 2, 3]
+    end
+
+    test "earns nothing without the deck, even with cracks" do
+      player = %Player{ghostwork_state: %{"mastery" => %{"a" => 20}}}
+
+      assert earned_tiers(player) == []
+    end
+
+    test "returns every ghostwork tree tier with a name" do
+      titles = Ghostwork.titles(with_deck(%Player{}))
+
+      assert Enum.map(titles, & &1.tier) == [1, 2, 3, 4, 5]
+      assert Enum.all?(titles, &is_binary(&1.name))
+    end
+  end
+
+  describe "lattice_active?/2" do
+    test "true when the location has lattice and the player holds the deck" do
+      player = %Player{inventory: %{"jury_rigged_terminal" => 1}}
+
+      assert Ghostwork.lattice_active?(player, %{id: "loc", lattice: %{}})
+    end
+
+    test "false without the deck" do
+      refute Ghostwork.lattice_active?(%Player{}, %{id: "loc", lattice: %{}})
+    end
+
+    test "false when the location carries no lattice" do
+      player = %Player{inventory: %{"jury_rigged_terminal" => 1}}
+
+      refute Ghostwork.lattice_active?(player, %{id: "loc"})
+    end
+  end
+
+  describe "nodes_at/2" do
+    setup do
+      base = %IceNode{
+        id: "nat_node",
+        name: "Node",
+        family: "ice_maintenance",
+        location_id: "deck_loc",
+        cool_threshold: 60,
+        layers: [%{id: "l1", name: "L1", progress_required: 10, trace_multiplier: 1.0, weakness: nil, reward: []}]
+      }
+
+      :ets.insert(:ice_nodes, {base.id, base})
+      on_exit(fn -> :ets.delete(:ice_nodes, base.id) end)
+      %{base: base}
+    end
+
+    test "lists a breakable node at the location", %{base: base} do
+      assert [%{node: ^base, status: :breakable}] = Ghostwork.nodes_at(%Player{}, "deck_loc")
+    end
+
+    test "excludes nodes at other locations" do
+      assert Ghostwork.nodes_at(%Player{}, "elsewhere") == []
+    end
+
+    test "excludes nodes whose requirements are unmet", %{base: base} do
+      :ets.insert(:ice_nodes, {base.id, %{base | requirements: [{:knows, "gate"}]}})
+
+      assert Ghostwork.nodes_at(%Player{}, "deck_loc") == []
+    end
+
+    test "excludes a fully cracked node" do
+      player = %Player{
+        ghostwork_state: %{"nodes" => %{"nat_node" => %{"banked_layer" => 0, "hardened" => false}}}
+      }
+
+      assert Ghostwork.nodes_at(player, "deck_loc") == []
+    end
+
+    test "marks a hardened node hot as :hardened" do
+      player = %Player{
+        heat: 70,
+        ghostwork_state: %{"nodes" => %{"nat_node" => %{"banked_layer" => -1, "hardened" => true}}}
+      }
+
+      assert [%{status: :hardened}] = Ghostwork.nodes_at(player, "deck_loc")
+    end
+
+    test "marks a hardened node that has cooled off as :breakable" do
+      player = %Player{
+        heat: 30,
+        ghostwork_state: %{"nodes" => %{"nat_node" => %{"banked_layer" => -1, "hardened" => true}}}
+      }
+
+      assert [%{status: :breakable}] = Ghostwork.nodes_at(player, "deck_loc")
+    end
+  end
+
   defp lattice_location(lattice), do: %{id: "loc", lattice: lattice}
 
   defp lead(overrides) do
