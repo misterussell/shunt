@@ -96,6 +96,21 @@ defmodule ShuntWeb.GhostworkLive do
     end
   end
 
+  def handle_event("retreat", _params, socket) do
+    case socket.assigns.encounter do
+      nil ->
+        {:noreply, socket}
+
+      encounter ->
+        {:ok, updated, _effects} = Ghostwork.retreat(encounter)
+        {:noreply, assign(socket, :encounter, updated)}
+    end
+  end
+
+  def handle_event("close_encounter", _params, socket) do
+    {:noreply, assign(socket, :encounter, nil)}
+  end
+
   defp dispatch_act(socket, encounter, decoded) do
     resolver = fn player ->
       case Ghostwork.act(encounter, player, decoded) do
@@ -111,21 +126,6 @@ defmodule ShuntWeb.GhostworkLive do
       {:error, _reason} ->
         {:noreply, socket}
     end
-  end
-
-  def handle_event("retreat", _params, socket) do
-    case socket.assigns.encounter do
-      nil ->
-        {:noreply, socket}
-
-      encounter ->
-        {:ok, updated, _effects} = Ghostwork.retreat(encounter)
-        {:noreply, assign(socket, :encounter, updated)}
-    end
-  end
-
-  def handle_event("close_encounter", _params, socket) do
-    {:noreply, assign(socket, :encounter, nil)}
   end
 
   def render(assigns) do
