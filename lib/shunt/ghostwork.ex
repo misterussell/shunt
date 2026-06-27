@@ -29,55 +29,116 @@ defmodule Shunt.Ghostwork do
   @mastery_numbers 1
   @mastery_weakness 3
 
-  # TODO: begin_encounter(player, node) -> {:ok, %Encounter{}, effects} | {:error, reason}.
-  #   Reads the node's per-node state from player.ghostwork_state["nodes"][node.id]
-  #   (default %{"banked_layer" => -1, "hardened" => false}).
-  #   * start layer_index = banked_layer + 1. If that is >= length(node.layers) the node is
-  #     already fully cracked -> {:error, :already_cracked}.
-  #   * Hardened gating (lazy clear, no timers): if hardened and player.heat >= node.cool_threshold
-  #     -> {:error, :hardened}. If hardened and player.heat < node.cool_threshold, proceed AND
-  #     include {:ghostwork_node, node.id, :clear_hardened} in the returned effects. If not
-  #     hardened, effects is [].
-  #   * mastery snapshot = player.ghostwork_state["mastery"][node.family] (default 0).
-  #   * Returns the %Encounter{node: node, layer_index: start, mastery: mastery,
-  #     progress: 0, trace: 0, status: :active} and the effects list.
+  def begin_encounter(player, node) do
+    state = Map.get(player.ghostwork_state, "nodes", %{})
+    node_state = Map.get(state, node.id, %{"banked_layer" => -1, "hardened" => false})
+    start = Map.get(node_state, "banked_layer", -1) + 1
 
-  # TODO: act(encounter, player, action) -> {:ok, %Encounter{}, effects} | {:error, reason},
-  #   where action is :probe or {:program, program_id}. Only valid on an :active encounter.
-  #   Resolve the action profile (progress, trace):
-  #     * :probe -> %{progress: @probe_progress, trace: @probe_trace}. Probe is untyped, so it
-  #       never triggers a layer weakness.
-  #     * {:program, id} -> fetch via Shunt.Ghostwork.Programs.fetch!/1; if the player doesn't
-  #       own it (Programs.owned/1) -> {:error, :program_not_owned}. The current layer is
-  #       Enum.at(node.layers, layer_index). If the program's :action == layer.weakness, use its
-  #       :on_weakness profile (progress/trace); otherwise its base :progress/:trace.
-  #   Compute gains:
-  #     * progress_gain = profile.progress (exact, no jitter).
-  #     * trace_base = round(profile.trace * layer.trace_multiplier) (deeper layers cost more).
-  #     * trace_gain = jittered trace_base: jitter = max(1, div(trace_base, 2)),
-  #       Enum.random((max(1, trace_base - jitter))..(trace_base + jitter)). This is the only RNG.
-  #   new_progress = progress + progress_gain; new_trace = trace + trace_gain.
-  #   Resolve outcome (bust takes priority over a same-action crack):
-  #     * BUST — new_trace >= @trace_bust: status :busted, trace capped at @trace_bust, current
-  #       layer progress lost. Effects: [{:heat, bust_heat(layer_index)},
-  #       {:ghostwork_node, node.id, :harden}]. (Earlier layers were already banked.)
-  #     * LAYER CRACKED — new_progress >= layer.progress_required: effects = layer.reward ++
-  #       [{:ghostwork_mastery, node.family, 1}, {:ghostwork_node, node.id, {:bank_layer, layer_index}}].
-  #       If layer_index + 1 >= length(node.layers): status :cracked (node fully owned),
-  #       progress 0, trace carries. Otherwise: status :active, layer_index + 1, progress 0,
-  #       trace carries (new_trace) so the next layer's trace_multiplier applies to fresh actions.
-  #     * CONTINUE — otherwise: status :active, same layer, progress new_progress, trace new_trace,
-  #       effects [].
+    cond do
+      start >= length(node.layers) ->
+        {:error, :already_cracked}
 
-  # TODO: retreat(encounter) -> {:ok, %Encounter{} (status :retreated), []}. Walk clean: banked
-  #   layers were already applied, so retreat emits no effects and no Heat.
+      Map.get(node_state, "hardened", false) and player.heat >= node.cool_threshold ->
+        {:error, :hardened}
 
-  # TODO: numbers_known?(encounter) -> encounter.mastery >= @mastery_numbers. Presentation read
-  #   for the LiveView fog-of-war: when false, action Progress/Trace render as "?".
+      true ->
+        mastery =
+          player.ghostwork_state
+          |> Map.get("mastery", %{})
+          |> Map.get(node.family, 0)
 
-  # TODO: weakness_known?(encounter) -> encounter.mastery >= @mastery_weakness. When false, the
-  #   current layer's :weakness is hidden in the UI.
+        effects =
+          if Map.get(node_state, "hardened", false),
+            do: [{:ghostwork_node, node.id, :clear_hardened}],
+            else: []
 
-  # TODO: bust_heat(layer_index) -> @bust_heat_base + @bust_heat_per_layer * layer_index. Private
-  #   helper used by act/3's bust branch.
+        encounter = %Encounter{node: node, layer_index: start, mastery: mastery}
+        {:ok, encounter, effects}
+    end
+  end
+
+  def act(%Encounter{} = encounter, player, action) do
+    layer = Enum.at(encounter.node.layers, encounter.layer_index)
+
+    case profile(action, player, layer) do
+      {:error, reason} ->
+        {:error, reason}
+
+      {:ok, profile} ->
+        new_progress = encounter.progress + profile.progress
+        trace_base = round(profile.trace * layer.trace_multiplier)
+        new_trace = encounter.trace + jitter(trace_base)
+
+        {updated, effects} = resolve(encounter, layer, new_progress, new_trace)
+        {:ok, updated, effects}
+    end
+  end
+
+  defp profile(:probe, _player, _layer),
+    do: {:ok, %{progress: @probe_progress, trace: @probe_trace}}
+
+  defp profile({:program, id}, player, layer) do
+    program = Shunt.Ghostwork.Programs.fetch!(id)
+
+    cond do
+      not Enum.any?(Shunt.Ghostwork.Programs.owned(player), &(&1.id == id)) ->
+        {:error, :program_not_owned}
+
+      program.action == layer.weakness ->
+        {:ok, program.on_weakness}
+
+      true ->
+        {:ok, %{progress: program.progress, trace: program.trace}}
+    end
+  end
+
+  defp jitter(trace_base) do
+    spread = max(1, div(trace_base, 2))
+    Enum.random(max(1, trace_base - spread)..(trace_base + spread))
+  end
+
+  defp resolve(%Encounter{} = encounter, _layer, _new_progress, new_trace)
+       when new_trace >= @trace_bust do
+    effects = [
+      {:heat, bust_heat(encounter.layer_index)},
+      {:ghostwork_node, encounter.node.id, :harden}
+    ]
+
+    {%{encounter | status: :busted, trace: @trace_bust}, effects}
+  end
+
+  defp resolve(%Encounter{} = encounter, layer, new_progress, new_trace)
+       when new_progress >= layer.progress_required do
+    node = encounter.node
+
+    effects =
+      layer.reward ++
+        [
+          {:ghostwork_mastery, node.family, 1},
+          {:ghostwork_node, node.id, {:bank_layer, encounter.layer_index}}
+        ]
+
+    next_index = encounter.layer_index + 1
+
+    updated =
+      if next_index >= length(node.layers) do
+        %{encounter | status: :cracked, progress: 0, trace: new_trace}
+      else
+        %{encounter | layer_index: next_index, progress: 0, trace: new_trace}
+      end
+
+    {updated, effects}
+  end
+
+  defp resolve(%Encounter{} = encounter, _layer, new_progress, new_trace) do
+    {%{encounter | progress: new_progress, trace: new_trace}, []}
+  end
+
+  defp bust_heat(layer_index), do: @bust_heat_base + @bust_heat_per_layer * layer_index
+
+  def retreat(%Encounter{} = encounter), do: {:ok, %{encounter | status: :retreated}, []}
+
+  def numbers_known?(encounter), do: encounter.mastery >= @mastery_numbers
+
+  def weakness_known?(encounter), do: encounter.mastery >= @mastery_weakness
 end
