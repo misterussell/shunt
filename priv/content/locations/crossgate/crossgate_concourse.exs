@@ -53,6 +53,13 @@ alias Shunt.World.Exit
       requirements: [
         {:knows, "crossgate_house_entry_granted"}
       ]
+    },
+    %Exit{
+      id: "concourse_to_liftworks_intake",
+      to: "liftworks_intake_hall",
+      requirements: [
+        {:knows, "liftworks_route"}
+      ]
     }
   ]
 }
