@@ -48,7 +48,8 @@ alias Shunt.World.Exit
   events: [
     "shunt9_power_relay_tap",
     "shunt9_power_relay_control_panel",
-    "shunt9_power_relay_overloaded_duct"
+    "shunt9_power_relay_overloaded_duct",
+    "shunt9_power_relay_backup_online"
   ],
 
   exits: [

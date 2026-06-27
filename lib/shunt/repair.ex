@@ -85,23 +85,4 @@ defmodule Shunt.Repair do
   defp materials?(player, consumes) do
     Enum.all?(consumes, fn {key, qty} -> Map.get(player.inventory, key, 0) >= qty end)
   end
-
-  # --- Slice content to author (priv/), removed as each lands; follow the Content
-  #     Constitution / Terminology / Style / Naming / Lexicon docs ---
-  #
-  # TODO: priv/content/repairables/shunt9_power_relay_generator.exs — a %Repairable{} on
-  #   "shunt9_power_relay" (NPC Coil), initial_state "broken", 4 inspect_tiers (none →
-  #   soldering iron → diagnostic_probe → precision_toolkit), 3 solutions (improvised_relay →
-  #   patched; standard_relay → repaired +rep; military_relay → repaired + extra world benefit),
-  #   and state_descriptions for "patched"/"repaired". A repaired/military solution effect
-  #   should unlock a new exit/POI (pick a concrete target from the shunt9 graph) via an
-  #   {:infra_state, "shunt9_power_relay_generator", "repaired"} requirement on that exit/event.
-  #
-  # TODO: priv/content/recipes — add the relay parts (improvised_relay, standard_relay,
-  #   military_relay) consumed by solutions, plus the persistent tools diagnostic_probe and
-  #   precision_toolkit used as non-consumed :has_item gates (tier_required as appropriate).
-  #
-  # TODO: a Coil conditional_event referencing the failing generator, gated
-  #   {:infra_state, "shunt9_power_relay_generator", "broken"}, added to Coil's
-  #   conditional_events so an NPC naturally surfaces the problem.
 end
