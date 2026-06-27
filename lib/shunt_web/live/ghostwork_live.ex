@@ -30,6 +30,9 @@ defmodule ShuntWeb.GhostworkLive do
      |> assign(:tree, SkillsCatalog.fetch!("ghostwork"))
      |> assign(:status, nil)
      |> assign(:encounter, nil)
+     # TODO: assign :lattice_live? (default true). It drives the carrier signature: true =
+     # ambient live trace, false = flatline. Set false in the scan handler's {:error,
+     # :no_lattice} branch and back to true on a successful scan (see handle_event/3 below).
      |> stream(:signal_feed, [])
      |> assign_deck(player)}
   end
@@ -39,6 +42,9 @@ defmodule ShuntWeb.GhostworkLive do
 
     case Players.dispatch(socket.assigns.player_id, &Ghostwork.scan(&1, location)) do
       {:ok, player, meta} ->
+        # TODO: on a successful scan, assign(:lattice_live?, true) and push_event(socket,
+        # "lattice:pulse", %{}) so the LatticeCarrier hook fires one amplitude burst on the
+        # carrier trace (the action-to-instrument connective tissue). assert_push_event covers it.
         {:noreply,
          socket
          |> stream_insert(:signal_feed, signal_entry(meta), at: 0)
@@ -47,6 +53,7 @@ defmodule ShuntWeb.GhostworkLive do
          |> assign_deck(player)}
 
       {:error, :no_lattice} ->
+        # TODO: assign(:lattice_live?, false) here so the carrier flatlines (dead dash).
         {:noreply, assign(socket, :status, "NO LATTICE TRAFFIC HERE")}
     end
   end
@@ -113,12 +120,28 @@ defmodule ShuntWeb.GhostworkLive do
         programs={@programs}
       />
 
+      <%!-- TODO: render a full-width deck tether above the grid: <div id="deck-tether"
+            class="deck-tether"> with a ◉ "JACKED IN" indicator, @location.name, and the
+            exposed-node count (length(@nodes)) e.g. "@ NEON_BAZAAR · 3 nodes exposed". This is
+            the quiet structural device that makes location-gating visible. Style .deck-tether
+            in app.css: hairline rule, mono, muted text, cyan ◉ dot. --%>
       <div id="ghostwork-deck" class="ghostwork-page-grid">
         <div class="ghostwork-main">
           <Chrome.section_header secondary="⚠ DRAWS HEAT" secondary_amber>
             SCAN
           </Chrome.section_header>
           <Chrome.panel id="scan-panel">
+            <%!-- TODO: SIGNATURE — the lattice carrier. Render <div id="lattice-carrier"
+                  class={["lattice-carrier", !@lattice_live? && "lattice-carrier--flat"]}
+                  phx-hook="LatticeCarrier" phx-update="ignore"> at the top of the scan console,
+                  containing a server-rendered inline <svg class="lattice-carrier-trace"> with a
+                  horizontal oscilloscope <path>/<polyline> baseline. CSS gives it an ambient
+                  left-scrolling drift (a quiet cyan "listening" hum); the --flat modifier swaps
+                  it for a dead straight dash. The LatticeCarrier JS hook fires one amplitude
+                  burst (Web Animations API on the trace) when the server pushes "lattice:pulse",
+                  guarded by prefers-reduced-motion. Keep it thin and dim — this is the deck's
+                  one bold element and must NOT compete with the ICE terminal's danger gauge:
+                  calm/horizontal/cyan/listening vs tense/segmented/red/detection. --%>
             <p class="ghostwork-scan-line">
               Jack a probe into the local lattice and skim for stray signals.
             </p>
@@ -146,6 +169,11 @@ defmodule ShuntWeb.GhostworkLive do
               <div class="ghostwork-node-info">
                 <span class="ghostwork-node-name">{node.name}</span>
                 <span class="ghostwork-node-family">{node.family}</span>
+                <%!-- TODO: render a read-status line driven by the node entry's :read fog stage
+                      (from nodes_at/2): "read · dark" (muted) when :dark, "read · numbers"
+                      / "read · weakness" (cyan) once mastery has un-fogged it. Reuse fog_label/1.
+                      This is the visible link between a NODES row and CODEX mastery. Note the
+                      :for above must destructure read alongside node/status. --%>
               </div>
               <%= if status == :breakable do %>
                 <Chrome.btn
@@ -217,6 +245,8 @@ defmodule ShuntWeb.GhostworkLive do
   end
 
   defp assign_deck(socket, player) do
+    # TODO: assign :location = World.get_location(player.location_id) so the deck tether can
+    # name the physical place the body is jacked in from (the location-gating truth made visible).
     socket
     |> assign(:player, player)
     |> assign(:current_tier, SkillsCatalog.current_tier(player, socket.assigns.tree))

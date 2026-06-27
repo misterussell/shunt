@@ -45,6 +45,10 @@ defmodule Shunt.Ghostwork do
       node.location_id == location_id and Shunt.Requirements.met?(player, node.requirements) and
         not fully_cracked?(nodes, node)
     end)
+    # TODO: include :read in each node entry — fog_stage(cracks) for the node's family,
+    # where cracks = Map.get(player.ghostwork_state["mastery"] || %{}, node.family, 0). The
+    # deck renders this as the node's read status (dark/numbers/weakness), linking each NODES
+    # row to CODEX mastery without the LiveView computing fog itself (presentation boundary).
     |> Enum.map(fn node -> %{node: node, status: node_status(nodes, node, player.heat)} end)
   end
 

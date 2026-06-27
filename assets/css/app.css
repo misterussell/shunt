@@ -1661,6 +1661,19 @@
 
 /* ── Ghostwork deck (lib/shunt_web/live/ghostwork_live.ex) ─────────────────── */
 
+/* TODO: deck reshape styles. Add (all from existing tokens — no new hues/fonts):
+   - .deck-tether — full-width hairline-ruled strip above the grid; mono, --muted text, a
+     cyan ◉ dot; sits between the app top bar and .ghostwork-page-grid.
+   - .lattice-carrier / .lattice-carrier-trace — the SIGNATURE. Thin framed strip at the top
+     of #scan-panel; the SVG trace is dim --cyan. Ambient: a slow left-scroll drift of the
+     waveform conveying "listening to the local lattice." .lattice-carrier--flat = a dead
+     straight dash (no traffic). The scan burst is run by the JS hook, not CSS.
+     Wrap ALL motion (drift) in @media (prefers-reduced-motion: no-preference){...}; the
+     carrier must be legible and still when reduced motion is preferred.
+   - Give the deck panels (#scan-panel/#nodes-panel/#loadout-panel/#codex-panel) deliberate
+     padding (they currently render flush to the border) and the node read-status line a
+     muted/cyan treatment. Keep the rail (LOADOUT/CODEX) quiet — boldness lives in the carrier. */
+
 .ghostwork-page-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;

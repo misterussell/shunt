@@ -26,6 +26,7 @@ import {hooks as colocatedHooks} from "phoenix-colocated/shunt"
 import topbar from "../vendor/topbar"
 import Clock from "./hooks/clock"
 import EventTerminal from "./hooks/event_terminal"
+// TODO: import LatticeCarrier from "./hooks/lattice_carrier" and add it to the hooks map below.
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
