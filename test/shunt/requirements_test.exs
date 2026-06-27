@@ -102,6 +102,40 @@ defmodule Shunt.RequirementsTest do
     end
   end
 
+  describe "met?/2 with {:has_program, action}" do
+    setup do
+      prog = %{
+        id: "test_decryptor",
+        name: "Decryptor",
+        action: :decrypt,
+        progress: 4,
+        trace: 3,
+        on_weakness: %{progress: 8, trace: 1},
+        text: "x"
+      }
+
+      :ets.insert(:programs, {prog.id, prog})
+      on_exit(fn -> :ets.delete(:programs, prog.id) end)
+      :ok
+    end
+
+    test "met when the player owns a program of that action type" do
+      player = %Player{inventory: %{"test_decryptor" => 1}}
+
+      assert Requirements.met?(player, [{:has_program, :decrypt}])
+    end
+
+    test "unmet when the player owns no program of that action type" do
+      player = %Player{inventory: %{"test_decryptor" => 1}}
+
+      refute Requirements.met?(player, [{:has_program, :spoof}])
+    end
+
+    test "unmet when the player owns no programs at all" do
+      refute Requirements.met?(%Player{inventory: %{}}, [{:has_program, :decrypt}])
+    end
+  end
+
   describe "met?/2 with multiple requirements" do
     test "requires every requirement to pass" do
       player = %Player{knowledge: ["rook"], reputation: %{"juno" => %{trust: 20}}}

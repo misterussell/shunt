@@ -18,12 +18,13 @@ defmodule Shunt.Ghostwork.Programs do
   See priv/docs/SHUNT_ghostwork_v1.md ("A program").
   """
 
-  # TODO: all/0 returns every program map from the :programs content table via
-  # Shunt.Content.all(:programs), mirroring Shunt.Crafting.RawCatalog.items/0.
+  alias Shunt.Content
 
-  # TODO: fetch!(id) returns the program map for id via Shunt.Content.fetch!(:programs, id),
-  # mirroring Shunt.Crafting.RawCatalog.fetch!/1; raises on unknown id.
+  def all, do: Content.all(:programs)
 
-  # TODO: owned(player) returns the program maps the player holds — every program from all/0
-  # whose :id has a count >= 1 in player.inventory (program ids are inventory keys).
+  def fetch!(id), do: Content.fetch!(:programs, id)
+
+  def owned(player) do
+    Enum.filter(all(), fn program -> Map.get(player.inventory, program.id, 0) >= 1 end)
+  end
 end

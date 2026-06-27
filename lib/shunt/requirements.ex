@@ -32,8 +32,9 @@ defmodule Shunt.Requirements do
     |> Kernel.>=(threshold)
   end
 
-  # TODO: check(player, {:has_program, action}) -> true when the player owns any program whose
-  # :action matches — Shunt.Ghostwork.Programs.owned(player) |> Enum.any?(& &1.action == action).
-  # Gates deep scan leads and high-class nodes behind owning the right tool (see doc
-  # "Requirement Reuse"). Now unblocked by the Phase 2 Programs catalog.
+  defp check(player, {:has_program, action}) do
+    player
+    |> Shunt.Ghostwork.Programs.owned()
+    |> Enum.any?(&(&1.action == action))
+  end
 end

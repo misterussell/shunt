@@ -18,11 +18,9 @@ defmodule Shunt.Ghostwork.IceNode do
     layers: []
   ]
 
-  # TODO: all/0 returns every %IceNode{} from the :ice_nodes content table via
-  # Shunt.Content.all(:ice_nodes), mirroring Shunt.Crafting.RawCatalog.items/0. Content
-  # files in priv/content/ice_nodes build %IceNode{} structs directly, so this is a thin
-  # wrapper with no conversion.
+  alias Shunt.Content
 
-  # TODO: fetch!(id) returns the %IceNode{} for id via Shunt.Content.fetch!(:ice_nodes, id),
-  # mirroring Shunt.Crafting.RawCatalog.fetch!/1; raises on unknown id.
+  def all, do: Content.all(:ice_nodes)
+
+  def fetch!(id), do: Content.fetch!(:ice_nodes, id)
 end
