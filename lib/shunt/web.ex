@@ -77,21 +77,70 @@ defmodule Shunt.Web do
     {:ok, [{:web_board, %{"positions" => new_positions, "wires" => new_wires}}]}
   end
 
+  @doc "Rumors the player holds that are not yet placed on the board (the intake tray)."
+  def intake(player) do
+    player.rumors -- Map.keys(board(player)["positions"])
+  end
+
+  @doc """
+  Connected components of the board, as a list of MapSets of rumor ids. Only placed rumors are
+  considered; a wire with an unplaced endpoint is ignored. A placed rumor with no wires is its
+  own single-element cluster.
+  """
+  def clusters(player) do
+    board = board(player)
+    placed = MapSet.new(Map.keys(board["positions"]))
+
+    adjacency =
+      board["wires"]
+      |> Enum.filter(fn [a, b] -> MapSet.member?(placed, a) and MapSet.member?(placed, b) end)
+      |> Enum.reduce(%{}, fn [a, b], acc ->
+        acc |> Map.update(a, [b], &[b | &1]) |> Map.update(b, [a], &[a | &1])
+      end)
+
+    {components, _seen} =
+      Enum.reduce(placed, {[], MapSet.new()}, fn node, {components, seen} ->
+        if MapSet.member?(seen, node) do
+          {components, seen}
+        else
+          component = reachable(MapSet.new([node]), [node], adjacency)
+          {[component | components], MapSet.union(seen, component)}
+        end
+      end)
+
+    components
+  end
+
+  @doc """
+  Clusters that exactly match an unsolved connection, as {cluster_set, connection} pairs. Only
+  exact set matches resonate — partial/threshold overlaps return nothing (the board stays dark on
+  near-misses).
+  """
+  def resonant_clusters(player) do
+    connections = RumorConnection.all()
+
+    Enum.flat_map(clusters(player), fn cluster ->
+      case Enum.find(connections, &(MapSet.new(&1.rumors) == cluster)) do
+        nil -> []
+        conn -> if solved?(player, conn), do: [], else: [{cluster, conn}]
+      end
+    end)
+  end
+
+  @doc "Whether a connection has already been cracked (its success event is completed)."
+  def solved?(player, connection) do
+    connection.success_event_id in player.completed_events
+  end
+
   defp board(player) do
     raw = player.web_board || %{}
     %{"positions" => Map.get(raw, "positions", %{}), "wires" => Map.get(raw, "wires", [])}
   end
 
-  # TODO: intake(player): player.rumors -- Map.keys(positions) — rumor ids not yet placed on the board.
+  defp reachable(seen, [], _adjacency), do: seen
 
-  # TODO: clusters(player): connected components over wires, returned as a list of MapSets of rumor
-  # ids. Consider only placed rumors (those with a positions entry). A placed rumor with no wires is
-  # its own single-element cluster.
-
-  # TODO: resonant_clusters(player): for each cluster whose rumor-set EXACTLY equals an unsolved
-  # RumorConnection's rumors (MapSet ==, no extras), return {cluster_ids, connection}. Connections
-  # already solved per solved?/2 are excluded. Threshold/partial overlaps return nothing here — the
-  # board stays dark on partials (silent partials); only exact matches resonate.
-
-  # TODO: solved?(player, connection): connection.success_event_id in player.completed_events.
+  defp reachable(seen, [node | queue], adjacency) do
+    fresh = adjacency |> Map.get(node, []) |> Enum.reject(&MapSet.member?(seen, &1))
+    reachable(MapSet.union(seen, MapSet.new(fresh)), queue ++ fresh, adjacency)
+  end
 end
