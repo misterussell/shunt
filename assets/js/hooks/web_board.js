@@ -24,22 +24,9 @@ export default {
     this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
     this.boundIntake = new WeakSet()
 
-    // Structural (not aesthetic) layout so the unstyled board is usable; the frontend-design pass
-    // owns the real surface. Absolute children need a positioned, sized container.
-    this.el.style.position = "relative"
-    if (!this.el.style.minHeight) this.el.style.minHeight = "60vh"
-
-    this.svg = document.createElementNS(SVG_NS, "svg")
-    this.svg.setAttribute("class", "wire-layer")
-    Object.assign(this.svg.style, {
-      position: "absolute",
-      inset: "0",
-      width: "100%",
-      height: "100%",
-      pointerEvents: "none",
-      zIndex: "0"
-    })
-    this.el.appendChild(this.svg)
+    // The wire layer is server-rendered with phx-update="ignore" (project guideline: a hook that
+    // manages its own DOM must live in an ignored subtree, or morphdom wipes it on each patch).
+    this.svg = this.el.querySelector("#wire-layer")
 
     this.el.addEventListener("pointerdown", (e) => this.onPointerDown(e))
     this.onMove = (e) => this.onPointerMove(e)
