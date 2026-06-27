@@ -74,6 +74,8 @@ Dock
 Lock
 Gate
 Works
+Lift
+Riser
 Exchange
 Depot
 
@@ -608,3 +610,17 @@ Poor Examples:
 Technology should feel adopted, repaired, renamed, and passed between users.
 
 People rarely use official names if a better nickname exists.
+
+---
+
+# Recurring Terms — The Liftworks
+
+The Authority-run ascent checkpoint where the Underbelly meets the Midgrid, built
+around old inter-strata freight lifts.
+
+* **The Liftworks** — the checkpoint district itself ([Infrastructure] + Works).
+* **The Risers** — the freight-lift hall; the way up between strata.
+* **The Cold Stair** — the disused, unwatched service stair; the unofficial route up.
+* **Transit Permit** — Authority-issued (or forged) clearance to ride the lifts.
+* **Scan Arch** — the checkpoint reader that clears who passes.
+* **Permit Registry** — the Latticework-wired records system behind the checkpoint.

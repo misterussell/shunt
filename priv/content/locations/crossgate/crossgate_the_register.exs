@@ -21,6 +21,10 @@ alias Shunt.World.Exit
     "crossgate_register_cipher"
   ],
 
+  events: [
+    "crossgate_register_liftworks_word"
+  ],
+
   exits: [
     %Exit{
       id: "the_register_to_commissary",
