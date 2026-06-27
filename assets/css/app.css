@@ -1858,14 +1858,19 @@
 .ghostwork-mastery-family {
   flex: 1;
   color: var(--text);
+  font-weight: 600;
 }
 .ghostwork-mastery-cracks {
   color: var(--muted);
   font-size: 0.74rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 .ghostwork-mastery-fog {
   color: var(--cyan);
   font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .ghostwork-codex-label {
   color: var(--muted);
