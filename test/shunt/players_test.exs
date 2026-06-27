@@ -35,6 +35,12 @@ defmodule Shunt.PlayersTest do
       assert player.location_id == "shunt9_player_squat"
       assert player.discovered_locations == []
     end
+
+    test "creates a player with empty ghostwork state" do
+      player = Players.create_player!()
+
+      assert player.ghostwork_state == %{}
+    end
   end
 
   describe "get_player!/0" do

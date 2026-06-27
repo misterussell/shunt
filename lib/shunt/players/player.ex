@@ -21,10 +21,7 @@ defmodule Shunt.Players.Player do
     field :knowledge, {:array, :string}, default: []
     field :contacts, {:array, :string}, default: []
 
-    # TODO: add `field :ghostwork_state, :map, default: %{}` (backed by the
-    # AddGhostworkStateToPlayers migration). Shape:
-    # %{"mastery" => %{family => count}, "nodes" => %{node_id => %{"banked_layer" => n,
-    # "hardened" => bool}}}. See priv/docs/SHUNT_ghostwork_v1.md "Player State".
+    field :ghostwork_state, :map, default: %{}
 
     field :location_id, :string, default: "shunt9_player_squat"
     field :discovered_locations, {:array, :string}, default: []
