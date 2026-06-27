@@ -270,7 +270,8 @@ defmodule Shunt.GhostworkTest do
   end
 
   describe "titles/1" do
-    defp with_deck(player), do: %{player | inventory: Map.put(player.inventory, "jury_rigged_terminal", 1)}
+    defp with_deck(player),
+      do: %{player | inventory: Map.put(player.inventory, "jury_rigged_terminal", 1)}
 
     defp earned_tiers(player) do
       player |> Ghostwork.titles() |> Enum.filter(& &1.earned?) |> Enum.map(& &1.tier)
@@ -326,7 +327,16 @@ defmodule Shunt.GhostworkTest do
         family: "ice_maintenance",
         location_id: "deck_loc",
         cool_threshold: 60,
-        layers: [%{id: "l1", name: "L1", progress_required: 10, trace_multiplier: 1.0, weakness: nil, reward: []}]
+        layers: [
+          %{
+            id: "l1",
+            name: "L1",
+            progress_required: 10,
+            trace_multiplier: 1.0,
+            weakness: nil,
+            reward: []
+          }
+        ]
       }
 
       :ets.insert(:ice_nodes, {base.id, base})
@@ -350,7 +360,9 @@ defmodule Shunt.GhostworkTest do
 
     test "excludes a fully cracked node" do
       player = %Player{
-        ghostwork_state: %{"nodes" => %{"nat_node" => %{"banked_layer" => 0, "hardened" => false}}}
+        ghostwork_state: %{
+          "nodes" => %{"nat_node" => %{"banked_layer" => 0, "hardened" => false}}
+        }
       }
 
       assert Ghostwork.nodes_at(player, "deck_loc") == []
@@ -359,7 +371,9 @@ defmodule Shunt.GhostworkTest do
     test "marks a hardened node hot as :hardened" do
       player = %Player{
         heat: 70,
-        ghostwork_state: %{"nodes" => %{"nat_node" => %{"banked_layer" => -1, "hardened" => true}}}
+        ghostwork_state: %{
+          "nodes" => %{"nat_node" => %{"banked_layer" => -1, "hardened" => true}}
+        }
       }
 
       assert [%{status: :hardened}] = Ghostwork.nodes_at(player, "deck_loc")
@@ -368,7 +382,9 @@ defmodule Shunt.GhostworkTest do
     test "marks a hardened node that has cooled off as :breakable" do
       player = %Player{
         heat: 30,
-        ghostwork_state: %{"nodes" => %{"nat_node" => %{"banked_layer" => -1, "hardened" => true}}}
+        ghostwork_state: %{
+          "nodes" => %{"nat_node" => %{"banked_layer" => -1, "hardened" => true}}
+        }
       }
 
       assert [%{status: :breakable}] = Ghostwork.nodes_at(player, "deck_loc")

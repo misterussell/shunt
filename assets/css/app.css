@@ -1658,3 +1658,226 @@
   }
 }
 
+
+/* ── Ghostwork deck (lib/shunt_web/live/ghostwork_live.ex) ─────────────────── */
+
+.ghostwork-page-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.ghostwork-main,
+.ghostwork-rail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ghostwork-scan-line {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+.ghostwork-signal-feed {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--sunk);
+  border: 1px solid var(--border-c);
+  padding: 8px 10px;
+}
+.ghostwork-signal-line {
+  color: var(--text);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+.ghostwork-signal-empty {
+  color: var(--border-c);
+  font-size: 0.82rem;
+}
+
+.ghostwork-node-row,
+.ghostwork-program-row,
+.ghostwork-mastery-row,
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-c);
+}
+.ghostwork-node-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.ghostwork-node-name {
+  color: var(--text);
+  font-weight: 600;
+}
+.ghostwork-node-family {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.ghostwork-node-hardened {
+  color: var(--amber);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+.ghostwork-empty {
+  color: var(--border-c);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  padding: 8px 0;
+}
+
+.ghostwork-program-name {
+  flex: 1;
+  color: var(--text);
+}
+.ghostwork-program-action {
+  color: var(--cyan);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+.ghostwork-program-stats {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.ghostwork-codex-mastery {
+  margin-bottom: 12px;
+}
+.ghostwork-mastery-family {
+  flex: 1;
+  color: var(--text);
+}
+.ghostwork-mastery-cracks {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.ghostwork-mastery-fog {
+  color: var(--cyan);
+  font-size: 0.72rem;
+}
+.ghostwork-codex-label {
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+.title-row {
+  opacity: 0.4;
+}
+.title-row--earned {
+  opacity: 1;
+}
+.title-tier {
+  color: var(--cyan);
+  font-size: 0.72rem;
+  width: 2rem;
+}
+.title-name {
+  flex: 1;
+  color: var(--text);
+}
+.title-state {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+/* ⌁ LATTICE ambient cue on the map's current-location panel */
+.lattice-cue {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 40%, var(--border-c));
+  color: var(--cyan);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--cyan) 35%, transparent);
+}
+
+/* ── ICE terminal modal (lib/shunt_web/components/ice_terminal.ex) ─────────── */
+
+.ice-terminal-panel {
+  width: min(520px, 92vw);
+}
+.ice-terminal-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ice-meters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ice-meter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "label readout" "track track";
+  gap: 4px 8px;
+  align-items: center;
+}
+.ice-meter-label {
+  grid-area: label;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ice-meter-readout {
+  grid-area: readout;
+  color: var(--text);
+  font-size: 0.74rem;
+}
+.ice-meter-track {
+  grid-area: track;
+  height: 8px;
+  background: var(--sunk);
+  border: 1px solid var(--border-c);
+  overflow: hidden;
+}
+.ice-meter-fill {
+  height: 100%;
+  transition: width 200ms ease-out;
+}
+.ice-meter-fill--progress {
+  background: var(--cyan);
+}
+.ice-meter-fill--trace-low {
+  background: var(--cyan);
+}
+.ice-meter-fill--trace-mid {
+  background: var(--amber);
+}
+.ice-meter-fill--trace-high {
+  background: var(--red);
+}
+.ice-weakness {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.ice-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ice-action {
+  width: 100%;
+  text-align: left;
+}
+.ice-end-line {
+  color: var(--text);
+  font-size: 0.84rem;
+  margin-bottom: 4px;
+}

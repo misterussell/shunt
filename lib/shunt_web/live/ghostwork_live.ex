@@ -17,72 +17,222 @@ defmodule ShuntWeb.GhostworkLive do
   alias Shunt.Players
   alias Shunt.Skills.Catalog, as: SkillsCatalog
   alias Shunt.World
+  alias ShuntWeb.Chrome
+  alias ShuntWeb.Components.IceTerminal
 
-  # TODO: mount/3 — like SkillsLive.mount: get player_id + player, fetch the "ghostwork" tree
-  #   (SkillsCatalog.fetch!("ghostwork")) for the ladder_track + titles, assign :status nil,
-  #   initialize the scan-feed stream (stream(:signal_feed, [])) and :encounter nil, then
-  #   assign_deck(player). The route is a single action; no live_action branching.
+  def mount(_params, _session, socket) do
+    player_id = Players.get_player!().id
+    player = Players.current(player_id)
 
-  # TODO: handle_event("scan", _, socket) — dispatch &Ghostwork.scan(&1, location) for the
-  #   current location (World.get_location(player.location_id)). On {:ok, player, meta}, prepend
-  #   a signal-feed entry built from meta (meta.text, meta.kind) to the stream and assign_deck;
-  #   flash heat events like SkillsLive.flash_heat_event. {:error, :no_lattice} -> no-op.
+    {:ok,
+     socket
+     |> assign(player_id: player_id)
+     |> assign(:tree, SkillsCatalog.fetch!("ghostwork"))
+     |> assign(:status, nil)
+     |> assign(:encounter, nil)
+     |> stream(:signal_feed, [])
+     |> assign_deck(player)}
+  end
 
-  # TODO: handle_event("break", %{"node_id" => id}, socket) — fetch the node
-  #   (Ghostwork.IceNode.fetch!(id)); dispatch a resolver that calls Ghostwork.begin_encounter(
-  #   player, node) and returns {:ok, effects, %{encounter: enc}} (or {:error, reason}). On
-  #   success assign :encounter from meta.encounter and assign_deck. On {:error, :hardened} /
-  #   {:error, :already_cracked} set :status and don't open the modal.
+  def handle_event("scan", _params, socket) do
+    location = World.get_location(socket.assigns.player.location_id)
 
-  # TODO: handle_event("act", %{"action" => action}, socket) — decode action ("probe" -> :probe,
-  #   "program:<id>" -> {:program, id}). Dispatch a resolver calling Ghostwork.act(
-  #   socket.assigns.encounter, player, action) returning {:ok, effects, %{encounter: enc}} (or
-  #   {:error, reason}). Assign :encounter from meta.encounter and assign_deck so banked rewards /
-  #   bust heat are reflected. (The encounter struct itself is transient — never persisted.)
+    case Players.dispatch(socket.assigns.player_id, &Ghostwork.scan(&1, location)) do
+      {:ok, player, meta} ->
+        {:noreply,
+         socket
+         |> stream_insert(:signal_feed, signal_entry(meta), at: 0)
+         |> flash_heat_event(Map.get(meta, :heat_event))
+         |> assign(:status, "SCAN // #{String.upcase(to_string(meta.kind))}")
+         |> assign_deck(player)}
 
-  # TODO: handle_event("retreat", _, socket) — Ghostwork.retreat(socket.assigns.encounter)
-  #   returns {:ok, enc, []} (no effects); assign the retreated encounter so the modal shows the
-  #   walk-clean end state.
+      {:error, :no_lattice} ->
+        {:noreply, assign(socket, :status, "NO LATTICE TRAFFIC HERE")}
+    end
+  end
 
-  # TODO: handle_event("close_encounter", _, socket) — assign :encounter nil to put the deck
-  #   away (close the modal) once the encounter is cracked / busted / retreated.
+  def handle_event("break", %{"key" => node_id}, socket) do
+    node = Ghostwork.IceNode.fetch!(node_id)
+
+    resolver = fn player ->
+      case Ghostwork.begin_encounter(player, node) do
+        {:ok, encounter, effects} -> {:ok, effects, %{encounter: encounter}}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+
+    case Players.dispatch(socket.assigns.player_id, resolver) do
+      {:ok, player, meta} ->
+        {:noreply, socket |> assign(:encounter, meta.encounter) |> assign_deck(player)}
+
+      {:error, :hardened} ->
+        {:noreply, assign(socket, :status, "#{node.name} HARDENED — cool off")}
+
+      {:error, :already_cracked} ->
+        {:noreply, assign(socket, :status, "#{node.name} already cracked")}
+    end
+  end
+
+  def handle_event("act", %{"action" => action}, socket) do
+    encounter = socket.assigns.encounter
+
+    resolver = fn player ->
+      case Ghostwork.act(encounter, player, decode_action(action)) do
+        {:ok, updated, effects} -> {:ok, effects, %{encounter: updated}}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+
+    case Players.dispatch(socket.assigns.player_id, resolver) do
+      {:ok, player, meta} ->
+        {:noreply, socket |> assign(:encounter, meta.encounter) |> assign_deck(player)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("retreat", _params, socket) do
+    {:ok, encounter, _effects} = Ghostwork.retreat(socket.assigns.encounter)
+    {:noreply, assign(socket, :encounter, encounter)}
+  end
+
+  def handle_event("close_encounter", _params, socket) do
+    {:noreply, assign(socket, :encounter, nil)}
+  end
 
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} player={@player} active={:ghostwork} status={@status}>
-      <%!-- TODO: render the two-column deck cockpit:
-        * <Chrome.ladder_track tree={@tree} current_tier={@current_tier} /> (top, like siblings)
-        * <ShuntWeb.Components.IceTerminal.ice_modal :if={@encounter} ... /> over the page
-        * main column (.ghostwork-page-grid / .ghostwork-main):
-            - SCAN section_header + panel: a [ SCAN ] btn (phx-click="scan") and the
-              #signal-feed terminal stream (phx-update="stream"), entry id per item, with a
-              "hidden only:block" empty state ("> no signal intercepted").
-            - NODES section_header + panel: @nodes (from Ghostwork.nodes_at). Each
-              #node-<id> shows name + family; :breakable -> [ BREAK ] btn (phx-click="break",
-              phx-value-node_id=id); :hardened -> a "HARDENED — cool off" label, no button.
-              Empty state when @nodes == [].
-        * rail column (.ghostwork-rail):
-            - LOADOUT section_header + panel: @programs (Ghostwork.Programs.owned). Each
-              #program-<id> shows name + action + progress/trace. Empty -> "NO PROGRAMS LOADED".
-            - CODEX section_header + panel: @mastery (Ghostwork.mastery_summary) per family
-              (#mastery-<family>: cracks + fog stage label) and @titles (Ghostwork.titles)
-              as #title-<tier> rows lit by earned?.
-        Styling: add .ghostwork-* classes in assets/css/app.css matching the chrome palette. --%>
-      <div id="ghostwork-deck">
-        <p>TODO: deck cockpit</p>
+      <Chrome.ladder_track tree={@tree} current_tier={@current_tier} />
+
+      <IceTerminal.ice_modal
+        :if={@encounter}
+        id="ice-modal"
+        encounter={@encounter}
+        programs={@programs}
+      />
+
+      <div id="ghostwork-deck" class="ghostwork-page-grid">
+        <div class="ghostwork-main">
+          <Chrome.section_header secondary="⚠ DRAWS HEAT" secondary_amber>
+            SCAN
+          </Chrome.section_header>
+          <Chrome.panel id="scan-panel">
+            <p class="ghostwork-scan-line">
+              Jack a probe into the local lattice and skim for stray signals.
+            </p>
+            <Chrome.btn id="scan-button" variant={:primary} phx-click="scan">[ SCAN ]</Chrome.btn>
+            <div id="signal-feed" class="ghostwork-signal-feed" phx-update="stream">
+              <p id="signal-feed-empty" class="ghostwork-signal-empty hidden only:block">
+                &gt; no signal intercepted
+              </p>
+              <p :for={{id, entry} <- @streams.signal_feed} id={id} class="ghostwork-signal-line">
+                &gt; {entry.text}
+              </p>
+            </div>
+          </Chrome.panel>
+
+          <Chrome.section_header secondary="LOCATION-FILTERED">NODES</Chrome.section_header>
+          <Chrome.panel id="nodes-panel">
+            <p :if={@nodes == []} id="nodes-empty" class="ghostwork-empty">
+              NO NODES IN RANGE · scan for signals
+            </p>
+            <div
+              :for={%{node: node, status: status} <- @nodes}
+              id={"node-#{node.id}"}
+              class="ghostwork-node-row"
+            >
+              <div class="ghostwork-node-info">
+                <span class="ghostwork-node-name">{node.name}</span>
+                <span class="ghostwork-node-family">{node.family}</span>
+              </div>
+              <%= if status == :breakable do %>
+                <Chrome.btn
+                  id={"break-#{node.id}"}
+                  variant={:primary}
+                  phx-click="break"
+                  phx-value-key={node.id}
+                >
+                  [ BREAK ]
+                </Chrome.btn>
+              <% else %>
+                <span class="ghostwork-node-hardened">HARDENED — cool off</span>
+              <% end %>
+            </div>
+          </Chrome.panel>
+        </div>
+
+        <div class="ghostwork-rail">
+          <Chrome.section_header>LOADOUT</Chrome.section_header>
+          <Chrome.panel id="loadout-panel">
+            <p :if={@programs == []} id="loadout-empty" class="ghostwork-empty">
+              NO PROGRAMS LOADED
+            </p>
+            <div :for={prog <- @programs} id={"program-#{prog.id}"} class="ghostwork-program-row">
+              <span class="ghostwork-program-name">{prog.name}</span>
+              <span class="ghostwork-program-action">{prog.action}</span>
+              <span class="ghostwork-program-stats">P{prog.progress} / T{prog.trace}</span>
+            </div>
+          </Chrome.panel>
+
+          <Chrome.section_header>CODEX</Chrome.section_header>
+          <Chrome.panel id="codex-panel">
+            <div class="ghostwork-codex-mastery">
+              <p :if={@mastery == []} class="ghostwork-empty">NO ICE READ YET</p>
+              <div :for={m <- @mastery} id={"mastery-#{m.family}"} class="ghostwork-mastery-row">
+                <span class="ghostwork-mastery-family">{m.family}</span>
+                <span class="ghostwork-mastery-cracks">cracked ×{m.cracks}</span>
+                <span class="ghostwork-mastery-fog">fog: {fog_label(m.fog_stage)}</span>
+              </div>
+            </div>
+            <div class="ghostwork-codex-titles">
+              <p class="ghostwork-codex-label">TITLES</p>
+              <div
+                :for={title <- @titles}
+                id={"title-#{title.tier}"}
+                class={["title-row", title.earned? && "title-row--earned"]}
+              >
+                <span class="title-tier">T{title.tier}</span>
+                <span class="title-name">{title.name}</span>
+                <span class="title-state">{if title.earned?, do: "[earned]", else: "[locked]"}</span>
+              </div>
+            </div>
+          </Chrome.panel>
+        </div>
       </div>
     </Layouts.app>
     """
   end
 
-  # TODO: assign_deck(socket, player) — assign :player, :current_tier
-  #   (SkillsCatalog.current_tier(player, tree)), :nodes (Ghostwork.nodes_at(player,
-  #   player.location_id)), :programs (Ghostwork.Programs.owned(player)), :mastery
-  #   (Ghostwork.mastery_summary(player)), :titles (Ghostwork.titles(player)).
+  defp decode_action("probe"), do: :probe
+  defp decode_action("program:" <> id), do: {:program, id}
 
-  # TODO: signal_entry(meta) — build a stream entry %{id: unique_integer, text: meta.text,
-  #   kind: meta.kind} for the scan feed (mirrors MovementLive.step_entry/echo_entry).
+  defp fog_label(:dark), do: "dark"
+  defp fog_label(:numbers), do: "numbers"
+  defp fog_label(:weakness), do: "weakness"
 
-  # TODO: flash_heat_event(socket, heat_event) — copy SkillsLive.flash_heat_event/2 (nil -> noop;
-  #   otherwise put_flash with the heat event's name/flavor/losses).
+  defp signal_entry(meta) do
+    %{id: System.unique_integer([:monotonic, :positive]), text: meta.text, kind: meta.kind}
+  end
+
+  defp assign_deck(socket, player) do
+    socket
+    |> assign(:player, player)
+    |> assign(:current_tier, SkillsCatalog.current_tier(player, socket.assigns.tree))
+    |> assign(:nodes, Ghostwork.nodes_at(player, player.location_id))
+    |> assign(:programs, Ghostwork.Programs.owned(player))
+    |> assign(:mastery, Ghostwork.mastery_summary(player))
+    |> assign(:titles, Ghostwork.titles(player))
+  end
+
+  defp flash_heat_event(socket, nil), do: socket
+
+  defp flash_heat_event(socket, event) do
+    put_flash(
+      socket,
+      :error,
+      "#{event.name} — #{event.flavor_text} (-#{event.scrip_loss} Scrip, -#{event.cred_loss} Cred)"
+    )
+  end
 end

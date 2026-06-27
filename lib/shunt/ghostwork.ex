@@ -243,6 +243,9 @@ defmodule Shunt.Ghostwork do
 
   def retreat(%Encounter{} = encounter), do: {:ok, %{encounter | status: :retreated}, []}
 
+  @doc "The innate Probe action's base profile, for the encounter UI readout."
+  def probe_profile, do: %{progress: @probe_progress, trace: @probe_trace}
+
   def numbers_known?(encounter), do: encounter.mastery >= @mastery_numbers
 
   def weakness_known?(encounter), do: encounter.mastery >= @mastery_weakness

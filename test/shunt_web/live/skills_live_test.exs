@@ -8,12 +8,6 @@ defmodule ShuntWeb.SkillsLiveTest do
     :ok
   end
 
-  test "ghostwork renders the dormant stub panel with its stub text", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
-
-    assert has_element?(view, "#skill-tree-stub", "No backdoor cracked yet.")
-  end
-
   test "chrome_meat renders the dormant stub panel with its stub text", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/skills/chrome-meat")
 
@@ -22,7 +16,7 @@ defmodule ShuntWeb.SkillsLiveTest do
 
   test "stub page shows a DORMANT MODULE badge, the generic subsystem line, and the signal-lost footer",
        %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+    {:ok, view, _html} = live(conn, ~p"/skills/chrome-meat")
 
     assert has_element?(view, "#skill-tree-stub .stub-badge", "DORMANT MODULE")
 

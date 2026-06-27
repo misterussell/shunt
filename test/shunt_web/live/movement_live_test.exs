@@ -395,4 +395,26 @@ defmodule ShuntWeb.MovementLiveTest do
       {branching_event_id, view}
     end
   end
+
+  describe "⌁ LATTICE cue" do
+    test "is absent by default (no deck, no lattice)", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      refute has_element?(view, "#lattice-cue")
+    end
+
+    test "appears when the player holds a deck at a lattice location", %{conn: conn} do
+      squat = Shunt.World.get_location("shunt9_player_squat")
+      :ets.insert(:locations, {squat.id, Map.put(squat, :lattice, %{leads: [], filler: []})})
+      on_exit(fn -> :ets.insert(:locations, {squat.id, squat}) end)
+
+      Shunt.Players.dispatch(Shunt.Players.get_player!().id, fn _player ->
+        {:ok, [{:inventory, "jury_rigged_terminal", 1}], %{}}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      assert has_element?(view, "#lattice-cue")
+    end
+  end
 end
