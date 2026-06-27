@@ -29,6 +29,25 @@ defmodule Shunt.Ghostwork do
   @mastery_numbers 1
   @mastery_weakness 3
 
+  # Heat applied by every scan (scanning is mildly loud, like Crafting.scavenge).
+  @scan_heat 4
+
+  # TODO: scan(player, location) -> {:ok, effects, meta} | {:error, :no_lattice}. Resolves a
+  #   Signal Hunt at the player's current location (see doc "Signal Hunting"). The location is a
+  #   plain content map with an optional :lattice field: %{leads: [...], filler: [...]}.
+  #   * No :lattice key -> {:error, :no_lattice}.
+  #   * Lead path (deterministic, authored, swept-once): the FIRST lead in
+  #     Map.get(lattice, :leads, []) whose requirements pass (Shunt.Requirements.met?/2) AND
+  #     whose granted knowledge key the player doesn't yet hold (some {:knowledge, k} in the
+  #     lead's :on_intercept with k not in player.knowledge). meta =
+  #     %{kind: :lead, signal_id: lead.id, text: lead.text}.
+  #   * Filler path: if no lead is available, weighted-random pick from Map.get(lattice, :filler,
+  #     []) by each entry's :weight (private weighted_pick using :rand.uniform/1, the only RNG
+  #     here). meta = %{kind: :filler, text: filler.text}.
+  #   * Empty path: no lead and empty filler -> meta = %{kind: :empty, text: nil}, no on_intercept.
+  #   * effects in every non-error case = the chosen signal's :on_intercept (or [] when empty) ++
+  #     [{:heat, @scan_heat}]. Heat is always applied.
+
   def begin_encounter(player, node) do
     state = Map.get(player.ghostwork_state, "nodes", %{})
     node_state = Map.get(state, node.id, %{"banked_layer" => -1, "hardened" => false})
