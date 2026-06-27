@@ -274,6 +274,24 @@ defmodule ShuntWeb.WebLiveTest do
     end
   end
 
+  describe "dev — wipe board" do
+    test "renders the dev wipe control", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "#wipe-board-button")
+    end
+
+    test "clicking wipe board clears positions and wires", %{conn: conn, player: player} do
+      {:ok, _player, _meta} = Shunt.Players.dispatch(player.id, &Shunt.Web.connect(&1, "x", "y"))
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      view |> element("#wipe-board-button") |> render_click()
+
+      assert Shunt.Players.get_player!().web_board == %{"positions" => %{}, "wires" => []}
+    end
+  end
+
   defp give_player_rumors(player, rumor_ids) do
     Shunt.Players.dispatch(player.id, fn _p ->
       {:ok, Enum.map(rumor_ids, &{:rumor, &1}), %{}}

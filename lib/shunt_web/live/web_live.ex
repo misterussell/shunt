@@ -39,7 +39,7 @@ defmodule ShuntWeb.WebLive do
   # The WebBoard hook pushes these; each dispatches the matching Shunt.Web op via Players.dispatch
   # and then refreshes board assigns:
   #   "place_rumor"  %{"id" => id, "x" => x, "y" => y}  -> Web.place_rumor/4 (intake -> board)
-  #   "move_rumor"   %{"id" => id, "x" => x, "y" => y}  -> Web.move_rumor/4 (debounced on drag-end)
+  #   "move_rumor"   %{"id" => id, "x" => x, "y" => y}  -> Web.place_rumor/4 (debounced on drag-end)
   #   "connect"      %{"a" => a, "b" => b}              -> Web.connect/3
   #   "disconnect"   %{"a" => a, "b" => b}              -> Web.disconnect/3
   #   "return_to_intake" %{"id" => id}                  -> Web.return_to_intake/2
@@ -59,9 +59,11 @@ defmodule ShuntWeb.WebLive do
     {:noreply, socket |> assign(:player, player) |> assign(:rumors, player_rumors(player))}
   end
 
-  # TODO: dev-only "wipe_board" — when @dev?, dispatch a Web op (or {:web_board, empty board}) that
-  # resets web_board to %{"positions" => %{}, "wires" => []} so the UI can be re-tested from scratch.
-  # Does not touch player.rumors — cards return to intake.
+  def handle_event("wipe_board", _params, socket) do
+    {:ok, player, _meta} = Players.dispatch(socket.assigns.player_id, &Web.wipe_board/1)
+
+    {:noreply, socket |> assign(:player, player) |> assign(:rumors, player_rumors(player))}
+  end
 
   def handle_event("toggle_rumor", %{"id" => id}, socket) do
     selected = socket.assigns.selected
@@ -143,6 +145,9 @@ defmodule ShuntWeb.WebLive do
       <div :if={@dev?} id="dev-controls" class="dev-controls">
         <Chrome.btn id="seed-rumors-button" variant={:ghost} phx-click="seed_rumors">
           [ SEED RUMORS ]
+        </Chrome.btn>
+        <Chrome.btn id="wipe-board-button" variant={:ghost} phx-click="wipe_board">
+          [ WIPE BOARD ]
         </Chrome.btn>
       </div>
 

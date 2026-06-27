@@ -39,16 +39,48 @@ defmodule Shunt.Web do
     result
   end
 
-  # TODO: private board(player) helper returning player.web_board normalized to the
-  # %{"positions" => %{}, "wires" => []} shape, so the ops below never have to match missing keys.
+  @empty_board %{"positions" => %{}, "wires" => []}
 
-  # TODO: board mutation ops, each returning {:ok, [{:web_board, new_board}]} so callers run them
-  # through Players.dispatch (which applies the {:web_board, _} effect and persists):
-  #   - place_rumor(player, id, x, y): put id => %{"x" => x, "y" => y} into positions (intake -> board)
-  #   - move_rumor(player, id, x, y): overwrite positions[id] with new fractional coords
-  #   - connect(player, a, b): add Enum.sort([a, b]) to wires unless already present
-  #   - disconnect(player, a, b): remove Enum.sort([a, b]) from wires
-  #   - return_to_intake(player, id): delete positions[id] and drop every wire that touches id
+  @doc "Clears all positions and wires. Leaves player.rumors untouched (cards return to intake)."
+  def wipe_board(_player), do: {:ok, [{:web_board, @empty_board}]}
+
+  @doc """
+  Places (or repositions) a rumor on the board at fractional coords. Used for both the
+  intake -> board drop and subsequent moves — both just set positions[id].
+  """
+  def place_rumor(player, id, x, y) do
+    board = board(player)
+    new_positions = Map.put(board["positions"], id, %{"x" => x, "y" => y})
+    {:ok, [{:web_board, %{board | "positions" => new_positions}}]}
+  end
+
+  @doc "Wires two rumors together. Stored as a sorted pair; idempotent and order-independent."
+  def connect(player, a, b) do
+    board = board(player)
+    pair = Enum.sort([a, b])
+    new_wires = if pair in board["wires"], do: board["wires"], else: board["wires"] ++ [pair]
+    {:ok, [{:web_board, %{board | "wires" => new_wires}}]}
+  end
+
+  @doc "Removes the wire between two rumors, if present. Order-independent."
+  def disconnect(player, a, b) do
+    board = board(player)
+    new_wires = List.delete(board["wires"], Enum.sort([a, b]))
+    {:ok, [{:web_board, %{board | "wires" => new_wires}}]}
+  end
+
+  @doc "Pulls a rumor off the board: drops its position and every wire that touches it."
+  def return_to_intake(player, id) do
+    board = board(player)
+    new_positions = Map.delete(board["positions"], id)
+    new_wires = Enum.reject(board["wires"], fn [a, b] -> a == id or b == id end)
+    {:ok, [{:web_board, %{"positions" => new_positions, "wires" => new_wires}}]}
+  end
+
+  defp board(player) do
+    raw = player.web_board || %{}
+    %{"positions" => Map.get(raw, "positions", %{}), "wires" => Map.get(raw, "wires", [])}
+  end
 
   # TODO: intake(player): player.rumors -- Map.keys(positions) — rumor ids not yet placed on the board.
 
