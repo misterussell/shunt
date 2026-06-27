@@ -17,6 +17,10 @@ alias Shunt.World.Exit
 
   graph_position: {250, 230},
 
+  events: [
+    "shunt9_scrap_yard_watchman"
+  ],
+
   exits: [
     %Exit{
       id: "scrap_yard_to_bazaar",

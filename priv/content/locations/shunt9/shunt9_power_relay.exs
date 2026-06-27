@@ -17,6 +17,10 @@ alias Shunt.World.Exit
 
   graph_position: {100, 400},
 
+  events: [
+    "shunt9_power_relay_tap"
+  ],
+
   exits: [
     %Exit{
       id: "power_relay_to_bazaar",

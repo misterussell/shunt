@@ -7,7 +7,8 @@
   ],
 
   on_complete: [
-    {:inventory, "juno_supplier_dossier", 1}
+    {:inventory, "juno_supplier_dossier", 1},
+    {:knowledge, "power_relay_entrance"}
   ],
 
   steps: [
