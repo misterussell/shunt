@@ -86,6 +86,17 @@ defmodule ShuntWeb.MovementLive do
     end
   end
 
+  # TODO: handle_event("inspect_repairable", %{"id" => id}, socket) — open a repair terminal
+  #   (reuse EventTerminal.event_modal styling). Show Shunt.Repair.inspect/2 diagnosis text and
+  #   a button per Shunt.Repair.available_solutions/2 (phx-click="apply_repair", value id +
+  #   solution). If no solutions are available, show the diagnosis only. No domain logic in the
+  #   LiveView — read everything from Shunt.Repair.
+
+  # TODO: handle_event("apply_repair", %{"id" => id, "solution" => solution_id}, socket) —
+  #   Players.dispatch(&Shunt.Repair.repair(&1, id, solution_id)). On {:ok, player, meta}:
+  #   stream meta.outcome_text into the event log and call assign_location(player) so the
+  #   description swap + any newly-unlocked exits/POIs appear immediately. Ignore {:error, _}.
+
   def handle_event("move_to", %{"destination" => destination}, socket) do
     case Players.dispatch(socket.assigns.player_id, &Movement.move(&1, destination)) do
       {:ok, player, meta} ->
@@ -138,7 +149,9 @@ defmodule ShuntWeb.MovementLive do
             >
               ⌁ lattice detected
             </span>
+            <%!-- TODO: render World.effective_description(@player, @location) here instead of @location.description so a repaired/patched object swaps the location text. --%>
             <p class="location-description">{@location.description}</p>
+            <%!-- TODO: add an Infrastructure block (mirroring #location-events) listing @repairables, each a button id={"inspect-repairable-#{r.id}"} showing "[ name (state) ]" via Shunt.Repair.state/2, phx-click="inspect_repairable" phx-value-id={r.id}. @repairables comes from assign_location below. --%>
             <div :if={@points_of_interest != []} id="location-events">
               <p class="location-events-label">Points of Interest</p>
               <button
@@ -209,5 +222,8 @@ defmodule ShuntWeb.MovementLive do
     |> assign(:location, World.get_location(player.location_id))
     |> assign(:locations, World.accessible_locations(player))
     |> assign(:points_of_interest, World.points_of_interest(player, player.location_id))
+
+    # TODO: |> assign(:repairables, Shunt.Repair.at_location(player, player.location_id))
+    #   so the Infrastructure block in render/1 can list this location's repairables.
   end
 end

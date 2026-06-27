@@ -7,6 +7,12 @@ defmodule Shunt.World do
 
   def get_location(id), do: Content.fetch!(:locations, id)
 
+  # TODO: implement `effective_description(player, location)` returning the description text
+  #   shown for `location`: for the first repairable at this location (via
+  #   Shunt.Repair.at_location/2, declared order) whose current state has a matching key in
+  #   state_descriptions, return that text; otherwise return location.description. Rendered by
+  #   MovementLive in place of @location.description so repairs visibly change the world.
+
   def exits(location_id), do: get_location(location_id).exits
 
   def connected?(from, to), do: to in Enum.map(exits(from), & &1.to)
