@@ -7,14 +7,26 @@ defmodule ShuntWeb.Components.IceTerminal do
   it renders state and emits phx-click commands ("act" / "retreat" / "close_encounter")
   that the LiveView dispatches through Shunt.Ghostwork — never recomputing outcomes.
 
-  Mastery fog-of-war (doc "Mastery fog-of-war"): Shunt.Ghostwork.numbers_known?/1 and
-  weakness_known?/1 decide whether action Progress/Trace numbers and the layer's
-  weakness tell are shown or rendered as "?".
+  ## Visual signature
+
+  This panel is the one place Ghostwork spends boldness (the rest of the deck stays
+  quiet). Two linked ideas carry it:
+
+    * Trace as a *detection heartbeat* — a segmented gauge filling toward 100,
+      cyan -> amber -> red, with a restrained pulse only in the danger zone (>= 85).
+    * Fog-of-war as *redaction* — unknown action costs and the layer weakness render
+      as ▓ redaction glyphs (reusing the locked-recipe motif) that resolve into real
+      values as family mastery rises: Shunt.Ghostwork.numbers_known?/1 un-redacts the
+      numbers, weakness_known?/1 un-redacts the tell. "Reading the ICE" made literal.
+
+  Motion respects prefers-reduced-motion (gauge fills instantly, danger pulse off).
   """
   use Phoenix.Component
 
   alias Phoenix.LiveView.JS
   alias Shunt.Ghostwork
+
+  @trace_segments 20
 
   attr :id, :string, required: true
   attr :encounter, :map, required: true
@@ -27,9 +39,12 @@ defmodule ShuntWeb.Components.IceTerminal do
     assigns =
       assigns
       |> assign(:layer, layer)
+      |> assign(:layer_count, length(encounter.node.layers))
       |> assign(:numbers_known?, Ghostwork.numbers_known?(encounter))
       |> assign(:weakness_known?, Ghostwork.weakness_known?(encounter))
       |> assign(:probe, Ghostwork.probe_profile())
+      |> assign(:trace_lit, lit_segments(encounter.trace))
+      |> assign(:segments, 1..@trace_segments)
 
     ~H"""
     <div
@@ -41,14 +56,28 @@ defmodule ShuntWeb.Components.IceTerminal do
         <div class="event-modal-header">
           <span class="section-header-bracket">┌─[ {@encounter.node.name} ]</span>
           <span class="section-header-rule"></span>
-          <span class="section-header-secondary">[ {status_label(@encounter.status)} ]</span>
+          <span class={["section-header-secondary", status_accent(@encounter.status)]}>
+            [ {status_label(@encounter.status)} ]
+          </span>
           <span class="section-header-bracket">─┐</span>
         </div>
 
         <div class="ice-terminal-body">
+          <div class="ice-layer-head">
+            <span class="ice-layer-title">
+              LAYER {@encounter.layer_index + 1}/{@layer_count} · {@layer.name}
+            </span>
+            <div class="ice-layer-stack" aria-hidden="true">
+              <span
+                :for={i <- 0..(@layer_count - 1)}
+                class={["ice-layer-pip", pip_class(i, @encounter.layer_index)]}
+              />
+            </div>
+          </div>
+
           <div class="ice-meters">
             <div class="ice-meter">
-              <span class="ice-meter-label">LAYER · {@layer.name}</span>
+              <span class="ice-meter-label">PROGRESS</span>
               <div class="ice-meter-track">
                 <div
                   id="ice-progress"
@@ -64,50 +93,60 @@ defmodule ShuntWeb.Components.IceTerminal do
 
             <div class="ice-meter">
               <span class="ice-meter-label">TRACE</span>
-              <div class="ice-meter-track">
-                <div
-                  id="ice-trace"
-                  class={["ice-meter-fill", trace_class(@encounter.trace)]}
-                  style={bar_style(@encounter.trace, 100)}
-                >
-                </div>
+              <div
+                id="ice-trace"
+                class={["ice-trace-gauge", @encounter.trace >= 85 && "ice-trace-gauge--danger"]}
+                role="meter"
+                aria-valuenow={@encounter.trace}
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <span
+                  :for={seg <- @segments}
+                  class={["ice-trace-seg", seg_class(seg, @trace_lit)]}
+                />
               </div>
-              <span class="ice-meter-readout">{@encounter.trace} / 100</span>
+              <span class="ice-meter-readout ice-meter-readout--trace">{@encounter.trace} / 100</span>
             </div>
 
             <p class="ice-weakness">
-              weakness: {if @weakness_known?, do: weakness_text(@layer.weakness), else: "?"}
+              weakness:
+              <%= if @weakness_known? do %>
+                <span class="ice-weakness-tell">{weakness_text(@layer.weakness)}</span>
+              <% else %>
+                <span class="ice-redact ice-redact--wide">▓▓▓▓▓</span>
+              <% end %>
             </p>
           </div>
 
           <%= if @encounter.status == :active do %>
             <div class="ice-actions">
-              <button
-                id="ice-probe"
-                class="btn-primary ice-action"
-                phx-click="act"
-                phx-value-action="probe"
-              >
-                [ PROBE ] {action_stats(@numbers_known?, @probe.progress, @probe.trace)}
+              <button id="ice-probe" class="ice-action" phx-click="act" phx-value-action="probe">
+                <span class="ice-action-name">PROBE</span>
+                <.cost known={@numbers_known?} progress={@probe.progress} trace={@probe.trace} />
               </button>
               <button
                 :for={prog <- @programs}
                 id={"ice-program-#{prog.id}"}
-                class="btn-ghost ice-action"
+                class="ice-action"
                 phx-click="act"
                 phx-value-action={"program:" <> prog.id}
               >
-                [ {prog.name} ] {action_stats(@numbers_known?, prog.progress, prog.trace)}
+                <span class="ice-action-name">{prog.name}</span>
+                <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
               </button>
-              <button id="ice-retreat" class="btn-ghost ice-action" phx-click="retreat">
-                [ RETREAT ]
+              <button id="ice-retreat" class="ice-action ice-action--retreat" phx-click="retreat">
+                <span class="ice-action-name">RETREAT</span>
+                <span class="ice-action-hint">walk clean</span>
               </button>
             </div>
           <% else %>
             <div class="ice-actions ice-actions--end">
-              <p class="ice-end-line">{end_line(@encounter.status)}</p>
-              <button id="ice-close" class="btn-ghost ice-action" phx-click="close_encounter">
-                [ CLOSE ]
+              <p class={["ice-end-line", status_accent(@encounter.status)]}>
+                {end_line(@encounter.status)}
+              </p>
+              <button id="ice-close" class="ice-action" phx-click="close_encounter">
+                <span class="ice-action-name">CLOSE</span>
               </button>
             </div>
           <% end %>
@@ -117,10 +156,44 @@ defmodule ShuntWeb.Components.IceTerminal do
     """
   end
 
+  attr :known, :boolean, required: true
+  attr :progress, :integer, required: true
+  attr :trace, :integer, required: true
+
+  defp cost(assigns) do
+    ~H"""
+    <span class="ice-action-cost">
+      <%= if @known do %>
+        +{@progress}P · {@trace}T
+      <% else %>
+        +<span class="ice-redact">▓</span>P · <span class="ice-redact">▓</span>T
+      <% end %>
+    </span>
+    """
+  end
+
+  defp lit_segments(trace) do
+    trace |> Kernel./(5) |> ceil() |> min(@trace_segments)
+  end
+
+  # A segment is "high"/"mid" by the Trace value at its top edge (seg * 5).
+  defp seg_class(seg, lit) when seg > lit, do: "ice-trace-seg--dim"
+  defp seg_class(seg, _lit) when seg * 5 >= 85, do: "ice-trace-seg--high"
+  defp seg_class(seg, _lit) when seg * 5 >= 60, do: "ice-trace-seg--mid"
+  defp seg_class(_seg, _lit), do: "ice-trace-seg--low"
+
+  defp pip_class(index, current) when index < current, do: "ice-layer-pip--done"
+  defp pip_class(index, current) when index == current, do: "ice-layer-pip--current"
+  defp pip_class(_index, _current), do: "ice-layer-pip--next"
+
   defp status_label(:active), do: "BREAKING"
   defp status_label(:cracked), do: "CRACKED"
   defp status_label(:busted), do: "BUSTED"
   defp status_label(:retreated), do: "CLEAN EXIT"
+
+  defp status_accent(:busted), do: "ice-accent--danger"
+  defp status_accent(:cracked), do: "ice-accent--good"
+  defp status_accent(_status), do: nil
 
   defp end_line(:cracked), do: "Node owned. Data banked."
   defp end_line(:busted), do: "Trace maxed — connection burned. Node hardened."
@@ -131,13 +204,6 @@ defmodule ShuntWeb.Components.IceTerminal do
     "width: #{percent}%"
   end
 
-  defp trace_class(trace) when trace >= 85, do: "ice-meter-fill--trace-high"
-  defp trace_class(trace) when trace >= 60, do: "ice-meter-fill--trace-mid"
-  defp trace_class(_trace), do: "ice-meter-fill--trace-low"
-
   defp weakness_text(nil), do: "none"
   defp weakness_text(action), do: to_string(action)
-
-  defp action_stats(false, _progress, _trace), do: "?"
-  defp action_stats(true, progress, trace), do: "P#{progress} / T#{trace}"
 end

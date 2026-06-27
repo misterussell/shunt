@@ -1814,31 +1814,66 @@
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
+  font-variant-numeric: tabular-nums;
 }
+
+/* Layer descent: where you are in the node, Trace carrying through. */
+.ice-layer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ice-layer-title {
+  color: var(--text);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ice-layer-stack {
+  display: flex;
+  gap: 4px;
+}
+.ice-layer-pip {
+  width: 14px;
+  height: 3px;
+  background: var(--border-c);
+}
+.ice-layer-pip--done {
+  background: color-mix(in srgb, var(--cyan) 45%, transparent);
+}
+.ice-layer-pip--current {
+  background: var(--cyan);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 50%, transparent);
+}
+
 .ice-meters {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 .ice-meter {
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-areas: "label readout" "track track";
-  gap: 4px 8px;
+  gap: 5px 8px;
   align-items: center;
 }
 .ice-meter-label {
   grid-area: label;
   color: var(--muted);
   font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .ice-meter-readout {
   grid-area: readout;
   color: var(--text);
   font-size: 0.74rem;
+}
+.ice-meter-readout--trace {
+  color: var(--muted);
 }
 .ice-meter-track {
   grid-area: track;
@@ -1849,35 +1884,135 @@
 }
 .ice-meter-fill {
   height: 100%;
+  background: var(--cyan);
   transition: width 200ms ease-out;
 }
-.ice-meter-fill--progress {
-  background: var(--cyan);
+
+/* Signature: Trace as a segmented detection heartbeat. */
+.ice-trace-gauge {
+  grid-area: track;
+  display: flex;
+  gap: 2px;
 }
-.ice-meter-fill--trace-low {
-  background: var(--cyan);
+.ice-trace-seg {
+  flex: 1;
+  height: 12px;
+  background: var(--sunk);
+  border: 1px solid var(--border-c);
+  transition: background-color 180ms ease-out;
 }
-.ice-meter-fill--trace-mid {
+.ice-trace-seg--dim {
+  background: var(--sunk);
+}
+.ice-trace-seg--low {
+  background: var(--cyan);
+  border-color: var(--cyan);
+}
+.ice-trace-seg--mid {
   background: var(--amber);
+  border-color: var(--amber);
 }
-.ice-meter-fill--trace-high {
+.ice-trace-seg--high {
   background: var(--red);
+  border-color: var(--red);
+}
+.ice-trace-gauge--danger .ice-trace-seg--high {
+  animation: ice-trace-pulse 900ms ease-in-out infinite;
+}
+@keyframes ice-trace-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 9px 0 color-mix(in srgb, var(--red) 70%, transparent);
+  }
+}
+
+/* Fog-of-war as redaction: values un-redact as mastery rises. */
+.ice-redact {
+  display: inline-block;
+  color: color-mix(in srgb, var(--cyan) 55%, var(--muted));
+  background: color-mix(in srgb, var(--cyan) 12%, transparent);
+  letter-spacing: -0.05em;
+  user-select: none;
+}
+.ice-redact--wide {
+  letter-spacing: 0.04em;
+  padding: 0 2px;
 }
 .ice-weakness {
   color: var(--muted);
   font-size: 0.76rem;
 }
+.ice-weakness-tell {
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .ice-actions {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 .ice-action {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
   width: 100%;
+  padding: 9px 12px;
+  background: var(--sunk);
+  border: 1px solid var(--border-c);
+  color: var(--text);
+  font: inherit;
+  letter-spacing: 0.04em;
   text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease-out,
+    background-color 140ms ease-out;
+}
+.ice-action:hover {
+  border-color: var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 8%, var(--sunk));
+}
+.ice-action:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 1px;
+}
+.ice-action--retreat:hover {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 8%, var(--sunk));
+}
+.ice-action-name {
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.ice-action-cost,
+.ice-action-hint {
+  color: var(--muted);
+  font-size: 0.74rem;
 }
 .ice-end-line {
   color: var(--text);
   font-size: 0.84rem;
   margin-bottom: 4px;
+}
+.ice-accent--danger {
+  color: var(--red);
+}
+.ice-accent--good {
+  color: var(--cyan);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ice-meter-fill,
+  .ice-trace-seg {
+    transition: none;
+  }
+  .ice-trace-gauge--danger .ice-trace-seg--high {
+    animation: none;
+  }
 }
