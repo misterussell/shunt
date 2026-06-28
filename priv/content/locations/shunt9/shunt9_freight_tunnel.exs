@@ -22,6 +22,11 @@ alias Shunt.World.Exit
     {:contact_known, "dex_broker"}
   ],
 
+  events: [
+    "shunt9_freight_tunnel_ghost_route",
+    "shunt9_freight_tunnel_skim"
+  ],
+
   exits: [
     %Exit{
       id: "freight_tunnel_to_maintenance_tunnel",

@@ -5,7 +5,8 @@
 
   story_arcs: [
     "shunt9_bazaar_nickel_intro",
-    "shunt9_bazaar_nickel_chits"
+    "shunt9_bazaar_nickel_chits",
+    "shunt9_bazaar_nickel_rook"
   ],
 
   conditional_events: [],
