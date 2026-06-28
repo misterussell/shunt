@@ -38,10 +38,11 @@ defmodule ShuntWeb.GhostworkLiveTest do
         %{
           id: "l1",
           name: "Handshake",
-          progress_required: 6,
           trace_multiplier: 1.0,
-          weakness: nil,
-          reward: [{:knowledge, "gw_node_cracked"}]
+          reward: [{:knowledge, "gw_node_cracked"}],
+          subroutines: [
+            %{id: "l1_core", key: nil, threat: :barrier, progress_required: 6}
+          ]
         }
       ]
     }

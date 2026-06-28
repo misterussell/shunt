@@ -13,10 +13,11 @@
     %{
       id: "wakeup",
       name: "Wake Signal",
-      progress_required: 5,
       trace_multiplier: 1.0,
-      weakness: :spoof,
-      reward: [{:scrip, 5}]
+      reward: [{:scrip, 5}],
+      subroutines: [
+        %{id: "wakeup_core", key: :spoof, threat: :barrier, progress_required: 5}
+      ]
     }
   ]
 }

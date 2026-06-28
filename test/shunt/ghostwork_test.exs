@@ -6,6 +6,8 @@ defmodule Shunt.GhostworkTest do
   alias Shunt.Ghostwork.IceNode
   alias Shunt.Players.Player
 
+  # A single-subroutine node (the mechanically-migrated shape): each layer is one
+  # :barrier subroutine, mirroring the old single-bar nodes.
   defp ice_node(overrides \\ %{}) do
     base = %IceNode{
       id: "relay",
@@ -17,18 +19,20 @@ defmodule Shunt.GhostworkTest do
         %{
           id: "l1",
           name: "Handshake",
-          progress_required: 10,
           trace_multiplier: 1.0,
-          weakness: :spoof,
-          reward: [{:inventory, "maintenance_log", 1}]
+          reward: [{:inventory, "maintenance_log", 1}],
+          subroutines: [
+            %{id: "l1_core", key: :spoof, threat: :barrier, progress_required: 10}
+          ]
         },
         %{
           id: "l2",
           name: "Archive",
-          progress_required: 10,
           trace_multiplier: 2.0,
-          weakness: nil,
-          reward: [{:knowledge, "maintenance_log_decoded"}]
+          reward: [{:knowledge, "maintenance_log_decoded"}],
+          subroutines: [
+            %{id: "l2_core", key: nil, threat: :barrier, progress_required: 10}
+          ]
         }
       ]
     }
@@ -36,14 +40,35 @@ defmodule Shunt.GhostworkTest do
     struct(base, overrides)
   end
 
+  # A layer whose subroutines mix threats/keys, for the open-board behaviours.
+  defp board_node(subroutines) do
+    %IceNode{
+      id: "board",
+      name: "Board",
+      family: "ice_corp",
+      location_id: "loc",
+      cool_threshold: 60,
+      layers: [
+        %{
+          id: "b1",
+          name: "B1",
+          trace_multiplier: 1.0,
+          reward: [{:scrip, 5}],
+          subroutines: subroutines
+        }
+      ]
+    }
+  end
+
   defp node_state(%Player{} = player, fields) do
     %{player | ghostwork_state: %{"nodes" => %{"relay" => fields}}}
   end
 
   describe "begin_encounter/2" do
-    test "a fresh node starts at layer 0 with zeroed meters and no effects" do
+    test "a fresh node starts at layer 0 with a zeroed subroutine board and no effects" do
       assert {:ok, enc, []} = Ghostwork.begin_encounter(%Player{}, ice_node())
-      assert %Encounter{layer_index: 0, progress: 0, trace: 0, status: :active} = enc
+      assert %Encounter{layer_index: 0, trace: 0, status: :active} = enc
+      assert enc.subroutine_progress == %{"l1_core" => 0}
       assert enc.node == ice_node()
     end
 
@@ -57,10 +82,13 @@ defmodule Shunt.GhostworkTest do
       assert {:ok, %Encounter{mastery: 0}, []} = Ghostwork.begin_encounter(%Player{}, ice_node())
     end
 
-    test "resumes from banked_layer + 1" do
+    test "resumes from banked_layer + 1 with that layer's board zeroed" do
       player = node_state(%Player{}, %{"banked_layer" => 0, "hardened" => false})
 
-      assert {:ok, %Encounter{layer_index: 1}, []} = Ghostwork.begin_encounter(player, ice_node())
+      assert {:ok, %Encounter{layer_index: 1} = enc, []} =
+               Ghostwork.begin_encounter(player, ice_node())
+
+      assert enc.subroutine_progress == %{"l2_core" => 0}
     end
 
     test "errors when the last layer is already banked" do
@@ -89,33 +117,31 @@ defmodule Shunt.GhostworkTest do
     end
   end
 
-  describe "act/3 with :probe" do
-    test "continues on the same layer, adding exact progress and jittered trace" do
-      enc = %Encounter{node: ice_node(), layer_index: 0, mastery: 1}
+  defp on_board(node, overrides \\ %{}) do
+    layer = Enum.at(node.layers, Map.get(overrides, :layer_index, 0))
+    zeroed = Map.new(layer.subroutines, &{&1.id, 0})
+
+    struct(
+      %Encounter{node: node, layer_index: 0, mastery: 1, subroutine_progress: zeroed},
+      overrides
+    )
+  end
+
+  describe "act/4 with :probe (single-subroutine layer)" do
+    test "auto-targets the sole subroutine, adding exact progress and jittered trace" do
+      enc = on_board(ice_node())
 
       {:ok, enc2, effects} = Ghostwork.act(enc, %Player{}, :probe)
 
       assert enc2.status == :active
       assert enc2.layer_index == 0
-      assert enc2.progress == 3
+      assert enc2.subroutine_progress == %{"l1_core" => 3}
       assert enc2.trace in 2..6
       assert effects == []
     end
 
-    test "probe trace stays within its jitter band over many rolls" do
-      enc = %Encounter{node: ice_node(), layer_index: 0, mastery: 1}
-
-      traces =
-        for _ <- 1..200 do
-          {:ok, e, _} = Ghostwork.act(enc, %Player{}, :probe)
-          e.trace
-        end
-
-      assert Enum.all?(traces, &(&1 in 2..6))
-    end
-
     test "a deeper layer's trace_multiplier raises the trace band" do
-      enc = %Encounter{node: ice_node(), layer_index: 1, mastery: 1}
+      enc = on_board(ice_node(), %{layer_index: 1})
 
       traces =
         for _ <- 1..200 do
@@ -127,22 +153,23 @@ defmodule Shunt.GhostworkTest do
       assert Enum.any?(traces, &(&1 > 6))
     end
 
-    test "cracking a non-final layer banks its reward and advances" do
-      enc = %Encounter{node: ice_node(), layer_index: 0, mastery: 1, progress: 8, trace: 5}
+    test "downing every subroutine banks the layer reward and advances, re-zeroing the board" do
+      enc = on_board(ice_node(), %{subroutine_progress: %{"l1_core" => 8}, trace: 5})
 
       {:ok, enc2, effects} = Ghostwork.act(enc, %Player{}, :probe)
 
       assert enc2.status == :active
       assert enc2.layer_index == 1
-      assert enc2.progress == 0
+      assert enc2.subroutine_progress == %{"l2_core" => 0}
       assert enc2.trace in 7..11
       assert {:inventory, "maintenance_log", 1} in effects
       assert {:ghostwork_mastery, "ice_maintenance", 1} in effects
       assert {:ghostwork_node, "relay", {:bank_layer, 0}} in effects
     end
 
-    test "cracking the final layer marks the node fully cracked" do
-      enc = %Encounter{node: ice_node(), layer_index: 1, mastery: 1, progress: 8, trace: 5}
+    test "downing the final layer marks the node fully cracked" do
+      enc =
+        on_board(ice_node(), %{layer_index: 1, subroutine_progress: %{"l2_core" => 8}, trace: 5})
 
       {:ok, enc2, effects} = Ghostwork.act(enc, %Player{}, :probe)
 
@@ -153,7 +180,7 @@ defmodule Shunt.GhostworkTest do
     end
 
     test "busting hardens the node and emits scaled heat, capping trace at 100" do
-      enc = %Encounter{node: ice_node(), layer_index: 0, mastery: 1, progress: 5, trace: 98}
+      enc = on_board(ice_node(), %{subroutine_progress: %{"l1_core" => 5}, trace: 98})
 
       {:ok, enc2, effects} = Ghostwork.act(enc, %Player{}, :probe)
 
@@ -164,15 +191,16 @@ defmodule Shunt.GhostworkTest do
     end
 
     test "bust scales heat by layer depth" do
-      enc = %Encounter{node: ice_node(), layer_index: 1, mastery: 1, progress: 5, trace: 98}
+      enc =
+        on_board(ice_node(), %{layer_index: 1, subroutine_progress: %{"l2_core" => 5}, trace: 98})
 
       {:ok, _enc2, effects} = Ghostwork.act(enc, %Player{}, :probe)
 
       assert {:heat, 11} in effects
     end
 
-    test "a bust takes priority over a same-action crack" do
-      enc = %Encounter{node: ice_node(), layer_index: 0, mastery: 1, progress: 8, trace: 98}
+    test "a bust takes priority over a layer crack" do
+      enc = on_board(ice_node(), %{subroutine_progress: %{"l1_core" => 8}, trace: 98})
 
       {:ok, enc2, effects} = Ghostwork.act(enc, %Player{}, :probe)
 
@@ -181,7 +209,88 @@ defmodule Shunt.GhostworkTest do
     end
   end
 
-  describe "act/3 with {:program, id}" do
+  describe "act/4 open board" do
+    defp barrier(id, key, req \\ 10),
+      do: %{id: id, key: key, threat: :barrier, progress_required: req}
+
+    test "hits the explicitly targeted subroutine, not the first one" do
+      node = board_node([barrier("a", :spoof), barrier("b", :decrypt)])
+      enc = on_board(node)
+
+      {:ok, enc2, _} = Ghostwork.act(enc, %Player{}, :probe, "b")
+
+      assert enc2.subroutine_progress == %{"a" => 0, "b" => 3}
+    end
+
+    test "a layer is not cleared until every subroutine is down" do
+      node = board_node([barrier("a", :spoof, 3), barrier("b", :decrypt, 3)])
+      enc = on_board(node)
+
+      {:ok, enc2, effects} = Ghostwork.act(enc, %Player{}, :probe, "a")
+      assert enc2.status == :active
+      assert enc2.layer_index == 0
+      assert effects == []
+
+      {:ok, enc3, effects2} = Ghostwork.act(enc2, %Player{}, :probe, "b")
+      assert enc3.status == :cracked
+      assert {:scrip, 5} in effects2
+    end
+
+    test "auto-target skips an already-downed subroutine" do
+      node = board_node([barrier("a", :spoof, 3), barrier("b", :decrypt)])
+      enc = on_board(node, %{subroutine_progress: %{"a" => 3, "b" => 0}})
+
+      {:ok, enc2, _} = Ghostwork.act(enc, %Player{}, :probe)
+
+      assert enc2.subroutine_progress == %{"a" => 3, "b" => 3}
+    end
+
+    test "errors on a target that is not on the layer" do
+      enc = on_board(board_node([barrier("a", :spoof)]))
+
+      assert {:error, :invalid_target} = Ghostwork.act(enc, %Player{}, :probe, "ghost")
+    end
+
+    test "errors on a target that is already down" do
+      node = board_node([barrier("a", :spoof, 3), barrier("b", :decrypt)])
+      enc = on_board(node, %{subroutine_progress: %{"a" => 3, "b" => 0}})
+
+      assert {:error, :invalid_target} = Ghostwork.act(enc, %Player{}, :probe, "a")
+    end
+
+    test "a still-alive sentry bleeds extra trace each turn beyond the action's own trace" do
+      sentry = %{id: "s", key: :decrypt, threat: :sentry, progress_required: 99}
+      node = board_node([barrier("a", :spoof, 99), sentry])
+      enc = on_board(node, %{mastery: 5})
+
+      # Probe the barrier; the sentry stays alive and bleeds @sentry_bleed (4) on top of
+      # probe's own jittered 2..6.
+      traces =
+        for _ <- 1..200 do
+          {:ok, e, _} = Ghostwork.act(enc, %Player{}, :probe, "a")
+          e.trace
+        end
+
+      assert Enum.all?(traces, &(&1 in 6..10))
+    end
+
+    test "a sentry downed this turn stops bleeding (no extra trace once dead)" do
+      sentry = %{id: "s", key: :decrypt, threat: :sentry, progress_required: 3}
+      node = board_node([barrier("a", :spoof, 99), sentry])
+      enc = on_board(node, %{mastery: 5})
+
+      traces =
+        for _ <- 1..200 do
+          {:ok, e, _} = Ghostwork.act(enc, %Player{}, :probe, "s")
+          e.trace
+        end
+
+      # Probe (+3) downs the 3-req sentry the same turn, so only probe's own 2..6 lands.
+      assert Enum.all?(traces, &(&1 in 2..6))
+    end
+  end
+
+  describe "act/4 with {:program, id}" do
     setup do
       prog = %{
         id: "test_spoof_prog",
@@ -198,40 +307,74 @@ defmodule Shunt.GhostworkTest do
       %{player: %Player{inventory: %{prog.id => 1}}}
     end
 
-    test "uses the on_weakness profile against a matching layer weakness", %{player: player} do
-      enc = %Encounter{node: ice_node(), layer_index: 0, mastery: 1}
+    test "uses the on_weakness profile when its action matches the target's key", %{
+      player: player
+    } do
+      enc = on_board(ice_node())
 
       {:ok, enc2, _} = Ghostwork.act(enc, player, {:program, "test_spoof_prog"})
 
-      assert enc2.progress == 8
+      assert enc2.subroutine_progress == %{"l1_core" => 8}
     end
 
-    test "uses the base profile against a non-weak layer", %{player: player} do
-      enc = %Encounter{node: ice_node(), layer_index: 1, mastery: 1}
+    test "uses the base profile against a mismatched target", %{player: player} do
+      enc = on_board(ice_node(), %{layer_index: 1})
 
       {:ok, enc2, _} = Ghostwork.act(enc, player, {:program, "test_spoof_prog"})
 
-      assert enc2.progress == 4
+      assert enc2.subroutine_progress == %{"l2_core" => 4}
+    end
+
+    test "a mismatched non-probe hit on a :trap amplifies trace; a match does not", %{
+      player: player
+    } do
+      trap = %{id: "t", key: :decrypt, threat: :trap, progress_required: 99}
+      node = board_node([trap])
+      enc = on_board(node, %{mastery: 5})
+
+      mismatched =
+        for _ <- 1..200 do
+          {:ok, e, _} = Ghostwork.act(enc, player, {:program, "test_spoof_prog"}, "t")
+          e.trace
+        end
+
+      # base trace 3, doubled by the trap -> 6, jittered (spread 3) -> band 3..9.
+      # Un-amplified that base would jitter to 2..4, so exceeding 4 proves the penalty.
+      assert Enum.all?(mismatched, &(&1 in 3..9))
+      assert Enum.any?(mismatched, &(&1 > 4))
+    end
+
+    test "probe is exempt from the trap penalty" do
+      trap = %{id: "t", key: :decrypt, threat: :trap, progress_required: 99}
+      enc = on_board(board_node([trap]), %{mastery: 5})
+
+      traces =
+        for _ <- 1..200 do
+          {:ok, e, _} = Ghostwork.act(enc, %Player{}, :probe, "t")
+          e.trace
+        end
+
+      assert Enum.all?(traces, &(&1 in 2..6))
     end
 
     test "errors when the player does not own the program" do
-      enc = %Encounter{node: ice_node(), layer_index: 0, mastery: 1}
+      enc = on_board(ice_node())
 
       assert {:error, :program_not_owned} =
                Ghostwork.act(enc, %Player{inventory: %{}}, {:program, "test_spoof_prog"})
     end
 
     test "errors without crashing when the program id does not exist in the catalog" do
-      enc = %Encounter{node: ice_node(), layer_index: 0, mastery: 1}
+      enc = on_board(ice_node())
 
       assert {:error, :program_not_owned} =
                Ghostwork.act(enc, %Player{inventory: %{}}, {:program, "totally_bogus_id"})
     end
   end
 
-  describe "act/3 with unknown action" do
+  describe "act/4 with unknown action" do
     test "returns :unknown_action error for an unrecognized action atom" do
-      enc = %Encounter{node: ice_node(), layer_index: 0, mastery: 1}
+      enc = on_board(ice_node())
 
       assert {:error, :unknown_action} = Ghostwork.act(enc, %Player{}, :unknown)
     end

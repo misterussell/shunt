@@ -17,18 +17,20 @@
     %{
       id: "handshake",
       name: "Access Handshake",
-      progress_required: 6,
       trace_multiplier: 1.0,
-      weakness: :spoof,
-      reward: [{:inventory, "maintenance_log", 1}]
+      reward: [{:inventory, "maintenance_log", 1}],
+      subroutines: [
+        %{id: "handshake_core", key: :spoof, threat: :barrier, progress_required: 6}
+      ]
     },
     %{
       id: "archive",
       name: "Log Archive",
-      progress_required: 9,
       trace_multiplier: 1.5,
-      weakness: :decrypt,
-      reward: [{:knowledge, "maintenance_log_decoded"}]
+      reward: [{:knowledge, "maintenance_log_decoded"}],
+      subroutines: [
+        %{id: "archive_core", key: :decrypt, threat: :barrier, progress_required: 9}
+      ]
     }
   ]
 }

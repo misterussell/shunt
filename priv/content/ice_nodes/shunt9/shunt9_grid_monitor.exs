@@ -17,26 +17,29 @@
     %{
       id: "access",
       name: "Access Gate",
-      progress_required: 8,
       trace_multiplier: 1.0,
-      weakness: :spoof,
-      reward: [{:scrip, 10}]
+      reward: [{:scrip, 10}],
+      subroutines: [
+        %{id: "access_core", key: :spoof, threat: :barrier, progress_required: 8}
+      ]
     },
     %{
       id: "draw_log",
       name: "Draw Log",
-      progress_required: 10,
       trace_multiplier: 1.5,
-      weakness: :decrypt,
-      reward: [{:knowledge, "shunt9_grid_monitor_unauthorized_tap"}]
+      reward: [{:knowledge, "shunt9_grid_monitor_unauthorized_tap"}],
+      subroutines: [
+        %{id: "draw_log_core", key: :decrypt, threat: :barrier, progress_required: 10}
+      ]
     },
     %{
       id: "source_trace",
       name: "Source Trace",
-      progress_required: 12,
       trace_multiplier: 2.0,
-      weakness: :backdoor,
-      reward: [{:knowledge, "shunt9_grid_monitor_tap_location"}]
+      reward: [{:knowledge, "shunt9_grid_monitor_tap_location"}],
+      subroutines: [
+        %{id: "source_trace_core", key: :backdoor, threat: :barrier, progress_required: 12}
+      ]
     }
   ]
 }

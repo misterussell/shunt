@@ -28,22 +28,14 @@ defmodule ShuntWeb.Components.IceTerminal do
 
   @trace_segments 20
 
-  # TODO: Replace the single PROGRESS bar with a subroutine board for the current layer.
-  # Render one row per subroutine (from the layer's :subroutines), each showing: its name,
-  # its threat (:barrier/:sentry/:trap — ALWAYS visible, with a glyph/label), its key
-  # (un-redacted only when Ghostwork.weakness_known?/1, else the ▓ redaction motif), and its
-  # own mini Progress bar (accumulated from encounter.subroutine_progress over its
-  # progress_required). A down subroutine renders done/struck-through. Clicking a row selects
-  # it as the target (phx-click "select_target", phx-value-subroutine=<id>); mark the
-  # selected row and disable selecting down ones. The TRACE gauge and fog redaction of action
-  # numbers stay exactly as they are.
-
-  # TODO: Make the action buttons act on the SELECTED subroutine — add phx-value-subroutine
-  # ={@selected_subroutine} to the Probe and program "act" buttons so the LiveView's act/4
-  # dispatch knows the target. The action bar lists Probe + the player's equipped loadout
-  # (<= 3 programs) passed in via @programs; Retreat/Close unchanged. Consider showing, on
-  # each action, whether it MATCHES the selected subroutine's key once keys are known (a
-  # match hint), since matched vs mismatched is the core decision.
+  # TODO: Add click-to-target on the subroutine board + act on the selection. The board rows
+  # (#ice-sub-<id>, already rendered) gain phx-click="select_target" phx-value-subroutine=<id>
+  # to set the target (skip rows whose subroutine is down; mark the @selected_subroutine row).
+  # Then add phx-value-subroutine={@selected_subroutine} to the Probe and program "act"
+  # buttons so the LiveView's act/4 dispatch hits the chosen subroutine instead of falling
+  # back to the first-alive default. The action bar lists Probe + the player's equipped
+  # loadout (<= 3 programs) passed in via @programs; Retreat/Close unchanged. Consider a match
+  # hint on each action (does its key match the selected subroutine?) once keys are known.
 
   attr :id, :string, required: true
   attr :encounter, :map, required: true
@@ -94,22 +86,36 @@ defmodule ShuntWeb.Components.IceTerminal do
             </div>
           </div>
 
-          <div class="ice-meters">
-            <div class="ice-meter">
-              <span class="ice-meter-label">PROGRESS</span>
+          <div id="ice-subroutines" class="ice-subroutines">
+            <div
+              :for={sub <- @layer.subroutines}
+              id={"ice-sub-#{sub.id}"}
+              class={["ice-subroutine", sub_down?(@encounter, sub) && "ice-subroutine--down"]}
+            >
+              <span class={["ice-subroutine-threat", "ice-subroutine-threat--#{sub.threat}"]}>
+                {threat_label(sub.threat)}
+              </span>
+              <span class="ice-subroutine-key">
+                <%= if @weakness_known? do %>
+                  {key_text(sub.key)}
+                <% else %>
+                  <span class="ice-redact">▓▓▓</span>
+                <% end %>
+              </span>
               <div class="ice-meter-track">
                 <div
-                  id="ice-progress"
                   class="ice-meter-fill ice-meter-fill--progress"
-                  style={"width: #{Shunt.Ghostwork.progress_percent(@encounter.progress, @layer.progress_required)}%"}
+                  style={"width: #{Shunt.Ghostwork.progress_percent(sub_progress(@encounter, sub), sub.progress_required)}%"}
                 >
                 </div>
               </div>
               <span class="ice-meter-readout">
-                {@encounter.progress} / {@layer.progress_required}
+                {sub_progress(@encounter, sub)} / {sub.progress_required}
               </span>
             </div>
+          </div>
 
+          <div class="ice-meters">
             <div class="ice-meter">
               <span class="ice-meter-label">TRACE</span>
               <div
@@ -127,15 +133,6 @@ defmodule ShuntWeb.Components.IceTerminal do
               </div>
               <span class="ice-meter-readout ice-meter-readout--trace">{@encounter.trace} / 100</span>
             </div>
-
-            <p class="ice-weakness">
-              weakness:
-              <%= if @weakness_known? do %>
-                <span class="ice-weakness-tell">{weakness_text(@layer.weakness)}</span>
-              <% else %>
-                <span class="ice-redact ice-redact--wide">▓▓▓▓▓</span>
-              <% end %>
-            </p>
           </div>
 
           <%= if @encounter.status == :active do %>
@@ -218,6 +215,14 @@ defmodule ShuntWeb.Components.IceTerminal do
   defp end_line(:busted), do: "Trace maxed — connection burned. Node hardened."
   defp end_line(:retreated), do: "Pulled out clean. Banked layers kept."
 
-  defp weakness_text(nil), do: "none"
-  defp weakness_text(action), do: to_string(action)
+  defp sub_progress(encounter, sub), do: Map.get(encounter.subroutine_progress, sub.id, 0)
+
+  defp sub_down?(encounter, sub), do: sub_progress(encounter, sub) >= sub.progress_required
+
+  defp threat_label(:barrier), do: "BARRIER"
+  defp threat_label(:sentry), do: "SENTRY"
+  defp threat_label(:trap), do: "TRAP"
+
+  defp key_text(nil), do: "—"
+  defp key_text(key), do: to_string(key)
 end

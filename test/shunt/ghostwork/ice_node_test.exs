@@ -9,7 +9,17 @@ defmodule Shunt.Ghostwork.IceNodeTest do
       name: "Abandoned Relay",
       family: "ice_maintenance",
       location_id: "shunt9_maintenance_tunnel",
-      layers: [%{id: "handshake", name: "Handshake", progress_required: 10}]
+      layers: [
+        %{
+          id: "handshake",
+          name: "Handshake",
+          trace_multiplier: 1.0,
+          reward: [],
+          subroutines: [
+            %{id: "handshake_core", key: :spoof, threat: :barrier, progress_required: 10}
+          ]
+        }
+      ]
     }
 
     :ets.insert(:ice_nodes, {node.id, node})

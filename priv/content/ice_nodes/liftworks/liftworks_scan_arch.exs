@@ -17,26 +17,29 @@
     %{
       id: "housing",
       name: "Housing Port",
-      progress_required: 8,
       trace_multiplier: 1.0,
-      weakness: :spoof,
-      reward: [{:scrip, 15}]
+      reward: [{:scrip, 15}],
+      subroutines: [
+        %{id: "housing_core", key: :spoof, threat: :barrier, progress_required: 8}
+      ]
     },
     %{
       id: "arbiter",
       name: "Clearance Arbiter",
-      progress_required: 11,
       trace_multiplier: 1.6,
-      weakness: :decrypt,
-      reward: [{:knowledge, "scan_arch_logic_mapped"}]
+      reward: [{:knowledge, "scan_arch_logic_mapped"}],
+      subroutines: [
+        %{id: "arbiter_core", key: :decrypt, threat: :barrier, progress_required: 11}
+      ]
     },
     %{
       id: "tag_writer",
       name: "Tag Writer",
-      progress_required: 14,
       trace_multiplier: 2.2,
-      weakness: :backdoor,
-      reward: [{:knowledge, "scan_arch_spoofed"}]
+      reward: [{:knowledge, "scan_arch_spoofed"}],
+      subroutines: [
+        %{id: "tag_writer_core", key: :backdoor, threat: :barrier, progress_required: 14}
+      ]
     }
   ]
 }

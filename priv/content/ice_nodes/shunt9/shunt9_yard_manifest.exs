@@ -17,18 +17,20 @@
     %{
       id: "index",
       name: "Manifest Index",
-      progress_required: 5,
       trace_multiplier: 1.0,
-      weakness: :spoof,
-      reward: [{:scrip, 12}]
+      reward: [{:scrip, 12}],
+      subroutines: [
+        %{id: "index_core", key: :spoof, threat: :barrier, progress_required: 5}
+      ]
     },
     %{
       id: "archive",
       name: "Deep Archive",
-      progress_required: 7,
       trace_multiplier: 2.0,
-      weakness: :decrypt,
-      reward: [{:knowledge, "shunt9_scrap_yard_old_cache"}]
+      reward: [{:knowledge, "shunt9_scrap_yard_old_cache"}],
+      subroutines: [
+        %{id: "archive_core", key: :decrypt, threat: :barrier, progress_required: 7}
+      ]
     }
   ]
 }

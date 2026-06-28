@@ -17,26 +17,29 @@
     %{
       id: "terminal",
       name: "Open Terminal",
-      progress_required: 8,
       trace_multiplier: 1.0,
-      weakness: :spoof,
-      reward: [{:scrip, 12}]
+      reward: [{:scrip, 12}],
+      subroutines: [
+        %{id: "terminal_core", key: :spoof, threat: :barrier, progress_required: 8}
+      ]
     },
     %{
       id: "index",
       name: "Permit Index",
-      progress_required: 10,
       trace_multiplier: 1.5,
-      weakness: :decrypt,
-      reward: [{:knowledge, "permit_registry_indexed"}, {:rumor, "scrubbed_watchlist"}]
+      reward: [{:knowledge, "permit_registry_indexed"}, {:rumor, "scrubbed_watchlist"}],
+      subroutines: [
+        %{id: "index_core", key: :decrypt, threat: :barrier, progress_required: 10}
+      ]
     },
     %{
       id: "watchlist",
       name: "Watchlist Record",
-      progress_required: 12,
       trace_multiplier: 2.0,
-      weakness: :backdoor,
-      reward: [{:heat, -20}]
+      reward: [{:heat, -20}],
+      subroutines: [
+        %{id: "watchlist_core", key: :backdoor, threat: :barrier, progress_required: 12}
+      ]
     }
   ]
 }
