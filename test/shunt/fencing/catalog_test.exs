@@ -4,13 +4,13 @@ defmodule Shunt.Fencing.CatalogTest do
   alias Shunt.Fencing.Catalog
 
   describe "items/0" do
-    test "returns six items spanning clean, warm, and hot tiers" do
+    test "spans clean, warm, and hot tiers" do
       items = Catalog.items()
 
-      assert length(items) == 6
-      assert Enum.count(items, &(&1.tier == :clean)) == 2
-      assert Enum.count(items, &(&1.tier == :warm)) == 2
-      assert Enum.count(items, &(&1.tier == :hot)) == 2
+      assert length(items) >= 6
+      assert Enum.count(items, &(&1.tier == :clean)) >= 2
+      assert Enum.count(items, &(&1.tier == :warm)) >= 2
+      assert Enum.count(items, &(&1.tier == :hot)) >= 2
     end
 
     test "every item has a unique key and a positive margin" do

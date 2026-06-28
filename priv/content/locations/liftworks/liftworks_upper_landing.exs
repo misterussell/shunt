@@ -22,13 +22,23 @@ alias Shunt.World.Exit
   graph_position: {1350, -240},
 
   events: [
-    "liftworks_upper_landing_not_today"
+    "liftworks_upper_landing_not_today",
+    "liftworks_upper_landing_side_seam"
   ],
 
   exits: [
     %Exit{
       id: "upper_landing_to_the_risers",
       to: "liftworks_the_risers"
+    },
+    # The turnstiles stay shut, but the service seam beside them lets out into the Grayline —
+    # Midgrid's intake margin. Opened by the side_seam event ({:knowledge, "grayline_seam"}).
+    %Exit{
+      id: "upper_landing_to_grayline_sortway",
+      to: "grayline_sortway",
+      requirements: [
+        {:knows, "grayline_seam"}
+      ]
     }
   ]
 }
