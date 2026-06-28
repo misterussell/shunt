@@ -28,23 +28,14 @@ defmodule ShuntWeb.Components.IceTerminal do
 
   @trace_segments 20
 
-  # TODO: Add click-to-target on the subroutine board + act on the selection. The board rows
-  # (#ice-sub-<id>, already rendered) gain phx-click="select_target" phx-value-subroutine=<id>
-  # to set the target (skip rows whose subroutine is down; mark the @selected_subroutine row).
-  # Then add phx-value-subroutine={@selected_subroutine} to the Probe and program "act"
-  # buttons so the LiveView's act/4 dispatch hits the chosen subroutine instead of falling
-  # back to the first-alive default. The action bar lists Probe + the player's equipped
-  # loadout (<= 3 programs) passed in via @programs; Retreat/Close unchanged. Consider a match
-  # hint on each action (does its key match the selected subroutine?) once keys are known.
-  # Once target-selection works, add a LiveView integration test that breaks the
-  # "shunt9_salvage_grid" showcase node — selecting subroutines in a non-trivial order
-  # (sentry first) — through to its {:knowledge, "shunt9_salvage_grid_cracked"} reward.
+  # TODO: (loadout slice) the action bar should list Probe + the player's EQUIPPED loadout
+  # (<= 3 programs) rather than every owned program in @programs. Consider a match hint on
+  # each action (does its key match the selected subroutine?) once keys are known.
 
   attr :id, :string, required: true
   attr :encounter, :map, required: true
   attr :programs, :list, required: true
-  # TODO: add `attr :selected_subroutine, :string` (the LiveView-held target id) and thread
-  # it through to the board + action buttons.
+  attr :selected_subroutine, :string, default: nil
 
   def ice_modal(assigns) do
     encounter = assigns.encounter
@@ -93,7 +84,13 @@ defmodule ShuntWeb.Components.IceTerminal do
             <div
               :for={sub <- @layer.subroutines}
               id={"ice-sub-#{sub.id}"}
-              class={["ice-subroutine", sub_down?(@encounter, sub) && "ice-subroutine--down"]}
+              class={[
+                "ice-subroutine",
+                sub_down?(@encounter, sub) && "ice-subroutine--down",
+                sub.id == @selected_subroutine && "ice-subroutine--selected"
+              ]}
+              phx-click={not sub_down?(@encounter, sub) && "select_target"}
+              phx-value-subroutine={sub.id}
             >
               <span class={["ice-subroutine-threat", "ice-subroutine-threat--#{sub.threat}"]}>
                 {threat_label(sub.threat)}
@@ -140,7 +137,13 @@ defmodule ShuntWeb.Components.IceTerminal do
 
           <%= if @encounter.status == :active do %>
             <div class="ice-actions">
-              <button id="ice-probe" class="ice-action" phx-click="act" phx-value-action="probe">
+              <button
+                id="ice-probe"
+                class="ice-action"
+                phx-click="act"
+                phx-value-action="probe"
+                phx-value-subroutine={@selected_subroutine}
+              >
                 <span class="ice-action-name">PROBE</span>
                 <.cost known={@numbers_known?} progress={@probe.progress} trace={@probe.trace} />
               </button>
@@ -150,6 +153,7 @@ defmodule ShuntWeb.Components.IceTerminal do
                 class="ice-action"
                 phx-click="act"
                 phx-value-action={"program:" <> prog.id}
+                phx-value-subroutine={@selected_subroutine}
               >
                 <span class="ice-action-name">{prog.name}</span>
                 <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />

@@ -245,6 +245,25 @@ defmodule Shunt.Ghostwork do
     end
   end
 
+  @doc """
+  The subroutine the UI should target next: the `preferred` id if it is still alive on the
+  current layer, otherwise the first still-alive subroutine, otherwise nil (encounter ended
+  or layer cleared). Lets the LiveView keep its highlight on a subroutine across turns
+  without itself knowing what "alive" means.
+  """
+  def resolve_target(%Encounter{status: :active} = encounter, preferred) do
+    layer = Enum.at(encounter.node.layers, encounter.layer_index)
+    alive = Enum.filter(layer.subroutines, &alive?(&1, encounter.subroutine_progress))
+
+    cond do
+      Enum.any?(alive, &(&1.id == preferred)) -> preferred
+      alive == [] -> nil
+      true -> hd(alive).id
+    end
+  end
+
+  def resolve_target(%Encounter{}, _preferred), do: nil
+
   defp turn_trace(base_trace, layer, prof, target, new_board) do
     trapped? = prof.action != nil and target.threat == :trap and prof.action != target.key
     scaled = round(base_trace * layer.trace_multiplier)

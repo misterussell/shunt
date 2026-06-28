@@ -290,6 +290,39 @@ defmodule Shunt.GhostworkTest do
     end
   end
 
+  describe "resolve_target/2" do
+    test "keeps the preferred subroutine while it is still alive" do
+      node = board_node([barrier("a", :spoof, 10), barrier("b", :decrypt, 10)])
+
+      assert Ghostwork.resolve_target(on_board(node), "b") == "b"
+    end
+
+    test "falls back to the first alive subroutine when the preferred is down" do
+      node = board_node([barrier("a", :spoof, 10), barrier("b", :decrypt, 3)])
+      enc = on_board(node, %{subroutine_progress: %{"a" => 0, "b" => 3}})
+
+      assert Ghostwork.resolve_target(enc, "b") == "a"
+    end
+
+    test "defaults to the first alive subroutine when no preference is given" do
+      node = board_node([barrier("a", :spoof, 10), barrier("b", :decrypt, 10)])
+
+      assert Ghostwork.resolve_target(on_board(node), nil) == "a"
+    end
+
+    test "is nil once the encounter has ended" do
+      enc = %Encounter{
+        node: ice_node(),
+        layer_index: 0,
+        mastery: 1,
+        status: :cracked,
+        subroutine_progress: %{}
+      }
+
+      assert Ghostwork.resolve_target(enc, "l1_core") == nil
+    end
+  end
+
   describe "act/4 with {:program, id}" do
     setup do
       prog = %{

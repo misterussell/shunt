@@ -201,4 +201,99 @@ defmodule ShuntWeb.GhostworkLiveTest do
     assert Process.alive?(view.pid)
     assert has_element?(view, "#scan-button")
   end
+
+  describe "open-board target selection" do
+    setup %{player_id: player_id} do
+      node = %IceNode{
+        id: "gw_board_node",
+        name: "Board Node",
+        family: "ice_corp",
+        location_id: "gw_test_loc",
+        requirements: [{:knows, "gw_node_found"}],
+        cool_threshold: 60,
+        layers: [
+          %{
+            id: "only",
+            name: "Only Layer",
+            trace_multiplier: 1.0,
+            reward: [{:knowledge, "gw_board_cracked"}],
+            subroutines: [
+              %{id: "alpha", key: :spoof, threat: :barrier, progress_required: 10},
+              %{id: "beta", key: :decrypt, threat: :barrier, progress_required: 10}
+            ]
+          }
+        ]
+      }
+
+      :ets.insert(:ice_nodes, {node.id, node})
+      on_exit(fn -> :ets.delete(:ice_nodes, "gw_board_node") end)
+      %{player_id: player_id}
+    end
+
+    test "probing with no explicit selection hits the first subroutine", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+      view |> element("#scan-button") |> render_click()
+      view |> element("#break-gw_board_node") |> render_click()
+
+      view |> element("#ice-probe") |> render_click()
+
+      assert has_element?(view, "#ice-sub-alpha", "3 / 10")
+      assert has_element?(view, "#ice-sub-beta", "0 / 10")
+    end
+
+    test "selecting a subroutine targets it for the next action", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+      view |> element("#scan-button") |> render_click()
+      view |> element("#break-gw_board_node") |> render_click()
+
+      view |> element("#ice-sub-beta") |> render_click()
+      assert has_element?(view, "#ice-sub-beta.ice-subroutine--selected")
+
+      view |> element("#ice-probe") |> render_click()
+
+      assert has_element?(view, "#ice-sub-beta", "3 / 10")
+      assert has_element?(view, "#ice-sub-alpha", "0 / 10")
+    end
+  end
+
+  describe "breaking the salvage-grid showcase node through its board" do
+    setup %{player_id: player_id} do
+      Players.dispatch(player_id, fn _player ->
+        {:ok,
+         [
+           {:inventory, "maskchip", 1},
+           {:inventory, "shard_reader", 1},
+           {:inventory, "ghostkey", 1},
+           {:knowledge, "shunt9_salvage_grid_found"},
+           {:set, :location_id, "shunt9_scrap_yard"}
+         ], %{}}
+      end)
+
+      :ok
+    end
+
+    test "selecting subroutines sentry-first cracks the grid and banks its reward",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+
+      view |> element("#break-shunt9_salvage_grid") |> render_click()
+      assert has_element?(view, "#ice-modal")
+
+      # Layer 1 — intake bolt (spoof): Maskchip matches and clears it, advancing the layer.
+      view |> element("#ice-program-maskchip") |> render_click()
+
+      # Layer 2 board — kill the watchdog (sentry) first, then the canary (trap), then the bolt.
+      view |> element("#ice-sub-watchdog") |> render_click()
+      view |> element("#ice-program-shard_reader") |> render_click()
+
+      view |> element("#ice-sub-canary") |> render_click()
+      view |> element("#ice-program-ghostkey") |> render_click()
+
+      view |> element("#ice-sub-load_bolt") |> render_click()
+      view |> element("#ice-program-maskchip") |> render_click()
+
+      assert has_element?(view, "#ice-modal", "CRACKED")
+      assert "shunt9_salvage_grid_cracked" in Players.get_player!().knowledge
+    end
+  end
 end

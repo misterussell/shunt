@@ -35,7 +35,6 @@ defmodule Shunt.Ghostwork.IceNode do
     layers: []
   ]
 
-
   alias Shunt.Content
 
   def all, do: Content.all(:ice_nodes)

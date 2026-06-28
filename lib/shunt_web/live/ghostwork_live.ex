@@ -30,9 +30,9 @@ defmodule ShuntWeb.GhostworkLive do
      |> assign(:tree, SkillsCatalog.fetch!("ghostwork"))
      |> assign(:status, nil)
      |> assign(:encounter, nil)
-     # TODO: assign(:selected_subroutine, nil) here (set when an encounter begins / layer
-     # advances) and assign(:loadout, ...) for the equipped-program ids (assign_deck should
-     # refresh it from Ghostwork.loadout/1 alongside :programs).
+     |> assign(:selected_subroutine, nil)
+     # TODO: (loadout slice) assign(:loadout, ...) for the equipped-program ids; assign_deck
+     # should refresh it from Ghostwork.loadout/1 alongside :programs.
      |> assign(:lattice_live?, true)
      |> stream(:signal_feed, [])
      |> assign_deck(player)}
@@ -82,7 +82,11 @@ defmodule ShuntWeb.GhostworkLive do
 
     case Players.dispatch(socket.assigns.player_id, resolver) do
       {:ok, player, meta} ->
-        {:noreply, socket |> assign(:encounter, meta.encounter) |> assign_deck(player)}
+        {:noreply,
+         socket
+         |> assign(:encounter, meta.encounter)
+         |> assign(:selected_subroutine, Ghostwork.resolve_target(meta.encounter, nil))
+         |> assign_deck(player)}
 
       {:error, :hardened} ->
         {:noreply, assign(socket, :status, "#{node.name} HARDENED — cool off")}
@@ -92,22 +96,17 @@ defmodule ShuntWeb.GhostworkLive do
     end
   end
 
-  # TODO: Add a "select_target" handler — assign(:selected_subroutine, subroutine_id) from
-  # phx-value-subroutine, the open-board target the next action applies to. When an encounter
-  # begins (and when a layer advances), default :selected_subroutine to the first still-alive
-  # subroutine on the current layer so the action bar always has a valid target. This is
-  # presentation state (LiveView assign), never on the Encounter struct.
+  def handle_event("select_target", %{"subroutine" => subroutine_id}, socket) do
+    {:noreply, assign(socket, :selected_subroutine, subroutine_id)}
+  end
 
-  # TODO: "act" now carries the target subroutine. Pull "subroutine" from params and pass it
-  # to dispatch_act so it can call Ghostwork.act(encounter, player, decoded, subroutine_id).
-  # Handle the new {:error, :not_equipped} / {:error, :invalid_target} returns by leaving the
-  # encounter unchanged (optionally a status hint). After a successful act, if the selected
-  # subroutine is now down (or the layer advanced), re-default :selected_subroutine to the
-  # next alive subroutine.
-  def handle_event("act", %{"action" => action}, socket) do
+  def handle_event("act", params, socket) do
     case socket.assigns.encounter do
-      nil -> {:noreply, socket}
-      encounter -> dispatch_act(socket, encounter, decode_action(action))
+      nil ->
+        {:noreply, socket}
+
+      encounter ->
+        dispatch_act(socket, encounter, decode_action(params["action"]), params["subroutine"])
     end
   end
 
@@ -128,14 +127,12 @@ defmodule ShuntWeb.GhostworkLive do
   end
 
   def handle_event("close_encounter", _params, socket) do
-    {:noreply, assign(socket, :encounter, nil)}
+    {:noreply, socket |> assign(:encounter, nil) |> assign(:selected_subroutine, nil)}
   end
 
-  # TODO: Thread the target subroutine id through dispatch_act/4 to Ghostwork.act/4
-  # (encounter, player, decoded, subroutine_id) per the act/4 engine change.
-  defp dispatch_act(socket, encounter, decoded) do
+  defp dispatch_act(socket, encounter, decoded, subroutine_id) do
     resolver = fn player ->
-      case Ghostwork.act(encounter, player, decoded) do
+      case Ghostwork.act(encounter, player, decoded, subroutine_id) do
         {:ok, updated, effects} -> {:ok, effects, %{encounter: updated}}
         {:error, reason} -> {:error, reason}
       end
@@ -143,7 +140,11 @@ defmodule ShuntWeb.GhostworkLive do
 
     case Players.dispatch(socket.assigns.player_id, resolver) do
       {:ok, player, meta} ->
-        {:noreply, socket |> assign(:encounter, meta.encounter) |> assign_deck(player)}
+        {:noreply,
+         socket
+         |> assign(:encounter, meta.encounter)
+         |> assign(:selected_subroutine, Ghostwork.resolve_target(meta.encounter, subroutine_id))
+         |> assign_deck(player)}
 
       {:error, _reason} ->
         {:noreply, socket}
@@ -155,14 +156,14 @@ defmodule ShuntWeb.GhostworkLive do
     <Layouts.app flash={@flash} player={@player} active={:ghostwork} status={@status}>
       <Chrome.ladder_track tree={@tree} current_tier={@current_tier} />
 
-      <%!-- TODO: pass selected_subroutine={@selected_subroutine} once the target-select
-            state exists, and pass the encounter action bar the EQUIPPED loadout programs
+      <%!-- TODO: (loadout slice) pass the action bar the EQUIPPED loadout programs
             (Ghostwork.Programs.loadout/1), not the full owned library. --%>
       <IceTerminal.ice_modal
         :if={@encounter}
         id="ice-modal"
         encounter={@encounter}
         programs={@programs}
+        selected_subroutine={@selected_subroutine}
       />
 
       <div id="deck-tether" class="deck-tether">
