@@ -100,6 +100,10 @@ alias Shunt.World.Exit
     }
   ],
 
+  events: [
+    "shunt9_bazaar_charging_kiosk"
+  ],
+
   exits: [
     %Exit{
       id: "bazaar_to_scrap_yard",
