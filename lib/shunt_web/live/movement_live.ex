@@ -226,12 +226,14 @@ defmodule ShuntWeb.MovementLive do
 
   defp repair_modal(assigns) do
     repairable = Shunt.Repair.get!(assigns.repairable_id)
+    current = Shunt.Repair.state(assigns.player, repairable.id)
 
     assigns =
       assigns
       |> assign(:repairable, repairable)
       |> assign(:diagnosis, Shunt.Repair.inspect(assigns.player, repairable))
       |> assign(:solutions, Shunt.Repair.available_solutions(assigns.player, repairable))
+      |> assign(:fixable?, Enum.any?(repairable.solutions, &(current in &1.from)))
 
     ~H"""
     <div id="repair-modal" class="event-modal-backdrop" phx-click="close_repair">
@@ -257,8 +259,8 @@ defmodule ShuntWeb.MovementLive do
             >
               [ {solution.label} ]
             </button>
-            <p :if={@solutions == []} id="repair-no-solutions" class="event-step-text">
-              You don't have the tools or parts to fix this yet.
+            <p :if={@solutions == [] and @fixable?} id="repair-no-solutions" class="event-step-text">
+              You're short on parts — the kind you have to make, not find whole. Scavenge what you need and come back.
             </p>
           </div>
         </div>
