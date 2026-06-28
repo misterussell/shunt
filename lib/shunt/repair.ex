@@ -52,28 +52,29 @@ defmodule Shunt.Repair do
     current = state(player, repairable_id)
 
     case Enum.find(repairable.solutions, &(&1.id == solution_id)) do
-      nil ->
-        {:error, :invalid_solution}
+      nil -> {:error, :invalid_solution}
+      solution -> apply_solution(player, repairable_id, current, solution)
+    end
+  end
 
-      solution ->
-        cond do
-          current not in solution.from ->
-            {:error, :wrong_state}
+  defp apply_solution(player, repairable_id, current, solution) do
+    cond do
+      current not in solution.from ->
+        {:error, :wrong_state}
 
-          not (Requirements.met?(player, solution.requirements) and
-                   materials?(player, solution.consumes)) ->
-            {:error, :insufficient_materials}
+      not (Requirements.met?(player, solution.requirements) and
+               materials?(player, solution.consumes)) ->
+        {:error, :insufficient_materials}
 
-          true ->
-            consume_effects = for {key, qty} <- solution.consumes, do: {:inventory, key, -qty}
+      true ->
+        consume_effects = for {key, qty} <- solution.consumes, do: {:inventory, key, -qty}
 
-            effects =
-              consume_effects ++
-                [{:infrastructure, repairable_id, solution.result_state}] ++ solution.effects
+        effects =
+          consume_effects ++
+            [{:infrastructure, repairable_id, solution.result_state}] ++ solution.effects
 
-            {:ok, effects,
-             %{from: current, to: solution.result_state, outcome_text: solution.outcome_text}}
-        end
+        {:ok, effects,
+         %{from: current, to: solution.result_state, outcome_text: solution.outcome_text}}
     end
   end
 

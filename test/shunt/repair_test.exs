@@ -128,7 +128,11 @@ defmodule Shunt.RepairTest do
                {:infrastructure, "test_gen", "patched"}
              ]
 
-      assert meta == %{from: "broken", to: "patched", outcome_text: @repairable.solutions |> hd() |> Map.fetch!(:outcome_text)}
+      assert meta == %{
+               from: "broken",
+               to: "patched",
+               outcome_text: @repairable.solutions |> hd() |> Map.fetch!(:outcome_text)
+             }
     end
 
     test "includes the solution's own effects" do
