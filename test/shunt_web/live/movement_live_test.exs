@@ -417,4 +417,94 @@ defmodule ShuntWeb.MovementLiveTest do
       assert has_element?(view, "#lattice-cue")
     end
   end
+
+  describe "repair economy" do
+    @generator "shunt9_power_relay_generator"
+
+    defp at_power_relay(effects \\ []) do
+      Shunt.Players.dispatch(Shunt.Players.get_player!().id, fn _player ->
+        {:ok, [{:set, :location_id, "shunt9_power_relay"} | effects], %{}}
+      end)
+    end
+
+    test "lists a repairable at the current location with its state", %{conn: conn} do
+      at_power_relay()
+
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      assert has_element?(view, "#inspect-repairable-#{@generator}")
+      assert has_element?(view, "#inspect-repairable-#{@generator}", "broken")
+    end
+
+    test "inspecting a repairable shows the diagnosis", %{conn: conn} do
+      at_power_relay()
+
+      {:ok, view, _html} = live(conn, ~p"/map")
+      view |> element("#inspect-repairable-#{@generator}") |> render_click()
+
+      assert has_element?(view, "#repair-modal")
+      assert has_element?(view, "#repair-diagnosis", "It's dead.")
+    end
+
+    test "the diagnosis deepens when the player holds the right tool", %{conn: conn} do
+      at_power_relay([{:inventory, "scrap_forged_soldering_iron", 1}])
+
+      {:ok, view, _html} = live(conn, ~p"/map")
+      view |> element("#inspect-repairable-#{@generator}") |> render_click()
+
+      assert has_element?(view, "#repair-diagnosis", "electrical fault")
+    end
+
+    test "applying a repair changes the state and swaps the location description", %{conn: conn} do
+      at_power_relay([
+        {:inventory, "scrap_forged_soldering_iron", 1},
+        {:inventory, "improvised_relay", 1}
+      ])
+
+      {:ok, view, _html} = live(conn, ~p"/map")
+      view |> element("#inspect-repairable-#{@generator}") |> render_click()
+      view |> element("#apply-repair-#{@generator}-improvised") |> render_click()
+
+      assert Shunt.Players.get_player!().infrastructure[@generator] == "patched"
+      assert has_element?(view, "#current-location", "no longer sits half in shadow")
+      assert has_element?(view, "#inspect-repairable-#{@generator}", "patched")
+    end
+
+    test "a full repair unlocks the powered-on point of interest", %{conn: conn} do
+      at_power_relay([
+        {:inventory, "scrap_forged_soldering_iron", 1},
+        {:inventory, "standard_relay", 1}
+      ])
+
+      {:ok, view, _html} = live(conn, ~p"/map")
+      refute has_element?(view, "#start-event-shunt9_power_relay_backup_online")
+
+      view |> element("#inspect-repairable-#{@generator}") |> render_click()
+      view |> element("#apply-repair-#{@generator}-standard") |> render_click()
+
+      assert Shunt.Players.get_player!().infrastructure[@generator] == "repaired"
+      assert has_element?(view, "#start-event-shunt9_power_relay_backup_online")
+    end
+
+    test "inspecting an id that is not a repairable at the location does not open the modal",
+         %{conn: conn} do
+      at_power_relay()
+
+      {:ok, view, _html} = live(conn, ~p"/map")
+      render_click(view, "inspect_repairable", %{"id" => "not_a_repairable_here"})
+
+      refute has_element?(view, "#repair-modal")
+    end
+
+    test "a repair that can't be applied reports why instead of doing nothing", %{conn: conn} do
+      # At the relay with the tool but no relay parts: applying still fails and must surface feedback.
+      at_power_relay([{:inventory, "scrap_forged_soldering_iron", 1}])
+
+      {:ok, view, _html} = live(conn, ~p"/map")
+      render_click(view, "apply_repair", %{"id" => @generator, "solution" => "improvised"})
+
+      assert Shunt.Players.get_player!().infrastructure[@generator] == nil
+      assert has_element?(view, ".footer-ticker-status", "won't take")
+    end
+  end
 end

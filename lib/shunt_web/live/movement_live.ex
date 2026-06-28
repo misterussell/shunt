@@ -20,6 +20,7 @@ defmodule ShuntWeb.MovementLive do
      |> assign(player_id: player_id)
      |> assign(:status, nil)
      |> assign(:active_event_id, nil)
+     |> assign(:active_repairable_id, nil)
      |> assign(:ghostwork_tool_key, ghostwork_tool_key)
      |> stream(:narrative, [], limit: -20)
      |> stream(:event_log, [], limit: -50)
@@ -44,7 +45,7 @@ defmodule ShuntWeb.MovementLive do
       {:ok, player, meta} ->
         completed? = not Map.has_key?(player.event_state, event_id)
         granted_items = Map.get(meta, :granted_items, [])
-        socket = assign(socket, :player, player)
+        socket = assign_location(socket, player)
 
         socket =
           cond do
@@ -86,6 +87,36 @@ defmodule ShuntWeb.MovementLive do
     end
   end
 
+  def handle_event("inspect_repairable", %{"id" => id}, socket) do
+    if Enum.any?(socket.assigns.repairables, &(&1.id == id)) do
+      {:noreply, assign(socket, :active_repairable_id, id)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("close_repair", _params, socket) do
+    {:noreply, assign(socket, :active_repairable_id, nil)}
+  end
+
+  def handle_event("apply_repair", %{"id" => id, "solution" => solution_id}, socket) do
+    case Players.dispatch(socket.assigns.player_id, &Shunt.Repair.repair(&1, id, solution_id)) do
+      {:ok, player, meta} ->
+        entry = %{id: System.unique_integer([:monotonic, :positive]), text: meta.outcome_text}
+
+        {:noreply,
+         socket
+         |> assign(:active_repairable_id, nil)
+         |> assign(:status, meta.outcome_text)
+         |> stream_insert(:narrative, entry, limit: -20)
+         |> assign_location(player)}
+
+      {:error, _reason} ->
+        {:noreply,
+         assign(socket, :status, "The repair won't take — you're missing the tools or parts.")}
+    end
+  end
+
   def handle_event("move_to", %{"destination" => destination}, socket) do
     case Players.dispatch(socket.assigns.player_id, &Movement.move(&1, destination)) do
       {:ok, player, meta} ->
@@ -111,6 +142,11 @@ defmodule ShuntWeb.MovementLive do
         event_id={@active_event_id}
         title={Events.get!(@active_event_id).title}
         streams={@streams}
+      />
+      <.repair_modal
+        :if={@active_repairable_id}
+        player={@player}
+        repairable_id={@active_repairable_id}
       />
       <div class="map-page-grid">
         <div class="map-page-main">
@@ -138,7 +174,21 @@ defmodule ShuntWeb.MovementLive do
             >
               ⌁ lattice detected
             </span>
-            <p class="location-description">{@location.description}</p>
+            <p class="location-description">
+              {World.effective_description(@player, @location, @repairables)}
+            </p>
+            <div :if={@repairables != []} id="location-repairables">
+              <p class="location-events-label">Infrastructure</p>
+              <button
+                :for={repairable <- @repairables}
+                id={"inspect-repairable-#{repairable.id}"}
+                class="btn-ghost location-event-button"
+                phx-click="inspect_repairable"
+                phx-value-id={repairable.id}
+              >
+                [ {repairable.name} ({Shunt.Repair.state(@player, repairable.id)}) ]
+              </button>
+            </div>
             <div :if={@points_of_interest != []} id="location-events">
               <p class="location-events-label">Points of Interest</p>
               <button
@@ -168,6 +218,52 @@ defmodule ShuntWeb.MovementLive do
         </div>
       </div>
     </Layouts.app>
+    """
+  end
+
+  attr :player, :map, required: true
+  attr :repairable_id, :string, required: true
+
+  defp repair_modal(assigns) do
+    repairable = Shunt.Repair.get!(assigns.repairable_id)
+
+    assigns =
+      assigns
+      |> assign(:repairable, repairable)
+      |> assign(:diagnosis, Shunt.Repair.inspect(assigns.player, repairable))
+      |> assign(:solutions, Shunt.Repair.available_solutions(assigns.player, repairable))
+
+    ~H"""
+    <div id="repair-modal" class="event-modal-backdrop" phx-click="close_repair">
+      <div class="event-modal-panel" phx-click-away="close_repair">
+        <div class="event-modal-header">
+          <span class="section-header-bracket">┌─[ {@repairable.name} ]</span>
+          <span class="section-header-rule"></span>
+          <span class="section-header-secondary">
+            [ {Shunt.Repair.state(@player, @repairable.id)} ]
+          </span>
+          <span class="section-header-bracket">─┐</span>
+        </div>
+        <div class="event-log">
+          <p id="repair-diagnosis" class="event-step-text">{@diagnosis}</p>
+          <div class="event-choices">
+            <button
+              :for={solution <- @solutions}
+              id={"apply-repair-#{@repairable.id}-#{solution.id}"}
+              class="btn-ghost event-choice-button"
+              phx-click="apply_repair"
+              phx-value-id={@repairable.id}
+              phx-value-solution={solution.id}
+            >
+              [ {solution.label} ]
+            </button>
+            <p :if={@solutions == []} id="repair-no-solutions" class="event-step-text">
+              You don't have the tools or parts to fix this yet.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
     """
   end
 
@@ -209,5 +305,6 @@ defmodule ShuntWeb.MovementLive do
     |> assign(:location, World.get_location(player.location_id))
     |> assign(:locations, World.accessible_locations(player))
     |> assign(:points_of_interest, World.points_of_interest(player, player.location_id))
+    |> assign(:repairables, Shunt.Repair.at_location(player, player.location_id))
   end
 end

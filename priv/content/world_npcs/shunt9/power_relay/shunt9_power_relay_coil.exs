@@ -6,5 +6,9 @@
   story_arcs: [
     "shunt9_power_relay_coil_intro",
     "shunt9_power_relay_coil_bad_tap"
+  ],
+
+  conditional_events: [
+    "shunt9_power_relay_coil_dead_generator"
   ]
 }

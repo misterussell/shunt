@@ -7,6 +7,27 @@ defmodule Shunt.World do
 
   def get_location(id), do: Content.fetch!(:locations, id)
 
+  @doc """
+  The description text shown for `location`: if a repairable here is in a state with a
+  matching `state_descriptions` override (the first such repairable encountered), that
+  text; otherwise the location's base description. Lets repairs visibly change the world.
+  """
+  def effective_description(player, location) do
+    effective_description(player, location, Shunt.Repair.at_location(player, location.id))
+  end
+
+  @doc """
+  Variant taking the already-resolved repairables at the location, so callers that have
+  computed them (the LiveView's @repairables) don't re-scan the :repairables table.
+  """
+  def effective_description(player, location, repairables) do
+    repairables
+    |> Enum.find_value(fn repairable ->
+      Map.get(repairable.state_descriptions, Shunt.Repair.state(player, repairable.id))
+    end)
+    |> Kernel.||(location.description)
+  end
+
   def exits(location_id), do: get_location(location_id).exits
 
   def connected?(from, to), do: to in Enum.map(exits(from), & &1.to)

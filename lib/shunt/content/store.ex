@@ -24,7 +24,10 @@ defmodule Shunt.Content.Store do
     {:ice_nodes, "priv/content/ice_nodes"},
     {:programs, "priv/content/programs"},
     {:rumors, "priv/content/rumors"},
-    {:rumor_connections, "priv/content/rumor_connections"}
+    {:rumor_connections, "priv/content/rumor_connections"},
+    # Repairable infrastructure (generators, lifts, purifiers). Content files build
+    # %Shunt.Repair.Repairable{} structs; the generic load_source/2 handles them via .id.
+    {:repairables, "priv/content/repairables"}
   ]
 
   def start_link(_opts) do

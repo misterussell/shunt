@@ -93,6 +93,11 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, :ghostwork_state, new_state), meta)
   end
 
+  defp do_apply([{:infrastructure, id, state} | rest], player, acc, meta) do
+    current = Map.get(acc, :infrastructure, player.infrastructure)
+    do_apply(rest, player, Map.put(acc, :infrastructure, Map.put(current, id, state)), meta)
+  end
+
   defp do_apply([{:set, field, value} | rest], player, acc, meta) do
     do_apply(rest, player, Map.put(acc, field, value), meta)
   end

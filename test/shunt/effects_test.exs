@@ -4,6 +4,24 @@ defmodule Shunt.EffectsTest do
   alias Shunt.Effects
   alias Shunt.Players.Player
 
+  describe "apply/2 - :infrastructure" do
+    test "sets a repairable's state on an empty infrastructure map" do
+      player = %Player{infrastructure: %{}}
+
+      {changes, _meta} = Effects.apply(player, [{:infrastructure, "gen", "patched"}])
+
+      assert changes.infrastructure == %{"gen" => "patched"}
+    end
+
+    test "updates one repairable's state while preserving others" do
+      player = %Player{infrastructure: %{"gen" => "patched", "lift" => "broken"}}
+
+      {changes, _meta} = Effects.apply(player, [{:infrastructure, "gen", "repaired"}])
+
+      assert changes.infrastructure == %{"gen" => "repaired", "lift" => "broken"}
+    end
+  end
+
   describe "apply/2 - :web_board" do
     test "sets the web_board to the given map" do
       board = %{"positions" => %{"a" => %{"x" => 0.1, "y" => 0.2}}, "wires" => [["a", "b"]]}

@@ -34,6 +34,8 @@ defmodule Shunt.Requirements do
     |> Kernel.>=(threshold)
   end
 
+  defp check(player, {:infra_state, id, state}), do: Shunt.Repair.state(player, id) == state
+
   defp check(player, {:has_program, action}) do
     player
     |> Shunt.Ghostwork.Programs.owned()
