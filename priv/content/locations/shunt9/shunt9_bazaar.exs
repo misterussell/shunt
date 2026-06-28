@@ -23,6 +23,16 @@ alias Shunt.World.Exit
       text:
         "Half the stalls run dark, their keepers trading by the light of whatever they can carry and packing up early when it gutters."
     },
+    # TODO: insert a middle :partial tier here, between the offline ([]) tier above and the
+    # :online tier below, so a patched generator (district power :partial) visibly changes the
+    # Bazaar. atmosphere/2 returns the deepest met tier (List.last), so order must stay
+    # offline -> partial -> online. Tier:
+    #   %{
+    #     requirements: [{:district, "shunt9", :power, :>=, :partial}],
+    #     text: "Power's come back uneven — strings of worklights buzz on and gutter out as the
+    #            load swings, and the keepers who stayed work in the flicker, half their stalls
+    #            lit, half still trading hand to hand."
+    #   }
     %{
       requirements: [{:district, "shunt9", :power, :>=, :online}],
       text:
