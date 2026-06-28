@@ -168,6 +168,28 @@ defmodule Shunt.RequirementsTest do
     end
   end
 
+  describe "met?/2 with {:district, district_id, fact, op, target}" do
+    test "met when the derived district fact satisfies :>=" do
+      player = %Player{infrastructure: %{"shunt9_power_relay_generator" => "repaired"}}
+
+      assert Requirements.met?(player, [{:district, "shunt9", :power, :>=, :online}])
+    end
+
+    test "unmet when the derived district fact is below the :>= target" do
+      refute Requirements.met?(%Player{}, [{:district, "shunt9", :power, :>=, :online}])
+    end
+
+    test "met when the derived district fact satisfies :<" do
+      assert Requirements.met?(%Player{}, [{:district, "shunt9", :power, :<, :online}])
+    end
+
+    test "unmet when the derived district fact does not satisfy :<" do
+      player = %Player{infrastructure: %{"shunt9_power_relay_generator" => "repaired"}}
+
+      refute Requirements.met?(player, [{:district, "shunt9", :power, :<, :online}])
+    end
+  end
+
   describe "met?/2 with multiple requirements" do
     test "requires every requirement to pass" do
       player = %Player{knowledge: ["rook"], reputation: %{"juno" => %{trust: 20}}}

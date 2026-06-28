@@ -315,6 +315,7 @@ defmodule ShuntWeb.MovementLive do
     |> assign(:locations, World.accessible_locations(player))
     |> assign(:points_of_interest, World.points_of_interest(player, player.location_id))
     |> assign(:repairables, Shunt.Repair.at_location(player, player.location_id))
+
     # TODO: assign :npcs from World.available_npcs(player, player.location_id) and assign
     # :atmosphere from World.atmosphere(player, World.get_location(player.location_id)). Both
     # recompute on every assign_location call, so the district reacts the moment a repair lands.

@@ -7,29 +7,42 @@ defmodule Shunt.District do
   """
 
   alias Shunt.Content
+  alias Shunt.Requirements
 
   def get!(id), do: Content.fetch!(:districts, id)
 
-  # TODO: implement fact/3 — fact(player, district_id, fact_name) returns the derived value
-  # of an :ordinal fact. Fetch the def via get!/1, read the rule at def.facts[fact_name],
-  # and return the `level` of the first {level, requirements} entry in rule.rules (top-down)
-  # whose requirements pass Shunt.Requirements.met?/2; otherwise return rule.default.
+  @doc """
+  The derived value of `fact_name` for `player` in district `district_id`. For an `:ordinal`
+  fact, returns the level of the first rule (top-down) whose requirements are met, else the
+  rule's `default`.
+  """
+  def fact(player, district_id, fact_name) do
+    derive(player, rule(district_id, fact_name))
+  end
 
-  # TODO: implement fact_meets?/5 — fact_meets?(player, district_id, fact_name, op, target)
-  # for op in [:>=, :<]. Derive the current ordinal level (reuse fact/3's logic), then compare
-  # current vs target by their index in the fact rule's :levels list (ascending), so
-  # :online >= :partial is true and :partial < :online is true. This is what the
-  # {:district, district_id, fact, op, target} requirement delegates to.
+  defp rule(district_id, fact_name) do
+    district_id |> get!() |> Map.fetch!(:facts) |> Map.fetch!(fact_name)
+  end
 
-  # TODO: author priv/content/districts/shunt9.exs — a %Shunt.District.Def{} with id "shunt9",
-  # name "Shunt 9", and one fact:
-  #   power: %{
-  #     kind: :ordinal,
-  #     levels: [:offline, :partial, :online],
-  #     default: :offline,
-  #     rules: [
-  #       {:online,  [{:infra_state, "shunt9_power_relay_generator", "repaired"}]},
-  #       {:partial, [{:infra_state, "shunt9_power_relay_generator", "patched"}]}
-  #     ]
-  #   }
+  defp derive(player, %{kind: :ordinal, rules: rules, default: default}) do
+    Enum.find_value(rules, default, fn {level, requirements} ->
+      if Requirements.met?(player, requirements), do: level
+    end)
+  end
+
+  @doc """
+  Whether the derived ordinal `fact_name` satisfies `op` against `target`, comparing by
+  position in the fact's `:levels` list (ascending). `op` is `:>=` or `:<`. This is what the
+  `{:district, district_id, fact, op, target}` requirement delegates to.
+  """
+  def fact_meets?(player, district_id, fact_name, op, target) do
+    rule = rule(district_id, fact_name)
+    levels = rule.levels
+    current_index = Enum.find_index(levels, &(&1 == derive(player, rule)))
+    target_index = Enum.find_index(levels, &(&1 == target))
+    compare(op, current_index, target_index)
+  end
+
+  defp compare(:>=, current, target), do: current >= target
+  defp compare(:<, current, target), do: current < target
 end

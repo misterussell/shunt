@@ -42,9 +42,7 @@ defmodule Shunt.Requirements do
     |> Enum.any?(&(&1.action == action))
   end
 
-  # TODO: add a check clause for {:district, district_id, fact, op, target} that delegates to
-  # Shunt.District.fact_meets?(player, district_id, fact, op, target). This is the single new
-  # requirement tuple that makes every requirement-consuming system (exits, POIs, repairable
-  # tiers, world-NPC events, conditional NPCs) district-aware. Mirror the runtime cross-module
-  # call already used by the {:infra_state, ...} clause above (Shunt.Repair.state/2).
+  defp check(player, {:district, district_id, fact, op, target}) do
+    Shunt.District.fact_meets?(player, district_id, fact, op, target)
+  end
 end
