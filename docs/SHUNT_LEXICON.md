@@ -624,3 +624,30 @@ around old inter-strata freight lifts.
 * **Transit Permit** — Authority-issued (or forged) clearance to ride the lifts.
 * **Scan Arch** — the checkpoint reader that clears who passes.
 * **Permit Registry** — the Latticework-wired records system behind the checkpoint.
+
+---
+
+# Recurring Terms — The Grayline
+
+The first district of the Midgrid, just past the lifts — the intake margin where
+people who climbed out of the Underbelly pool, unread by the grid and unwelcome
+deeper in. Messy, gray-market, watched but not governed.
+
+* **The Grayline** — the district itself; the grid's record of its people reads
+  gray, unverified ([Descriptor] + [Function]).
+* **Hollow** — a person the Latticework has no echo for; unreadable to Midgrid's
+  readers. The Grayline is where hollows live.
+* **Echo** — a Latticework presence the grid accepts as a real person: history,
+  credit, a clean read at any line. To be made real is to be given an echo.
+* **The Echo Court** — the faction that forges echoes and gates who passes for a
+  Midgrid citizen ([Resource] + Court). Not a gang; an unauthorized intake office.
+* **The Tare** — the Grayline's market hall; the mass the grid subtracts before
+  the count.
+* **The Stacks** — the Court's back room, where the locked templates live and the
+  registry write-head seats new names.
+* **The Cutaway** — a service void behind the Tare; an independent forger's
+  workshop, off the Court's books.
+* **The Glassline** — the ad-glass-and-turnstile border between the Grayline and
+  Midgrid proper; the readers are the gate.
+* **The Holdover** — the Midgrid Watch post at the line, where the grid sets down
+  the hollows it catches.

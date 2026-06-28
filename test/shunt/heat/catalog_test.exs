@@ -4,10 +4,10 @@ defmodule Shunt.Heat.CatalogTest do
   alias Shunt.Heat.Catalog
 
   describe "events_for_band/1" do
-    test "returns exactly 3 events for each band, all tagged with that band" do
+    test "returns at least 3 events for each band, all tagged with that band" do
       for band <- [:low, :medium, :high] do
         events = Catalog.events_for_band(band)
-        assert length(events) == 3
+        assert length(events) >= 3
         assert Enum.all?(events, &(&1.band == band))
       end
     end

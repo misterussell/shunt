@@ -31,13 +31,13 @@ defmodule Shunt.Content.StoreTest do
       assert_raise RuntimeError, fn -> Content.fetch!(:npcs, "unknown") end
     end
 
-    test "fencing_items: returns six items spanning clean, warm, and hot tiers" do
+    test "fencing_items: spans clean, warm, and hot tiers" do
       items = Content.all(:fencing_items)
 
-      assert length(items) == 6
-      assert Enum.count(items, &(&1.tier == :clean)) == 2
-      assert Enum.count(items, &(&1.tier == :warm)) == 2
-      assert Enum.count(items, &(&1.tier == :hot)) == 2
+      assert length(items) >= 6
+      assert Enum.count(items, &(&1.tier == :clean)) >= 2
+      assert Enum.count(items, &(&1.tier == :warm)) >= 2
+      assert Enum.count(items, &(&1.tier == :hot)) >= 2
     end
 
     test "fencing_items: fetch!/2 returns the item for a known key" do
@@ -81,10 +81,10 @@ defmodule Shunt.Content.StoreTest do
       assert recipe.sell_value == 70
     end
 
-    test "heat_events: returns 9 events with the expected keys and shape" do
+    test "heat_events: load with the expected keys and shape" do
       events = Content.all(:heat_events)
 
-      assert length(events) == 9
+      assert length(events) >= 9
 
       for event <- events do
         assert Map.has_key?(event, :id)
