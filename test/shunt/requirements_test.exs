@@ -10,6 +10,39 @@ defmodule Shunt.RequirementsTest do
     end
   end
 
+  describe "deepest_met_tier/2" do
+    @tiers [
+      %{requirements: [], text: "base"},
+      %{requirements: [{:knows, "x"}], text: "deeper"}
+    ]
+
+    test "returns the deepest tier whose requirements are met, scanning top-down" do
+      assert Requirements.deepest_met_tier(%Player{}, @tiers).text == "base"
+      assert Requirements.deepest_met_tier(%Player{knowledge: ["x"]}, @tiers).text == "deeper"
+    end
+
+    test "stops at the first unmet tier (tiers are treated as cumulative)" do
+      tiers = [
+        %{requirements: [], text: "base"},
+        %{requirements: [{:knows, "x"}], text: "gated"},
+        %{requirements: [], text: "ungated_but_unreachable"}
+      ]
+
+      assert Requirements.deepest_met_tier(%Player{}, tiers).text == "base"
+    end
+
+    test "returns nil when no tier matches" do
+      assert Requirements.deepest_met_tier(%Player{}, [
+               %{requirements: [{:knows, "x"}], text: "a"}
+             ]) ==
+               nil
+    end
+
+    test "returns nil for an empty tier list" do
+      assert Requirements.deepest_met_tier(%Player{}, []) == nil
+    end
+  end
+
   describe "met?/2 with {:knows, key}" do
     test "met when the key is in player.knowledge" do
       player = %Player{knowledge: ["rook"]}
@@ -187,6 +220,10 @@ defmodule Shunt.RequirementsTest do
       player = %Player{infrastructure: %{"shunt9_power_relay_generator" => "repaired"}}
 
       refute Requirements.met?(player, [{:district, "shunt9", :power, :<, :online}])
+    end
+
+    test "degrades to unmet (no crash) on an unknown district fact, like {:infra_state, ...}" do
+      refute Requirements.met?(%Player{}, [{:district, "shunt9", :no_such_fact, :>=, :online}])
     end
   end
 

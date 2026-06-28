@@ -38,25 +38,25 @@ defmodule Shunt.World do
     |> get_location()
     |> Map.get(:npcs, [])
     |> Enum.map(&normalize_npc/1)
-    |> Enum.filter(fn npc -> Requirements.met?(player, npc.requirements) end)
+    |> Enum.filter(fn npc -> npc != nil and Requirements.met?(player, npc.requirements) end)
     |> Enum.map(& &1.id)
   end
 
+  # List.wrap coerces a missing or nil :requirements to []; a malformed entry with no usable id
+  # degrades to nil (filtered out) rather than crashing the whole location render.
   defp normalize_npc(id) when is_binary(id), do: %{id: id, requirements: []}
-  defp normalize_npc(%{id: _} = npc), do: Map.put_new(npc, :requirements, [])
+  defp normalize_npc(%{id: id} = npc), do: %{id: id, requirements: List.wrap(npc[:requirements])}
+  defp normalize_npc(_), do: nil
 
   @doc """
   A district-level ambient line for `location`, or nil. Reads the optional `:atmosphere` field —
-  an ordered list of `%{requirements: [...], text: "..."}` tiers — and returns the text of the
-  deepest tier whose requirements are met. Additive flavor shown alongside the description,
-  distinct from the per-object state_descriptions used by effective_description/2.
+  an ordered list of `%{requirements: [...], text: "..."}` tiers (cumulative, like inspect tiers) —
+  and returns the text of the deepest met tier via Requirements.deepest_met_tier/2. Additive
+  flavor shown alongside the description, distinct from the per-object state_descriptions used by
+  effective_description/2.
   """
   def atmosphere(player, location) do
-    location
-    |> Map.get(:atmosphere, [])
-    |> Enum.filter(fn tier -> Requirements.met?(player, tier.requirements) end)
-    |> List.last()
-    |> case do
+    case Requirements.deepest_met_tier(player, Map.get(location, :atmosphere, [])) do
       nil -> nil
       tier -> tier.text
     end

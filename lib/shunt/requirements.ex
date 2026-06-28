@@ -12,6 +12,19 @@ defmodule Shunt.Requirements do
     Enum.all?(requirements, &check(player, &1))
   end
 
+  @doc """
+  The deepest tier whose requirements are met, scanning a list of `%{requirements: [...]}` maps
+  top-down and stopping at the first unmet tier (tiers are treated as cumulative). Returns the
+  tier map, or nil if the first tier is already unmet or the list is empty. Shared selector for
+  `Shunt.Repair.inspect/2` (gear-gated diagnosis tiers) and `Shunt.World.atmosphere/2` (district
+  ambient lines); each caller handles the nil case itself.
+  """
+  def deepest_met_tier(%Player{} = player, tiers) do
+    tiers
+    |> Enum.take_while(&met?(player, &1.requirements))
+    |> List.last()
+  end
+
   defp check(player, {:knows, key}), do: key in player.knowledge
 
   defp check(player, {:has_rumor, key}), do: key in player.rumors

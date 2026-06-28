@@ -38,8 +38,10 @@ defmodule Shunt.Repair do
   always-visible base) if even it is gated and unmet, rather than crashing.
   """
   def inspect(%Player{} = player, repairable) do
-    met = Enum.take_while(repairable.inspect_tiers, &Requirements.met?(player, &1.requirements))
-    tier = List.last(met) || List.first(repairable.inspect_tiers)
+    tier =
+      Requirements.deepest_met_tier(player, repairable.inspect_tiers) ||
+        List.first(repairable.inspect_tiers)
+
     tier.text
   end
 

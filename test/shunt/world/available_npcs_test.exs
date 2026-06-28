@@ -35,4 +35,19 @@ defmodule Shunt.World.AvailableNpcsTest do
 
     assert "gated_here" in World.available_npcs(player, @loc_id)
   end
+
+  test "tolerates a map entry whose :requirements key is nil (treated as no requirements)" do
+    :ets.insert(:locations, {@loc_id, %{id: @loc_id, npcs: [%{id: "ok", requirements: nil}]}})
+
+    assert World.available_npcs(%Player{}, @loc_id) == ["ok"]
+  end
+
+  test "skips a malformed map entry with no :id rather than crashing the location" do
+    :ets.insert(
+      :locations,
+      {@loc_id, %{id: @loc_id, npcs: ["always_here", %{requirements: []}]}}
+    )
+
+    assert World.available_npcs(%Player{}, @loc_id) == ["always_here"]
+  end
 end

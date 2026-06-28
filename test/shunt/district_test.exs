@@ -51,4 +51,26 @@ defmodule Shunt.DistrictTest do
       refute District.fact_meets?(player, "shunt9", :power, :<, :online)
     end
   end
+
+  describe "fact_meets?/5 degrades to false on unknown content (never crashes)" do
+    test "unknown district id" do
+      refute District.fact_meets?(%Player{}, "no_such_district", :power, :>=, :online)
+    end
+
+    test "unknown fact name" do
+      refute District.fact_meets?(%Player{}, "shunt9", :no_such_fact, :>=, :online)
+    end
+
+    test "unknown target level" do
+      player = %Player{infrastructure: %{"shunt9_power_relay_generator" => "repaired"}}
+
+      refute District.fact_meets?(player, "shunt9", :power, :>=, :no_such_level)
+    end
+
+    test "unrecognized operator" do
+      player = %Player{infrastructure: %{"shunt9_power_relay_generator" => "repaired"}}
+
+      refute District.fact_meets?(player, "shunt9", :power, :==, :online)
+    end
+  end
 end
