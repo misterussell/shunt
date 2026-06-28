@@ -56,6 +56,10 @@ defmodule Shunt.RepairTest do
       player = %Player{infrastructure: %{"test_gen" => "repaired"}}
       assert Repair.state(player, "test_gen") == "repaired"
     end
+
+    test "returns nil for an unknown repairable id with no stored state (no crash)" do
+      assert Repair.state(%Player{infrastructure: %{}}, "no_such_gen") == nil
+    end
   end
 
   describe "at_location/2" do
@@ -86,6 +90,18 @@ defmodule Shunt.RepairTest do
     test "stops at the last met tier when a shallower tier is unmet" do
       player = %Player{inventory: %{"probe" => 1}}
       assert Repair.inspect(player, @repairable) == "It's broken."
+    end
+
+    test "falls back to the first tier when even it is gated and unmet (no crash)" do
+      gated = %Repairable{
+        @repairable
+        | inspect_tiers: [
+            %{requirements: [{:has_item, "missing"}], text: "Gated base diagnosis."},
+            %{requirements: [], text: "Deeper."}
+          ]
+      }
+
+      assert Repair.inspect(%Player{inventory: %{}}, gated) == "Gated base diagnosis."
     end
   end
 

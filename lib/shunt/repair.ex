@@ -11,9 +11,20 @@ defmodule Shunt.Repair do
 
   def get!(id), do: Content.fetch!(:repairables, id)
 
-  @doc "The repairable's current state for this player, falling back to its initial_state."
+  @doc """
+  The repairable's current state for this player, falling back to its initial_state.
+  Returns nil for an unknown repairable id with no stored state, so requirement checks
+  ({:infra_state, ...}) degrade to "unmet" on a content typo instead of crashing.
+  """
   def state(%Player{} = player, repairable_id) do
-    Map.get(player.infrastructure, repairable_id) || get!(repairable_id).initial_state
+    Map.get(player.infrastructure, repairable_id) || initial_state(repairable_id)
+  end
+
+  defp initial_state(repairable_id) do
+    case Content.fetch(:repairables, repairable_id) do
+      {:ok, repairable} -> repairable.initial_state
+      :error -> nil
+    end
   end
 
   @doc "Repairables anchored at `location_id`, for surfacing as points of interest."
@@ -23,13 +34,13 @@ defmodule Shunt.Repair do
 
   @doc """
   The diagnosis text the player can read: the deepest inspect tier reachable while each
-  successive tier's requirements are met (cumulative). Tier 0 has no requirements.
+  successive tier's requirements are met (cumulative). Falls back to the first tier (the
+  always-visible base) if even it is gated and unmet, rather than crashing.
   """
   def inspect(%Player{} = player, repairable) do
-    repairable.inspect_tiers
-    |> Enum.take_while(&Requirements.met?(player, &1.requirements))
-    |> List.last()
-    |> Map.fetch!(:text)
+    met = Enum.take_while(repairable.inspect_tiers, &Requirements.met?(player, &1.requirements))
+    tier = List.last(met) || List.first(repairable.inspect_tiers)
+    tier.text
   end
 
   @doc """

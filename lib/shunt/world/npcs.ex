@@ -17,7 +17,10 @@ defmodule Shunt.World.Npcs do
     else
       conditional =
         Enum.find(npc.conditional_events, fn event_id ->
-          Requirements.met?(player, Events.get!(event_id).requirements)
+          event = Events.get!(event_id)
+
+          Requirements.met?(player, event.requirements) and
+            (event.repeatable or event_id not in player.completed_events)
         end)
 
       conditional || if npc.repeatable_events != [], do: Enum.random(npc.repeatable_events)

@@ -1,3 +1,7 @@
+# TODO: This conversation has no on_complete reward. Decide whether agreeing to help Coil
+# ("I'll take a look.") should grant anything — scrip, a small loyalty bump, or a knowledge/
+# rumor flag that the broken generator is now a known job — vs. staying pure flavor that only
+# points the player at the Infrastructure panel. Currently it grants nothing either way.
 %Shunt.Events.Event{
   id: "shunt9_power_relay_coil_dead_generator",
   title: "Coil — The Dead Generator",

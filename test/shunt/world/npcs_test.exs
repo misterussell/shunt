@@ -113,5 +113,14 @@ defmodule Shunt.World.NpcsTest do
 
       assert Npcs.current_event(player, @npc_key) == nil
     end
+
+    test "skips a completed non-repeatable conditional event even while its requirements still hold" do
+      player = %Player{
+        inventory: %{"juno_parcel" => 1},
+        completed_events: ["shunt9_bazaar_juno_deliver_parcel"]
+      }
+
+      assert Npcs.current_event(player, @npc_key) == nil
+    end
   end
 end

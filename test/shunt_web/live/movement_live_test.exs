@@ -485,5 +485,26 @@ defmodule ShuntWeb.MovementLiveTest do
       assert Shunt.Players.get_player!().infrastructure[@generator] == "repaired"
       assert has_element?(view, "#start-event-shunt9_power_relay_backup_online")
     end
+
+    test "inspecting an id that is not a repairable at the location does not open the modal",
+         %{conn: conn} do
+      at_power_relay()
+
+      {:ok, view, _html} = live(conn, ~p"/map")
+      render_click(view, "inspect_repairable", %{"id" => "not_a_repairable_here"})
+
+      refute has_element?(view, "#repair-modal")
+    end
+
+    test "a repair that can't be applied reports why instead of doing nothing", %{conn: conn} do
+      # At the relay with the tool but no relay parts: applying still fails and must surface feedback.
+      at_power_relay([{:inventory, "scrap_forged_soldering_iron", 1}])
+
+      {:ok, view, _html} = live(conn, ~p"/map")
+      render_click(view, "apply_repair", %{"id" => @generator, "solution" => "improvised"})
+
+      assert Shunt.Players.get_player!().infrastructure[@generator] == nil
+      assert has_element?(view, ".footer-ticker-status", "won't take")
+    end
   end
 end

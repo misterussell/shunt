@@ -34,6 +34,12 @@ defmodule Shunt.RequirementsTest do
 
       refute Requirements.met?(player, [{:infra_state, "gen", "repaired"}])
     end
+
+    test "unmet (degrades, no crash) when the repairable id is unknown" do
+      player = %Player{infrastructure: %{}}
+
+      refute Requirements.met?(player, [{:infra_state, "no_such_repairable", "repaired"}])
+    end
   end
 
   describe "met?/2 with {:contact_known, key}" do

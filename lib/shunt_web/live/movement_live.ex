@@ -45,7 +45,7 @@ defmodule ShuntWeb.MovementLive do
       {:ok, player, meta} ->
         completed? = not Map.has_key?(player.event_state, event_id)
         granted_items = Map.get(meta, :granted_items, [])
-        socket = assign(socket, :player, player)
+        socket = assign_location(socket, player)
 
         socket =
           cond do
@@ -88,7 +88,11 @@ defmodule ShuntWeb.MovementLive do
   end
 
   def handle_event("inspect_repairable", %{"id" => id}, socket) do
-    {:noreply, assign(socket, :active_repairable_id, id)}
+    if Enum.any?(socket.assigns.repairables, &(&1.id == id)) do
+      {:noreply, assign(socket, :active_repairable_id, id)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("close_repair", _params, socket) do
@@ -108,7 +112,8 @@ defmodule ShuntWeb.MovementLive do
          |> assign_location(player)}
 
       {:error, _reason} ->
-        {:noreply, socket}
+        {:noreply,
+         assign(socket, :status, "The repair won't take — you're missing the tools or parts.")}
     end
   end
 
@@ -169,7 +174,9 @@ defmodule ShuntWeb.MovementLive do
             >
               ⌁ lattice detected
             </span>
-            <p class="location-description">{World.effective_description(@player, @location)}</p>
+            <p class="location-description">
+              {World.effective_description(@player, @location, @repairables)}
+            </p>
             <div :if={@repairables != []} id="location-repairables">
               <p class="location-events-label">Infrastructure</p>
               <button
