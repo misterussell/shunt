@@ -264,6 +264,7 @@ defmodule ShuntWeb.GhostworkLiveTest do
            {:inventory, "maskchip", 1},
            {:inventory, "shard_reader", 1},
            {:inventory, "ghostkey", 1},
+           {:ghostwork_loadout, ["maskchip", "shard_reader", "ghostkey"]},
            {:knowledge, "shunt9_salvage_grid_found"},
            {:set, :location_id, "shunt9_scrap_yard"}
          ], %{}}
@@ -294,6 +295,64 @@ defmodule ShuntWeb.GhostworkLiveTest do
 
       assert has_element?(view, "#ice-modal", "CRACKED")
       assert "shunt9_salvage_grid_cracked" in Players.get_player!().knowledge
+    end
+  end
+
+  describe "loadout management on the rail" do
+    setup %{player_id: player_id} do
+      Players.dispatch(player_id, fn _player ->
+        {:ok,
+         [
+           {:inventory, "maskchip", 1},
+           {:inventory, "shard_reader", 1},
+           {:inventory, "ghostkey", 1},
+           {:inventory, "signal_knife", 1}
+         ], %{}}
+      end)
+
+      :ok
+    end
+
+    test "equipping a program marks it equipped and counts it", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+
+      view |> element("#equip-maskchip") |> render_click()
+
+      assert has_element?(view, "#unequip-maskchip")
+      assert has_element?(view, "#loadout-count", "1/3")
+    end
+
+    test "equipping past three slots disables further equips", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+
+      view |> element("#equip-maskchip") |> render_click()
+      view |> element("#equip-shard_reader") |> render_click()
+      view |> element("#equip-ghostkey") |> render_click()
+
+      assert has_element?(view, "#loadout-count", "3/3")
+      assert has_element?(view, "#equip-signal_knife[disabled]")
+    end
+
+    test "unequipping returns a program to the available state", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+
+      view |> element("#equip-maskchip") |> render_click()
+      view |> element("#unequip-maskchip") |> render_click()
+
+      assert has_element?(view, "#equip-maskchip")
+      assert has_element?(view, "#loadout-count", "0/3")
+    end
+
+    test "the encounter action bar lists only equipped programs", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+
+      view |> element("#equip-maskchip") |> render_click()
+
+      view |> element("#scan-button") |> render_click()
+      view |> element("#break-gw_test_node") |> render_click()
+
+      assert has_element?(view, "#ice-program-maskchip")
+      refute has_element?(view, "#ice-program-ghostkey")
     end
   end
 end

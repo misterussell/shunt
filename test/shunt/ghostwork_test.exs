@@ -290,6 +290,45 @@ defmodule Shunt.GhostworkTest do
     end
   end
 
+  describe "loadout/1, equip/2, unequip/2" do
+    defp owner(loadout, owned \\ ["maskchip", "shard_reader", "ghostkey", "signal_knife"]) do
+      %Player{
+        inventory: Map.new(owned, &{&1, 1}),
+        ghostwork_state: %{"loadout" => loadout}
+      }
+    end
+
+    test "loadout/1 reads the equipped ids, defaulting to empty" do
+      assert Ghostwork.loadout(%Player{}) == []
+      assert Ghostwork.loadout(owner(["maskchip"])) == ["maskchip"]
+    end
+
+    test "equip/2 appends an owned program" do
+      assert Ghostwork.equip(owner([]), "maskchip") == ["maskchip"]
+    end
+
+    test "equip/2 is a no-op for a program the player does not own" do
+      assert Ghostwork.equip(owner([], ["maskchip"]), "ghostkey") == []
+    end
+
+    test "equip/2 dedupes an already-equipped program" do
+      assert Ghostwork.equip(owner(["maskchip"]), "maskchip") == ["maskchip"]
+    end
+
+    test "equip/2 is a no-op once all three slots are full" do
+      full = ["maskchip", "shard_reader", "ghostkey"]
+      assert Ghostwork.equip(owner(full), "signal_knife") == full
+    end
+
+    test "unequip/2 removes an equipped program and leaves others" do
+      assert Ghostwork.unequip(owner(["maskchip", "ghostkey"]), "maskchip") == ["ghostkey"]
+    end
+
+    test "unequip/2 is a no-op for a program that is not equipped" do
+      assert Ghostwork.unequip(owner(["maskchip"]), "ghostkey") == ["maskchip"]
+    end
+  end
+
   describe "resolve_target/2" do
     test "keeps the preferred subroutine while it is still alive" do
       node = board_node([barrier("a", :spoof, 10), barrier("b", :decrypt, 10)])

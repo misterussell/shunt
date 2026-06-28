@@ -28,10 +28,8 @@ defmodule ShuntWeb.Components.IceTerminal do
 
   @trace_segments 20
 
-  # TODO: (loadout slice) the action bar should list Probe + the player's EQUIPPED loadout
-  # (<= 3 programs) rather than every owned program in @programs. Consider a match hint on
-  # each action (does its key match the selected subroutine?) once keys are known.
-
+  # @programs is the player's EQUIPPED loadout (<= 3 runnable programs), passed in by the
+  # LiveView via Ghostwork.Programs.loadout/1 — not the full owned library.
   attr :id, :string, required: true
   attr :encounter, :map, required: true
   attr :programs, :list, required: true

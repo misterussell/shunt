@@ -38,6 +38,9 @@ defmodule Shunt.Ghostwork do
   # Multiplies a turn's Trace when a non-Probe action MISMATCHES a :trap subroutine.
   @trap_trace_multiplier 2
 
+  # Equipped-program slots: only these are runnable in an encounter (the prep decision).
+  @loadout_slots 3
+
   # Earned-title milestones (doc "Progression"): a ghostwork tree tier is earned when the
   # player holds a deck AND total cracks (sum of all family mastery) reaches the threshold.
   # Tuning only — adjust freely. T1 "Feed Skimmer" is earned just by jacking in.
@@ -383,19 +386,30 @@ defmodule Shunt.Ghostwork do
 
   def numbers_known?(encounter), do: encounter.mastery >= @mastery_numbers
 
-  # TODO: Rename/repurpose for the new model — at this mastery stage the per-subroutine
-  # `key` (the old "weakness" tell, now one per subroutine) is un-redacted in the encounter
-  # view. Either keep this name and let IceTerminal call it to decide whether to show each
-  # subroutine.key, or rename to keys_known?/1; pick one and update callers. Threats
-  # (:barrier/:sentry/:trap) are ALWAYS visible and are not gated by this.
+  @doc """
+  At this mastery stage the per-subroutine `key` (the old "weakness" tell, now one per
+  subroutine) is un-redacted in the encounter view. Threats (:barrier/:sentry/:trap) are
+  always visible and are not gated by this.
+  """
   def weakness_known?(encounter), do: encounter.mastery >= @mastery_weakness
 
-  # TODO: Add loadout helpers (3-slot equipped program set; @loadout_slots 3):
-  #   * loadout(player) -> the list of equipped program ids from
-  #     ghostwork_state["loadout"] (default []).
-  #   * equip(player, program_id) / unequip(player, program_id) -> return the new loadout
-  #     list to dispatch via the {:ghostwork_loadout, ids} effect (see Effects TODO).
-  #     equip is a no-op past @loadout_slots or for an unowned program; both dedupe.
-  #   These return the id list for the LiveView to dispatch; they do NOT mutate the player.
-  #   The "runnable in an encounter" listing (owned ∩ equipped) lives in Programs (see TODO).
+  @doc "The player's equipped program ids (the 3-slot encounter loadout)."
+  def loadout(player), do: Map.get(player.ghostwork_state, "loadout", [])
+
+  @doc """
+  The new loadout list with `program_id` equipped — for the caller to dispatch via the
+  `{:ghostwork_loadout, ids}` effect. A no-op if the program isn't owned, is already
+  equipped, or all #{@loadout_slots} slots are full. Does not mutate the player.
+  """
+  def equip(player, program_id) do
+    current = loadout(player)
+    owned? = Map.get(player.inventory, program_id, 0) >= 1
+
+    if owned? and program_id not in current and length(current) < @loadout_slots,
+      do: current ++ [program_id],
+      else: current
+  end
+
+  @doc "The new loadout list with `program_id` removed, for the caller to dispatch."
+  def unequip(player, program_id), do: loadout(player) -- [program_id]
 end

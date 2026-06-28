@@ -49,4 +49,27 @@ defmodule Shunt.Ghostwork.ProgramsTest do
       refute Enum.any?(Programs.owned(player), &(&1.id == "test_mimic_daemon"))
     end
   end
+
+  describe "loadout/1" do
+    test "returns only owned programs that are equipped", %{prog: prog} do
+      player = %Player{
+        inventory: %{"test_mimic_daemon" => 1},
+        ghostwork_state: %{"loadout" => ["test_mimic_daemon"]}
+      }
+
+      assert Programs.loadout(player) == [prog]
+    end
+
+    test "excludes an equipped program the player no longer owns" do
+      player = %Player{inventory: %{}, ghostwork_state: %{"loadout" => ["test_mimic_daemon"]}}
+
+      refute Enum.any?(Programs.loadout(player), &(&1.id == "test_mimic_daemon"))
+    end
+
+    test "excludes an owned program that is not equipped" do
+      player = %Player{inventory: %{"test_mimic_daemon" => 1}, ghostwork_state: %{}}
+
+      refute Enum.any?(Programs.loadout(player), &(&1.id == "test_mimic_daemon"))
+    end
+  end
 end
