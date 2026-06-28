@@ -35,11 +35,6 @@ defmodule Shunt.Ghostwork.IceNode do
     layers: []
   ]
 
-  # TODO: Author 1-2 NEW showcase nodes (e.g. priv/content/ice_nodes/<area>/<id>.exs) whose
-  # layers use the full Barrier/Sentry/Trap mix across the three keys, so the open-board
-  # "which subroutine first" loop is exercised end to end. Gate them behind a scan lead like
-  # the existing nodes, and add a LiveView integration test that breaks one (targeting
-  # subroutines in a non-trivial order) to its reward.
 
   alias Shunt.Content
 

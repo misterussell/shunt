@@ -20,6 +20,34 @@ alias Shunt.World.Exit
   lattice: %{
     leads: [
       %{
+        id: "maskchip_skim",
+        requirements: [],
+        text:
+          "A vendor's terminal keeps reauthing against an uptown handshake it shouldn't have. You copy the routine before it rotates — a working Maskchip.",
+        on_intercept: [{:inventory, "maskchip", 1}, {:knowledge, "maskchip_skimmed"}]
+      },
+      %{
+        id: "shard_reader_skim",
+        requirements: [],
+        text:
+          "Someone left a Shard Reader looping on an open till feed, chewing through receipts it already cracked. You lift the program and let the feed forget you.",
+        on_intercept: [{:inventory, "shard_reader", 1}, {:knowledge, "shard_reader_skimmed"}]
+      },
+      %{
+        id: "ghostkey_skim",
+        requirements: [{:has_program, :spoof}],
+        text:
+          "A back-stall fixer is selling forged maintenance keys to anyone whose mask already checks out. Yours does. You walk with a Ghostkey.",
+        on_intercept: [{:inventory, "ghostkey", 1}, {:knowledge, "ghostkey_skimmed"}]
+      },
+      %{
+        id: "signal_knife_skim",
+        requirements: [{:has_program, :decrypt}],
+        text:
+          "The same fixer watches you read a cipher the slow way and slides a Signal Knife across the counter. Faster. Louder. Your problem now.",
+        on_intercept: [{:inventory, "signal_knife", 1}, {:knowledge, "signal_knife_skimmed"}]
+      },
+      %{
         id: "vendor_squeeze_signal",
         requirements: [],
         text:

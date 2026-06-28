@@ -18,13 +18,6 @@ defmodule Shunt.Ghostwork.Programs do
   See priv/docs/SHUNT_ghostwork_v1.md ("A program").
   """
 
-  # TODO: Author the program content (priv/content/programs/*.exs — the dir does not exist
-  # yet; the store @sources entry is already wired). Provide at least one program per key
-  # (:spoof / :decrypt / :backdoor) so every subroutine key is crackable, and make them
-  # obtainable through the existing economy (scavenge/fence/event reward/Street Alchemy).
-  # Aim for a loud-vs-quiet variant of at least one key so the 3-slot loadout choice bites.
-  # Each program map is shaped per this module's moduledoc (id matches an inventory key,
-  # :action is its key, base {progress, trace}, and on_weakness for the matched profile).
   alias Shunt.Content
 
   def all, do: Content.all(:programs)

@@ -36,6 +36,9 @@ defmodule ShuntWeb.Components.IceTerminal do
   # back to the first-alive default. The action bar lists Probe + the player's equipped
   # loadout (<= 3 programs) passed in via @programs; Retreat/Close unchanged. Consider a match
   # hint on each action (does its key match the selected subroutine?) once keys are known.
+  # Once target-selection works, add a LiveView integration test that breaks the
+  # "shunt9_salvage_grid" showcase node — selecting subroutines in a non-trivial order
+  # (sentry first) — through to its {:knowledge, "shunt9_salvage_grid_cracked"} reward.
 
   attr :id, :string, required: true
   attr :encounter, :map, required: true
