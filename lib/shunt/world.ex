@@ -28,6 +28,20 @@ defmodule Shunt.World do
     |> Kernel.||(location.description)
   end
 
+  # TODO: implement available_npcs/2 — available_npcs(player, location_id) returns the world_npc
+  # ids the player should see here, after filtering by world state. A location's :npcs entry is
+  # EITHER a bare id string (always shown — keeps every existing location file working) OR a map
+  # %{id: "...", requirements: [...]}. Normalize each entry (bare string => empty requirements),
+  # keep those whose requirements pass Shunt.Requirements.met?/2, and return the ids. MovementLive
+  # will render from this instead of the raw @location.npcs list.
+
+  # TODO: implement atmosphere/2 — atmosphere(player, location) returns a district-level ambient
+  # line (text) or nil. Read an optional location field :atmosphere, an ordered list of
+  # %{requirements: [...], text: "..."} tiers (same shape as repairable inspect_tiers); return the
+  # text of the LAST tier whose requirements pass Shunt.Requirements.met?/2, else nil. This is an
+  # additive line shown alongside the description (district-level), distinct from the per-object
+  # state_descriptions consumed by effective_description/2.
+
   def exits(location_id), do: get_location(location_id).exits
 
   def connected?(from, to), do: to in Enum.map(exits(from), & &1.to)

@@ -8,6 +8,23 @@ defmodule ShuntWeb.MovementLiveTest do
     :ok
   end
 
+  # TODO: integration test for conditional NPC availability. Author two new world_npcs (each
+  # needs at least one event so World.Npcs.current_event/2 resolves): an electronics vendor
+  # added to shunt9_bazaar's :npcs as %{id: "shunt9_bazaar_volt", requirements: [{:district,
+  # "shunt9", :power, :>=, :online}]}, and a scavenger added to shunt9_burned_platform's :npcs
+  # as %{id: "shunt9_burned_platform_<name>", requirements: [{:district, "shunt9", :power, :<,
+  # :online}]}. Test: with power offline, #location-npcs at the bazaar does NOT contain the
+  # vendor button and the burned platform DOES contain the scavenger; after the player has the
+  # generator repaired (set player.infrastructure), the bazaar SHOWS the vendor and the burned
+  # platform no longer shows the scavenger. Assert on specific button element ids
+  # (#start-npc-shunt9_bazaar_volt), never counts. Follow the SHUNT content docs for NPC prose.
+
+  # TODO: integration test for the district ambient atmosphere line. Author an :atmosphere
+  # field on shunt9_bazaar: ordered tiers whose last-met text differs at power offline vs
+  # :>= :online (deepest met wins). Test: #location-atmosphere shows the offline-tier text with
+  # power offline, and the online-tier text after the generator is repaired. Assert on the
+  # element's text via has_element?, not counts. Follow the SHUNT content docs for prose.
+
   test "renders the current location's name and description", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/map")
 

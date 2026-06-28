@@ -4,6 +4,13 @@ defmodule Shunt.WorldTest do
   alias Shunt.Players.Player
   alias Shunt.World
 
+  # TODO: integration test for a district-gated point of interest (pure content, no new code —
+  # points_of_interest/2 already filters by requirements). Author a new POI event at a Shunt 9
+  # location with requirements [{:district, "shunt9", :power, :>=, :online}], following the SHUNT
+  # content docs (steps/choices/on_complete). Test: World.points_of_interest(player, location_id)
+  # excludes the event id while power is offline and includes it once the generator is repaired
+  # (set player.infrastructure). Assert the specific event id's presence/absence, not counts.
+
   describe "get_location/1" do
     test "returns the location for a known key" do
       assert World.get_location("shunt9_bazaar").name == "Shunt 9 Bazaar"

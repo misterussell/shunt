@@ -28,6 +28,9 @@ defmodule Shunt.Content.Store do
     # Repairable infrastructure (generators, lifts, purifiers). Content files build
     # %Shunt.Repair.Repairable{} structs; the generic load_source/2 handles them via .id.
     {:repairables, "priv/content/repairables"}
+    # TODO: add `{:districts, "priv/content/districts"}` to load district world-state defs
+    # (%Shunt.District.Def{} structs). The generic load_source/2 handles them via .id. Mind
+    # the trailing comma above when adding the entry.
   ]
 
   def start_link(_opts) do
