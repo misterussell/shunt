@@ -52,11 +52,22 @@ defmodule ShuntWeb.MovementLiveTest do
     assert has_element?(view, "#location-atmosphere", "run dark")
   end
 
-  # TODO: add a test "the bazaar flickers while district power is partial" that dispatches
-  # {:infrastructure, "shunt9_power_relay_generator", "patched"} (mirroring the :online test
-  # below but with the patched state), navigates to the Bazaar, and asserts
-  # has_element?(view, "#location-atmosphere", "in the flicker") — proving a patch surfaces the
-  # middle atmosphere tier rather than the offline or online text.
+  test "the bazaar flickers while district power is partial", %{conn: conn} do
+    player_id = Shunt.Players.get_player!().id
+
+    Shunt.Players.dispatch(player_id, fn _player ->
+      {:ok, [{:infrastructure, "shunt9_power_relay_generator", "patched"}], %{}}
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+    view |> element("#move-to-shunt9_burned_platform") |> render_click()
+    view |> element("#move-to-shunt9_bazaar") |> render_click()
+
+    assert has_element?(view, "#location-atmosphere", "in the flicker")
+  end
+
   test "the bazaar reads as powered once district power is online", %{conn: conn} do
     player_id = Shunt.Players.get_player!().id
 
