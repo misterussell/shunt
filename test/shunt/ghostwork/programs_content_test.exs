@@ -88,6 +88,33 @@ defmodule Shunt.Ghostwork.ProgramsContentTest do
     end
   end
 
+  describe "grayline registry write-head" do
+    test "its final layer is a barrier/sentry/trap board across all three keys" do
+      node = IceNode.fetch!("grayline_stacks_registry")
+      write_head = List.last(node.layers)
+
+      threats = write_head.subroutines |> Enum.map(& &1.threat) |> Enum.uniq() |> Enum.sort()
+      keys = write_head.subroutines |> Enum.map(& &1.key) |> Enum.uniq() |> Enum.sort()
+
+      assert write_head.id == "write_head"
+      assert threats == [:barrier, :sentry, :trap]
+      assert keys == [:backdoor, :decrypt, :spoof]
+      assert {:knowledge, "midgrid_echo"} in write_head.reward
+    end
+
+    test "the full node is winnable with matching keys without busting" do
+      :rand.seed(:exsss, {7, 7, 7})
+      node = IceNode.fetch!("grayline_stacks_registry")
+      player = %Player{inventory: Map.new(Programs.all(), &{&1.id, 1})}
+
+      {:ok, enc, _} = Ghostwork.begin_encounter(player, node)
+      {status, trace} = play_to_end(enc, player)
+
+      assert status == :cracked
+      assert trace < 100
+    end
+  end
+
   # Greedily clear the board: target the lowest-progress still-alive subroutine (sentries
   # bleed, so finishing fast matters) with a program whose key matches it.
   defp play_to_end(enc, player, turns \\ 0)

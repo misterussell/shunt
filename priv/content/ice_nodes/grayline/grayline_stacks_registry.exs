@@ -39,7 +39,12 @@
       trace_multiplier: 2.4,
       reward: [{:knowledge, "midgrid_echo"}],
       subroutines: [
-        %{id: "write_head_core", key: :backdoor, threat: :barrier, progress_required: 15}
+        # Feed it a Court-shaped template stub (spoof), keep the watch process from
+        # climbing while you work (decrypt sentry), and ease the write-head over without
+        # forcing it — trip the flag with the wrong key and the write lands flagged.
+        %{id: "template_stub", key: :spoof, threat: :barrier, progress_required: 8},
+        %{id: "court_watch", key: :decrypt, threat: :sentry, progress_required: 7},
+        %{id: "flag_head", key: :backdoor, threat: :trap, progress_required: 6}
       ]
     }
   ]
