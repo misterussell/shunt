@@ -91,8 +91,19 @@ defmodule ShuntWeb.Components.MapGraphTest do
     player = %{location_id: "b", discovered_locations: ["a", "b"]}
     html = render_map(%{player: player, locations: @locations})
 
+    # TODO: update expected transform to the new composed form. Current "b" at {100,0}, its only
+    # connected neighbor "a" at {0,0} fits, so scale stays 1.0 and the transform becomes
+    # "translate(320, 220) scale(1.0) translate(-100, 0)".
     assert html =~ ~s{transform="translate(220, 220)"}
   end
+
+  # TODO: add a test that a connected neighbor inside the window keeps scale(1.0) — assert
+  # fit_scale({0,0}, [{100,0},{0,100}]) == 1.0 (the @locations "a" case).
+
+  # TODO: add a test that a far connected neighbor produces scale < 1.0 that frames it — assert
+  # MapGraph.fit_scale({900,230}, [{1350,230}]) brings dx=450 inside: result ~= 0.5778
+  # (280/450, hx=320-40), and assert MapGraph.fit_scale({900,230}, [{900,530}]) ~= 0.5333
+  # (180/300, hy=220-40) for the dy=300 case.
 
   test "map_legend/1 renders all four legend rows" do
     html = render_component(&legend_wrapper/1, %{})

@@ -6,6 +6,13 @@ defmodule ShuntWeb.Components.MapGraph do
   @window_width 640
   @window_height 440
 
+  # TODO: add `@node_margin 40` and a public `fit_scale({cx, cy}, connected_positions) :: float`
+  # function. hx = @window_width / 2 - @node_margin, hy = @window_height / 2 - @node_margin.
+  # max_ratio = connected_positions |> Enum.map(fn {nx, ny} -> max(abs(nx-cx)/hx, abs(ny-cy)/hy) end)
+  # |> Enum.max(fn -> 0.0 end). Return 1.0 when max_ratio <= 1.0, else 1.0 / max_ratio. Public so
+  # it can be unit-tested with the real off-screen cases (concourse->intake_hall dx=450,
+  # concourse->house_of_closed_hands dy=300).
+
   attr :player, :map, required: true
   attr :locations, :list, required: true
 
@@ -16,6 +23,13 @@ defmodule ShuntWeb.Components.MapGraph do
     edges = edges(assigns.locations)
 
     {cx, cy} = current.graph_position
+
+    # TODO: replace the translate-only transform below with a translate-scale-translate
+    # composed around the current node so connected neighbors always stay inside the viewBox.
+    # Compute connected_positions = locations filtered to connected_keys, mapped to graph_position;
+    # scale = fit_scale(current.graph_position, connected_positions); build world_transform as
+    # "translate(W/2, H/2) scale(<scale>) translate(<-cx>, <-cy>)" (trunc the translates, render
+    # scale via Float.round(scale, 4)). Remove translate_x/translate_y once done.
     translate_x = @window_width / 2 - cx
     translate_y = @window_height / 2 - cy
 
