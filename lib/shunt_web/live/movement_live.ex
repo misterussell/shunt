@@ -205,14 +205,10 @@ defmodule ShuntWeb.MovementLive do
                   do: " (completed)"} ]
               </button>
             </div>
-            <%!-- TODO: drive this block off @npcs (from World.available_npcs) instead of
-            @location.npcs, so world-state-gated NPCs appear/recede: change the :if guard to
-            `@npcs != []` and the :for to `npc_key <- @npcs`. Name resolution via Npcs.get!/1
-            (aliased to Shunt.World.Npcs) is unchanged. --%>
-            <div :if={Map.get(@location, :npcs, []) != []} id="location-npcs">
+            <div :if={@npcs != []} id="location-npcs">
               <p class="location-events-label">People Here</p>
               <button
-                :for={npc_key <- @location.npcs}
+                :for={npc_key <- @npcs}
                 id={"start-npc-#{npc_key}"}
                 class="btn-ghost location-event-button"
                 phx-click="start_npc_event"
@@ -315,9 +311,9 @@ defmodule ShuntWeb.MovementLive do
     |> assign(:locations, World.accessible_locations(player))
     |> assign(:points_of_interest, World.points_of_interest(player, player.location_id))
     |> assign(:repairables, Shunt.Repair.at_location(player, player.location_id))
+    |> assign(:npcs, World.available_npcs(player, player.location_id))
 
-    # TODO: assign :npcs from World.available_npcs(player, player.location_id) and assign
-    # :atmosphere from World.atmosphere(player, World.get_location(player.location_id)). Both
-    # recompute on every assign_location call, so the district reacts the moment a repair lands.
+    # TODO: assign :atmosphere from World.atmosphere(player, World.get_location(player.location_id)),
+    # recomputed here so the district line reacts the moment a repair lands.
   end
 end

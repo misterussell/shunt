@@ -8,16 +8,39 @@ defmodule ShuntWeb.MovementLiveTest do
     :ok
   end
 
-  # TODO: integration test for conditional NPC availability. Author two new world_npcs (each
-  # needs at least one event so World.Npcs.current_event/2 resolves): an electronics vendor
-  # added to shunt9_bazaar's :npcs as %{id: "shunt9_bazaar_volt", requirements: [{:district,
-  # "shunt9", :power, :>=, :online}]}, and a scavenger added to shunt9_burned_platform's :npcs
-  # as %{id: "shunt9_burned_platform_<name>", requirements: [{:district, "shunt9", :power, :<,
-  # :online}]}. Test: with power offline, #location-npcs at the bazaar does NOT contain the
-  # vendor button and the burned platform DOES contain the scavenger; after the player has the
-  # generator repaired (set player.infrastructure), the bazaar SHOWS the vendor and the burned
-  # platform no longer shows the scavenger. Assert on specific button element ids
-  # (#start-npc-shunt9_bazaar_volt), never counts. Follow the SHUNT content docs for NPC prose.
+  test "with district power offline the vendor is absent and the scavenger is present",
+       %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+    view |> element("#move-to-shunt9_burned_platform") |> render_click()
+
+    assert has_element?(view, "#start-npc-shunt9_burned_platform_ash")
+
+    view |> element("#move-to-shunt9_bazaar") |> render_click()
+
+    refute has_element?(view, "#start-npc-shunt9_bazaar_volt")
+  end
+
+  test "once district power is online the vendor appears and the scavenger recedes",
+       %{conn: conn} do
+    player_id = Shunt.Players.get_player!().id
+
+    Shunt.Players.dispatch(player_id, fn _player ->
+      {:ok, [{:infrastructure, "shunt9_power_relay_generator", "repaired"}], %{}}
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+    view |> element("#move-to-shunt9_burned_platform") |> render_click()
+
+    refute has_element?(view, "#start-npc-shunt9_burned_platform_ash")
+
+    view |> element("#move-to-shunt9_bazaar") |> render_click()
+
+    assert has_element?(view, "#start-npc-shunt9_bazaar_volt")
+  end
 
   # TODO: integration test for the district ambient atmosphere line. Author an :atmosphere
   # field on shunt9_bazaar: ordered tiers whose last-met text differs at power offline vs

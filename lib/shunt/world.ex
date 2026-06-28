@@ -28,12 +28,22 @@ defmodule Shunt.World do
     |> Kernel.||(location.description)
   end
 
-  # TODO: implement available_npcs/2 — available_npcs(player, location_id) returns the world_npc
-  # ids the player should see here, after filtering by world state. A location's :npcs entry is
-  # EITHER a bare id string (always shown — keeps every existing location file working) OR a map
-  # %{id: "...", requirements: [...]}. Normalize each entry (bare string => empty requirements),
-  # keep those whose requirements pass Shunt.Requirements.met?/2, and return the ids. MovementLive
-  # will render from this instead of the raw @location.npcs list.
+  @doc """
+  The world_npc ids the player should see at `location_id`, after filtering by world state. A
+  location's `:npcs` entry is either a bare id string (always shown — keeps every existing
+  location file working) or a `%{id: ..., requirements: [...]}` map gated via Shunt.Requirements.
+  """
+  def available_npcs(player, location_id) do
+    location_id
+    |> get_location()
+    |> Map.get(:npcs, [])
+    |> Enum.map(&normalize_npc/1)
+    |> Enum.filter(fn npc -> Requirements.met?(player, npc.requirements) end)
+    |> Enum.map(& &1.id)
+  end
+
+  defp normalize_npc(id) when is_binary(id), do: %{id: id, requirements: []}
+  defp normalize_npc(%{id: _} = npc), do: Map.put_new(npc, :requirements, [])
 
   # TODO: implement atmosphere/2 — atmosphere(player, location) returns a district-level ambient
   # line (text) or nil. Read an optional location field :atmosphere, an ordered list of

@@ -77,7 +77,12 @@ alias Shunt.World.Exit
   npcs: [
     "shunt9_bazaar_juno",
     "shunt9_bazaar_wrench",
-    "shunt9_bazaar_nickel"
+    "shunt9_bazaar_nickel",
+    # Volt only hauls his bench down once the grid is live — appears when district power is online.
+    %{
+      id: "shunt9_bazaar_volt",
+      requirements: [{:district, "shunt9", :power, :>=, :online}]
+    }
   ],
 
   exits: [
