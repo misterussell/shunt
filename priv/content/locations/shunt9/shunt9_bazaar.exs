@@ -15,6 +15,21 @@ alias Shunt.World.Exit
     :underbelly
   ],
 
+  # District-level ambient line, deepest met tier wins. Reflects power coming back to Shunt 9 —
+  # additive flavor over the base description, distinct from any single repairable's state text.
+  atmosphere: [
+    %{
+      requirements: [],
+      text:
+        "Half the stalls run dark, their keepers trading by the light of whatever they can carry and packing up early when it gutters."
+    },
+    %{
+      requirements: [{:district, "shunt9", :power, :>=, :online}],
+      text:
+        "The worklight strings are lit end to end now, and the crowd's thicker for it — more voices, harder haggling, the hum of benches that finally have a clean line to draw on."
+    }
+  ],
+
   graph_position: {250, 400},
 
   lattice: %{

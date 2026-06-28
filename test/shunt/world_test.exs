@@ -21,6 +21,29 @@ defmodule Shunt.WorldTest do
     end
   end
 
+  describe "atmosphere/2" do
+    @atmosphere_location %{
+      atmosphere: [
+        %{requirements: [], text: "The dark presses in."},
+        %{requirements: [{:knows, "lights_on"}], text: "Worklights buzz overhead."}
+      ]
+    }
+
+    test "returns the text of the deepest tier whose requirements are met" do
+      assert World.atmosphere(%Player{}, @atmosphere_location) == "The dark presses in."
+    end
+
+    test "returns a deeper tier's text once its requirements are met" do
+      player = %Player{knowledge: ["lights_on"]}
+
+      assert World.atmosphere(player, @atmosphere_location) == "Worklights buzz overhead."
+    end
+
+    test "returns nil when the location has no atmosphere field" do
+      assert World.atmosphere(%Player{}, %{}) == nil
+    end
+  end
+
   describe "exits/1" do
     test "returns Shunt.World.Exit structs" do
       assert [%World.Exit{} | _] = World.exits("shunt9_bazaar")

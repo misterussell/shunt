@@ -42,11 +42,31 @@ defmodule ShuntWeb.MovementLiveTest do
     assert has_element?(view, "#start-npc-shunt9_bazaar_volt")
   end
 
-  # TODO: integration test for the district ambient atmosphere line. Author an :atmosphere
-  # field on shunt9_bazaar: ordered tiers whose last-met text differs at power offline vs
-  # :>= :online (deepest met wins). Test: #location-atmosphere shows the offline-tier text with
-  # power offline, and the online-tier text after the generator is repaired. Assert on the
-  # element's text via has_element?, not counts. Follow the SHUNT content docs for prose.
+  test "the bazaar reads as dark while district power is offline", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+    view |> element("#move-to-shunt9_burned_platform") |> render_click()
+    view |> element("#move-to-shunt9_bazaar") |> render_click()
+
+    assert has_element?(view, "#location-atmosphere", "run dark")
+  end
+
+  test "the bazaar reads as powered once district power is online", %{conn: conn} do
+    player_id = Shunt.Players.get_player!().id
+
+    Shunt.Players.dispatch(player_id, fn _player ->
+      {:ok, [{:infrastructure, "shunt9_power_relay_generator", "repaired"}], %{}}
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+    view |> element("#move-to-shunt9_burned_platform") |> render_click()
+    view |> element("#move-to-shunt9_bazaar") |> render_click()
+
+    assert has_element?(view, "#location-atmosphere", "lit end to end")
+  end
 
   test "renders the current location's name and description", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/map")

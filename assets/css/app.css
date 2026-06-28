@@ -1478,6 +1478,18 @@
   margin: 8px 0 0;
 }
 
+/* District-level ambient line (Shunt.World.atmosphere/2): dynamic flavor that shifts as the
+   district's world state changes. Marked apart from the static description with a cyan accent. */
+.location-atmosphere {
+  font-size: 13px;
+  line-height: 1.5;
+  font-style: italic;
+  color: color-mix(in srgb, var(--cyan) 30%, var(--text));
+  margin: 10px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid color-mix(in srgb, var(--cyan) 45%, transparent);
+}
+
 .location-events-label {
   font-size: 11px;
   letter-spacing: 0.05em;

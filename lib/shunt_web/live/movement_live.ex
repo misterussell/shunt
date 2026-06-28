@@ -177,9 +177,9 @@ defmodule ShuntWeb.MovementLive do
             <p class="location-description">
               {World.effective_description(@player, @location, @repairables)}
             </p>
-            <%!-- TODO: render the district-level ambient line when present: a <p id="location-atmosphere">
-            with @atmosphere, shown only when @atmosphere != nil (use :if). Place it directly under the
-            location-description so the district reads differently as facts cross thresholds. --%>
+            <p :if={@atmosphere} id="location-atmosphere" class="location-atmosphere">
+              {@atmosphere}
+            </p>
             <div :if={@repairables != []} id="location-repairables">
               <p class="location-events-label">Infrastructure</p>
               <button
@@ -312,8 +312,6 @@ defmodule ShuntWeb.MovementLive do
     |> assign(:points_of_interest, World.points_of_interest(player, player.location_id))
     |> assign(:repairables, Shunt.Repair.at_location(player, player.location_id))
     |> assign(:npcs, World.available_npcs(player, player.location_id))
-
-    # TODO: assign :atmosphere from World.atmosphere(player, World.get_location(player.location_id)),
-    # recomputed here so the district line reacts the moment a repair lands.
+    |> assign(:atmosphere, World.atmosphere(player, World.get_location(player.location_id)))
   end
 end

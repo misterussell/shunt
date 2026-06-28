@@ -45,12 +45,22 @@ defmodule Shunt.World do
   defp normalize_npc(id) when is_binary(id), do: %{id: id, requirements: []}
   defp normalize_npc(%{id: _} = npc), do: Map.put_new(npc, :requirements, [])
 
-  # TODO: implement atmosphere/2 — atmosphere(player, location) returns a district-level ambient
-  # line (text) or nil. Read an optional location field :atmosphere, an ordered list of
-  # %{requirements: [...], text: "..."} tiers (same shape as repairable inspect_tiers); return the
-  # text of the LAST tier whose requirements pass Shunt.Requirements.met?/2, else nil. This is an
-  # additive line shown alongside the description (district-level), distinct from the per-object
-  # state_descriptions consumed by effective_description/2.
+  @doc """
+  A district-level ambient line for `location`, or nil. Reads the optional `:atmosphere` field —
+  an ordered list of `%{requirements: [...], text: "..."}` tiers — and returns the text of the
+  deepest tier whose requirements are met. Additive flavor shown alongside the description,
+  distinct from the per-object state_descriptions used by effective_description/2.
+  """
+  def atmosphere(player, location) do
+    location
+    |> Map.get(:atmosphere, [])
+    |> Enum.filter(fn tier -> Requirements.met?(player, tier.requirements) end)
+    |> List.last()
+    |> case do
+      nil -> nil
+      tier -> tier.text
+    end
+  end
 
   def exits(location_id), do: get_location(location_id).exits
 
