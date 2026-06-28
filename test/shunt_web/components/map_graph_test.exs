@@ -87,23 +87,44 @@ defmodule ShuntWeb.Components.MapGraphTest do
     assert html =~ ~s(viewBox="0 0 640 440")
   end
 
-  test "the world group is translated so the current location sits at the window center" do
+  test "the world group is centered on the current location and scaled to frame its neighbors" do
     player = %{location_id: "b", discovered_locations: ["a", "b"]}
     html = render_map(%{player: player, locations: @locations})
 
-    # TODO: update expected transform to the new composed form. Current "b" at {100,0}, its only
-    # connected neighbor "a" at {0,0} fits, so scale stays 1.0 and the transform becomes
-    # "translate(320, 220) scale(1.0) translate(-100, 0)".
-    assert html =~ ~s{transform="translate(220, 220)"}
+    # "b" at {100,0}, only connected neighbor "a" at {0,0} fits, so scale stays 1.0.
+    assert html =~ ~s{transform="translate(320, 220) scale(1.0) translate(-100, 0)"}
   end
 
-  # TODO: add a test that a connected neighbor inside the window keeps scale(1.0) — assert
-  # fit_scale({0,0}, [{100,0},{0,100}]) == 1.0 (the @locations "a" case).
+  test "the world group zooms out so a far connected neighbor stays inside the window" do
+    far_locations = [
+      %{id: "a", name: "Alpha", graph_position: {900, 230}, exits: [%Exit{to: "z"}]},
+      %{id: "z", name: "Zulu", graph_position: {1350, 230}, exits: [%Exit{to: "a"}]}
+    ]
 
-  # TODO: add a test that a far connected neighbor produces scale < 1.0 that frames it — assert
-  # MapGraph.fit_scale({900,230}, [{1350,230}]) brings dx=450 inside: result ~= 0.5778
-  # (280/450, hx=320-40), and assert MapGraph.fit_scale({900,230}, [{900,530}]) ~= 0.5333
-  # (180/300, hy=220-40) for the dy=300 case.
+    player = %{location_id: "a", discovered_locations: ["a"]}
+    html = render_map(%{player: player, locations: far_locations})
+
+    scale = Float.round(280 / 450, 4)
+    assert html =~ ~s{transform="translate(320, 220) scale(#{scale}) translate(-900, -230)"}
+  end
+
+  test "fit_scale stays at 1.0 when every connected neighbor fits the window" do
+    assert MapGraph.fit_scale({0, 0}, [{100, 0}, {0, 100}]) == 1.0
+  end
+
+  test "fit_scale stays at 1.0 when there are no connected neighbors" do
+    assert MapGraph.fit_scale({0, 0}, []) == 1.0
+  end
+
+  test "fit_scale zooms out so a horizontally distant neighbor stays inside the window" do
+    # concourse {900,230} -> intake_hall {1350,230}: dx=450, hx = 320 - 40 = 280.
+    assert_in_delta MapGraph.fit_scale({900, 230}, [{1350, 230}]), 280 / 450, 0.0001
+  end
+
+  test "fit_scale zooms out so a vertically distant neighbor stays inside the window" do
+    # concourse {900,230} -> house_of_closed_hands {900,530}: dy=300, hy = 220 - 40 = 180.
+    assert_in_delta MapGraph.fit_scale({900, 230}, [{900, 530}]), 180 / 300, 0.0001
+  end
 
   test "map_legend/1 renders all four legend rows" do
     html = render_component(&legend_wrapper/1, %{})
