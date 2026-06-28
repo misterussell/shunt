@@ -5,6 +5,23 @@ defmodule ShuntWeb.Components.MapGraph do
 
   @window_width 640
   @window_height 440
+  @node_margin 40
+
+  @doc """
+  Returns a zoom factor so every connected neighbor stays inside the window when
+  the world is centered on `current`. Stays at 1.0 while everything already fits.
+  """
+  def fit_scale({cx, cy}, connected_positions) do
+    hx = @window_width / 2 - @node_margin
+    hy = @window_height / 2 - @node_margin
+
+    max_ratio =
+      connected_positions
+      |> Enum.map(fn {nx, ny} -> max(abs(nx - cx) / hx, abs(ny - cy) / hy) end)
+      |> Enum.max(fn -> 0.0 end)
+
+    if max_ratio <= 1.0, do: 1.0, else: 1.0 / max_ratio
+  end
 
   attr :player, :map, required: true
   attr :locations, :list, required: true
@@ -16,8 +33,17 @@ defmodule ShuntWeb.Components.MapGraph do
     edges = edges(assigns.locations)
 
     {cx, cy} = current.graph_position
-    translate_x = @window_width / 2 - cx
-    translate_y = @window_height / 2 - cy
+
+    connected_positions =
+      assigns.locations
+      |> Enum.filter(&(&1.id in connected_keys))
+      |> Enum.map(& &1.graph_position)
+
+    scale = fit_scale(current.graph_position, connected_positions)
+
+    world_transform =
+      "translate(#{trunc(@window_width / 2)}, #{trunc(@window_height / 2)}) " <>
+        "scale(#{Float.round(scale, 4)}) translate(#{trunc(-cx)}, #{trunc(-cy)})"
 
     assigns =
       assigns
@@ -27,7 +53,7 @@ defmodule ShuntWeb.Components.MapGraph do
       |> assign(:window_width, @window_width)
       |> assign(:window_height, @window_height)
       |> assign(:view_box, "0 0 #{@window_width} #{@window_height}")
-      |> assign(:world_transform, "translate(#{trunc(translate_x)}, #{trunc(translate_y)})")
+      |> assign(:world_transform, world_transform)
 
     ~H"""
     <svg viewBox={@view_box} class="map-graph">
