@@ -15,6 +15,26 @@ alias Shunt.World.Exit
     :underbelly
   ],
 
+  # District-level ambient line, deepest met tier wins. Reflects power coming back to Shunt 9 —
+  # additive flavor over the base description, distinct from any single repairable's state text.
+  atmosphere: [
+    %{
+      requirements: [],
+      text:
+        "Half the stalls run dark, their keepers trading by the light of whatever they can carry and packing up early when it gutters."
+    },
+    %{
+      requirements: [{:district, "shunt9", :power, :>=, :partial}],
+      text:
+        "Power's come back uneven — strings of worklights buzz on and gutter out as the load swings, and the keepers who stayed work in the flicker, half their stalls lit, half still trading hand to hand."
+    },
+    %{
+      requirements: [{:district, "shunt9", :power, :>=, :online}],
+      text:
+        "The worklight strings are lit end to end now, and the crowd's thicker for it — more voices, harder haggling, the hum of benches that finally have a clean line to draw on."
+    }
+  ],
+
   graph_position: {250, 400},
 
   lattice: %{
@@ -77,7 +97,16 @@ alias Shunt.World.Exit
   npcs: [
     "shunt9_bazaar_juno",
     "shunt9_bazaar_wrench",
-    "shunt9_bazaar_nickel"
+    "shunt9_bazaar_nickel",
+    # Volt only hauls his bench down once the grid is live — appears when district power is online.
+    %{
+      id: "shunt9_bazaar_volt",
+      requirements: [{:district, "shunt9", :power, :>=, :online}]
+    }
+  ],
+
+  events: [
+    "shunt9_bazaar_charging_kiosk"
   ],
 
   exits: [

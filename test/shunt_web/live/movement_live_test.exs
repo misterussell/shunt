@@ -8,6 +8,82 @@ defmodule ShuntWeb.MovementLiveTest do
     :ok
   end
 
+  test "with district power offline the vendor is absent and the scavenger is present",
+       %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+    view |> element("#move-to-shunt9_burned_platform") |> render_click()
+
+    assert has_element?(view, "#start-npc-shunt9_burned_platform_ash")
+
+    view |> element("#move-to-shunt9_bazaar") |> render_click()
+
+    refute has_element?(view, "#start-npc-shunt9_bazaar_volt")
+  end
+
+  test "once district power is online the vendor appears and the scavenger recedes",
+       %{conn: conn} do
+    player_id = Shunt.Players.get_player!().id
+
+    Shunt.Players.dispatch(player_id, fn _player ->
+      {:ok, [{:infrastructure, "shunt9_power_relay_generator", "repaired"}], %{}}
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+    view |> element("#move-to-shunt9_burned_platform") |> render_click()
+
+    refute has_element?(view, "#start-npc-shunt9_burned_platform_ash")
+
+    view |> element("#move-to-shunt9_bazaar") |> render_click()
+
+    assert has_element?(view, "#start-npc-shunt9_bazaar_volt")
+  end
+
+  test "the bazaar reads as dark while district power is offline", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+    view |> element("#move-to-shunt9_burned_platform") |> render_click()
+    view |> element("#move-to-shunt9_bazaar") |> render_click()
+
+    assert has_element?(view, "#location-atmosphere", "run dark")
+  end
+
+  test "the bazaar flickers while district power is partial", %{conn: conn} do
+    player_id = Shunt.Players.get_player!().id
+
+    Shunt.Players.dispatch(player_id, fn _player ->
+      {:ok, [{:infrastructure, "shunt9_power_relay_generator", "patched"}], %{}}
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+    view |> element("#move-to-shunt9_burned_platform") |> render_click()
+    view |> element("#move-to-shunt9_bazaar") |> render_click()
+
+    assert has_element?(view, "#location-atmosphere", "in the flicker")
+  end
+
+  test "the bazaar reads as powered once district power is online", %{conn: conn} do
+    player_id = Shunt.Players.get_player!().id
+
+    Shunt.Players.dispatch(player_id, fn _player ->
+      {:ok, [{:infrastructure, "shunt9_power_relay_generator", "repaired"}], %{}}
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/map")
+
+    view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+    view |> element("#move-to-shunt9_burned_platform") |> render_click()
+    view |> element("#move-to-shunt9_bazaar") |> render_click()
+
+    assert has_element?(view, "#location-atmosphere", "lit end to end")
+  end
+
   test "renders the current location's name and description", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/map")
 

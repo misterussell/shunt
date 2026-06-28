@@ -177,6 +177,9 @@ defmodule ShuntWeb.MovementLive do
             <p class="location-description">
               {World.effective_description(@player, @location, @repairables)}
             </p>
+            <p :if={@atmosphere} id="location-atmosphere" class="location-atmosphere">
+              {@atmosphere}
+            </p>
             <div :if={@repairables != []} id="location-repairables">
               <p class="location-events-label">Infrastructure</p>
               <button
@@ -202,10 +205,10 @@ defmodule ShuntWeb.MovementLive do
                   do: " (completed)"} ]
               </button>
             </div>
-            <div :if={Map.get(@location, :npcs, []) != []} id="location-npcs">
+            <div :if={@npcs != []} id="location-npcs">
               <p class="location-events-label">People Here</p>
               <button
-                :for={npc_key <- @location.npcs}
+                :for={npc_key <- @npcs}
                 id={"start-npc-#{npc_key}"}
                 class="btn-ghost location-event-button"
                 phx-click="start_npc_event"
@@ -308,5 +311,7 @@ defmodule ShuntWeb.MovementLive do
     |> assign(:locations, World.accessible_locations(player))
     |> assign(:points_of_interest, World.points_of_interest(player, player.location_id))
     |> assign(:repairables, Shunt.Repair.at_location(player, player.location_id))
+    |> assign(:npcs, World.available_npcs(player, player.location_id))
+    |> assign(:atmosphere, World.atmosphere(player, World.get_location(player.location_id)))
   end
 end

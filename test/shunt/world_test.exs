@@ -4,6 +4,21 @@ defmodule Shunt.WorldTest do
   alias Shunt.Players.Player
   alias Shunt.World
 
+  describe "points_of_interest/2 with a district-gated POI" do
+    test "the powered kiosk is hidden while district power is offline" do
+      refute "shunt9_bazaar_charging_kiosk" in World.points_of_interest(
+               %Player{},
+               "shunt9_bazaar"
+             )
+    end
+
+    test "the powered kiosk appears once district power is online" do
+      player = %Player{infrastructure: %{"shunt9_power_relay_generator" => "repaired"}}
+
+      assert "shunt9_bazaar_charging_kiosk" in World.points_of_interest(player, "shunt9_bazaar")
+    end
+  end
+
   describe "get_location/1" do
     test "returns the location for a known key" do
       assert World.get_location("shunt9_bazaar").name == "Shunt 9 Bazaar"
@@ -11,6 +26,29 @@ defmodule Shunt.WorldTest do
 
     test "raises for an unknown key" do
       assert_raise RuntimeError, fn -> World.get_location("unknown") end
+    end
+  end
+
+  describe "atmosphere/2" do
+    @atmosphere_location %{
+      atmosphere: [
+        %{requirements: [], text: "The dark presses in."},
+        %{requirements: [{:knows, "lights_on"}], text: "Worklights buzz overhead."}
+      ]
+    }
+
+    test "returns the text of the deepest tier whose requirements are met" do
+      assert World.atmosphere(%Player{}, @atmosphere_location) == "The dark presses in."
+    end
+
+    test "returns a deeper tier's text once its requirements are met" do
+      player = %Player{knowledge: ["lights_on"]}
+
+      assert World.atmosphere(player, @atmosphere_location) == "Worklights buzz overhead."
+    end
+
+    test "returns nil when the location has no atmosphere field" do
+      assert World.atmosphere(%Player{}, %{}) == nil
     end
   end
 

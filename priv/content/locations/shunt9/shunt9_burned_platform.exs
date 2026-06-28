@@ -42,7 +42,13 @@ alias Shunt.World.Exit
   },
 
   npcs: [
-    "shunt9_burned_platform_cinder"
+    "shunt9_burned_platform_cinder",
+    # Ash works the dark — once district power comes back he drifts off, gone before the
+    # owners remember they own the place. Present only while power is below online.
+    %{
+      id: "shunt9_burned_platform_ash",
+      requirements: [{:district, "shunt9", :power, :<, :online}]
+    }
   ],
 
   events: [

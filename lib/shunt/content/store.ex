@@ -27,7 +27,10 @@ defmodule Shunt.Content.Store do
     {:rumor_connections, "priv/content/rumor_connections"},
     # Repairable infrastructure (generators, lifts, purifiers). Content files build
     # %Shunt.Repair.Repairable{} structs; the generic load_source/2 handles them via .id.
-    {:repairables, "priv/content/repairables"}
+    {:repairables, "priv/content/repairables"},
+    # District world-state defs (%Shunt.District.Def{}), the source of derived district facts.
+    # The generic load_source/2 handles them via .id.
+    {:districts, "priv/content/districts"}
   ]
 
   def start_link(_opts) do
