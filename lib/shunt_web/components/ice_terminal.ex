@@ -28,9 +28,28 @@ defmodule ShuntWeb.Components.IceTerminal do
 
   @trace_segments 20
 
+  # TODO: Replace the single PROGRESS bar with a subroutine board for the current layer.
+  # Render one row per subroutine (from the layer's :subroutines), each showing: its name,
+  # its threat (:barrier/:sentry/:trap — ALWAYS visible, with a glyph/label), its key
+  # (un-redacted only when Ghostwork.weakness_known?/1, else the ▓ redaction motif), and its
+  # own mini Progress bar (accumulated from encounter.subroutine_progress over its
+  # progress_required). A down subroutine renders done/struck-through. Clicking a row selects
+  # it as the target (phx-click "select_target", phx-value-subroutine=<id>); mark the
+  # selected row and disable selecting down ones. The TRACE gauge and fog redaction of action
+  # numbers stay exactly as they are.
+
+  # TODO: Make the action buttons act on the SELECTED subroutine — add phx-value-subroutine
+  # ={@selected_subroutine} to the Probe and program "act" buttons so the LiveView's act/4
+  # dispatch knows the target. The action bar lists Probe + the player's equipped loadout
+  # (<= 3 programs) passed in via @programs; Retreat/Close unchanged. Consider showing, on
+  # each action, whether it MATCHES the selected subroutine's key once keys are known (a
+  # match hint), since matched vs mismatched is the core decision.
+
   attr :id, :string, required: true
   attr :encounter, :map, required: true
   attr :programs, :list, required: true
+  # TODO: add `attr :selected_subroutine, :string` (the LiveView-held target id) and thread
+  # it through to the board + action buttons.
 
   def ice_modal(assigns) do
     encounter = assigns.encounter

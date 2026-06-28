@@ -84,6 +84,11 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, :ghostwork_state, new_state), meta)
   end
 
+  # TODO: Add a {:ghostwork_loadout, ids} clause that REPLACES the equipped loadout:
+  # read state = Map.get(acc, :ghostwork_state, player.ghostwork_state), put
+  # state["loadout"] = ids (a list of program id strings, already validated/capped at 3
+  # slots by Ghostwork.equip/unequip), and recurse — mirror the :ghostwork_mastery /
+  # :ghostwork_node clauses' ghostwork_state accumulation exactly.
   defp do_apply([{:ghostwork_node, node_id, op} | rest], player, acc, meta) do
     state = Map.get(acc, :ghostwork_state, player.ghostwork_state)
     nodes = Map.get(state, "nodes", %{})

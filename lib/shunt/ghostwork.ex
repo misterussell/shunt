@@ -32,6 +32,22 @@ defmodule Shunt.Ghostwork do
   # Heat applied by every scan (scanning is mildly loud, like Crafting.scavenge).
   @scan_heat 2
 
+  # TODO: Add subroutine-encounter tuning constants here (all encounter tuning lives in
+  # this module — "Tuning is content"). These are deliberately starter values to tune
+  # for feel once the slice is playable:
+  #   @sentry_bleed 4         — Trace added per still-alive Sentry, each turn (the clock)
+  #   @trap_trace_multiplier 2 — multiplies a turn's Trace when a non-Probe action
+  #                              MISMATCHES a :trap subroutine (Probe is exempt)
+  # Match/mismatch Progress+Trace come from the program profile (see act/4 TODO):
+  # a matching action uses the program's `on_weakness` profile, a mismatch uses its
+  # base {progress, trace}. No new constant needed for those.
+
+  # TODO: Add @mastery_keys threshold for the per-subroutine key reveal. Reuse the
+  # existing @mastery_weakness value (3) — the old single-layer "weakness" tell is now
+  # the per-subroutine `key`, revealed at the same mastery stage. Either rename usages
+  # to read clearly or alias @mastery_keys to @mastery_weakness; do not introduce a new
+  # number.
+
   # Earned-title milestones (doc "Progression"): a ghostwork tree tier is earned when the
   # player holds a deck AND total cracks (sum of all family mastery) reaches the threshold.
   # Tuning only — adjust freely. T1 "Feed Skimmer" is earned just by jacking in.
@@ -162,6 +178,11 @@ defmodule Shunt.Ghostwork do
     if roll <= item.weight, do: item, else: pick(rest, roll - item.weight)
   end
 
+  # TODO: When the layer model changes to subroutine stacks (see IceNode TODO),
+  # begin_encounter must initialize the Encounter's `subroutine_progress` to a zeroed
+  # map for the resumed layer: %{subroutine.id => 0} for each subroutine on
+  # layer Enum.at(node.layers, start). Everything else here (start = banked_layer + 1,
+  # the already_cracked / hardened guards, the clear_hardened effect) stays as-is.
   def begin_encounter(player, node) do
     state = Map.get(player.ghostwork_state, "nodes", %{})
     node_state = Map.get(state, node.id, %{"banked_layer" => -1, "hardened" => false})
@@ -190,6 +211,22 @@ defmodule Shunt.Ghostwork do
     end
   end
 
+  # TODO: Change the signature to act/4 — act(%Encounter{}, player, action, subroutine_id)
+  # — because a turn now targets one subroutine on the open board. Resolution per turn:
+  #   1. Find the targeted subroutine on the current layer by subroutine_id. If it's not
+  #      on the layer or already down, return {:error, :invalid_target}.
+  #   2. matched? = the action's key == subroutine.key. Program key is its `:action`
+  #      field; Probe is typeless and NEVER matches (always a neutral mismatch, but it is
+  #      EXEMPT from the Trap penalty — the careful poke).
+  #   3. Pick the action's {progress, trace} profile: matched -> program.on_weakness,
+  #      mismatch -> program base {progress, trace}. Probe uses @probe_progress/@probe_trace.
+  #   4. Add `progress` to that subroutine's entry in encounter.subroutine_progress.
+  #   5. Trace for the turn = round(profile.trace * layer.trace_multiplier), then if it was
+  #      a non-Probe MISMATCH against a :trap subroutine, multiply by @trap_trace_multiplier;
+  #      then jitter/1 it. Add @sentry_bleed once for EACH :sentry subroutine still alive on
+  #      the layer (evaluate "alive" AFTER step 4, so a sentry you just downed stops bleeding).
+  #   6. Hand the updated subroutine_progress map + new_trace to resolve/3 (see its TODO).
+  # Keep the {:error, :program_not_owned} / {:error, :unknown_action} guards from profile/3.
   def act(%Encounter{} = encounter, player, action) do
     layer = Enum.at(encounter.node.layers, encounter.layer_index)
 
@@ -212,6 +249,16 @@ defmodule Shunt.Ghostwork do
 
   defp profile(:unknown, _player, _layer), do: {:error, :unknown_action}
 
+  # TODO: The match is no longer layer-level — it's per targeted subroutine (action key vs
+  # subroutine.key), so the `program.action == layer.weakness` decision moves OUT of here and
+  # INTO act/4 (which knows the target). Restructure profile/3 to just resolve ownership and
+  # hand back BOTH profiles so the caller can pick: return {:ok, %{action: program.action,
+  # base: %{progress: program.progress, trace: program.trace}, on_weakness: program.on_weakness}}
+  # for a {:program, id}, and an equivalent typeless shape for :probe. Keep
+  # {:error, :program_not_owned} and {:error, :unknown_action}.
+  # NOTE: act/4 must additionally gate {:program, id} on the program being in the player's
+  # equipped loadout (ghostwork_state["loadout"]), not merely owned — only the 3 equipped
+  # programs are runnable in an encounter. Return {:error, :not_equipped} otherwise.
   defp profile({:program, id}, player, layer) do
     if Map.get(player.inventory, id, 0) >= 1 do
       program = Shunt.Ghostwork.Programs.fetch!(id)
@@ -239,6 +286,17 @@ defmodule Shunt.Ghostwork do
     {%{encounter | status: :busted, trace: @trace_bust}, effects}
   end
 
+  # TODO: Rework resolve to take the updated subroutine_progress map instead of a single
+  # new_progress int: resolve(%Encounter{}, layer, new_subroutine_progress, new_trace).
+  #   * Bust clause (new_trace >= @trace_bust) is UNCHANGED — keep it first.
+  #   * Layer-cleared clause replaces the `new_progress >= layer.progress_required` guard:
+  #     fires when EVERY subroutine on the layer is down (its entry in
+  #     new_subroutine_progress >= that subroutine's progress_required). Same effects
+  #     (layer.reward ++ mastery+1 ++ bank_layer) and same advance logic (next layer ->
+  #     :active with a FRESH zeroed subroutine_progress for the next layer, or :cracked on
+  #     the last layer). Carry `trace`.
+  #   * Default clause: store the updated subroutine_progress (layer not yet done), carry
+  #     trace, no effects.
   defp resolve(%Encounter{} = encounter, layer, new_progress, new_trace)
        when new_progress >= layer.progress_required do
     node = encounter.node
@@ -275,5 +333,19 @@ defmodule Shunt.Ghostwork do
 
   def numbers_known?(encounter), do: encounter.mastery >= @mastery_numbers
 
+  # TODO: Rename/repurpose for the new model — at this mastery stage the per-subroutine
+  # `key` (the old "weakness" tell, now one per subroutine) is un-redacted in the encounter
+  # view. Either keep this name and let IceTerminal call it to decide whether to show each
+  # subroutine.key, or rename to keys_known?/1; pick one and update callers. Threats
+  # (:barrier/:sentry/:trap) are ALWAYS visible and are not gated by this.
   def weakness_known?(encounter), do: encounter.mastery >= @mastery_weakness
+
+  # TODO: Add loadout helpers (3-slot equipped program set; @loadout_slots 3):
+  #   * loadout(player) -> the list of equipped program ids from
+  #     ghostwork_state["loadout"] (default []).
+  #   * equip(player, program_id) / unequip(player, program_id) -> return the new loadout
+  #     list to dispatch via the {:ghostwork_loadout, ids} effect (see Effects TODO).
+  #     equip is a no-op past @loadout_slots or for an unowned program; both dedupe.
+  #   These return the id list for the LiveView to dispatch; they do NOT mutate the player.
+  #   The "runnable in an encounter" listing (owned ∩ equipped) lives in Programs (see TODO).
 end

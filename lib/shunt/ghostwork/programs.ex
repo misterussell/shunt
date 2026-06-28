@@ -18,6 +18,13 @@ defmodule Shunt.Ghostwork.Programs do
   See priv/docs/SHUNT_ghostwork_v1.md ("A program").
   """
 
+  # TODO: Author the program content (priv/content/programs/*.exs — the dir does not exist
+  # yet; the store @sources entry is already wired). Provide at least one program per key
+  # (:spoof / :decrypt / :backdoor) so every subroutine key is crackable, and make them
+  # obtainable through the existing economy (scavenge/fence/event reward/Street Alchemy).
+  # Aim for a loud-vs-quiet variant of at least one key so the 3-slot loadout choice bites.
+  # Each program map is shaped per this module's moduledoc (id matches an inventory key,
+  # :action is its key, base {progress, trace}, and on_weakness for the matched profile).
   alias Shunt.Content
 
   def all, do: Content.all(:programs)
@@ -27,4 +34,9 @@ defmodule Shunt.Ghostwork.Programs do
   def owned(player) do
     Enum.filter(all(), fn program -> Map.get(player.inventory, program.id, 0) >= 1 end)
   end
+
+  # TODO: Add loadout/1 — the programs runnable in an encounter: owned(player) filtered to
+  # those whose id is in the player's equipped loadout (Ghostwork.loadout/1). The encounter
+  # action bar shows Probe + these (<= 3). owned/1 stays as the full library the rail
+  # LOADOUT panel offers to equip from.
 end

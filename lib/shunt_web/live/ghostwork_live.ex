@@ -30,6 +30,9 @@ defmodule ShuntWeb.GhostworkLive do
      |> assign(:tree, SkillsCatalog.fetch!("ghostwork"))
      |> assign(:status, nil)
      |> assign(:encounter, nil)
+     # TODO: assign(:selected_subroutine, nil) here (set when an encounter begins / layer
+     # advances) and assign(:loadout, ...) for the equipped-program ids (assign_deck should
+     # refresh it from Ghostwork.loadout/1 alongside :programs).
      |> assign(:lattice_live?, true)
      |> stream(:signal_feed, [])
      |> assign_deck(player)}
@@ -89,12 +92,29 @@ defmodule ShuntWeb.GhostworkLive do
     end
   end
 
+  # TODO: Add a "select_target" handler — assign(:selected_subroutine, subroutine_id) from
+  # phx-value-subroutine, the open-board target the next action applies to. When an encounter
+  # begins (and when a layer advances), default :selected_subroutine to the first still-alive
+  # subroutine on the current layer so the action bar always has a valid target. This is
+  # presentation state (LiveView assign), never on the Encounter struct.
+
+  # TODO: "act" now carries the target subroutine. Pull "subroutine" from params and pass it
+  # to dispatch_act so it can call Ghostwork.act(encounter, player, decoded, subroutine_id).
+  # Handle the new {:error, :not_equipped} / {:error, :invalid_target} returns by leaving the
+  # encounter unchanged (optionally a status hint). After a successful act, if the selected
+  # subroutine is now down (or the layer advanced), re-default :selected_subroutine to the
+  # next alive subroutine.
   def handle_event("act", %{"action" => action}, socket) do
     case socket.assigns.encounter do
       nil -> {:noreply, socket}
       encounter -> dispatch_act(socket, encounter, decode_action(action))
     end
   end
+
+  # TODO: Add "equip" / "unequip" handlers for the editable LOADOUT rail panel. They call
+  # Ghostwork.equip/unequip to compute the new <=3-slot id list and dispatch it through
+  # Players.dispatch with the {:ghostwork_loadout, ids} effect, then assign_deck the updated
+  # player. equip past 3 slots is a no-op (Ghostwork enforces it).
 
   def handle_event("retreat", _params, socket) do
     case socket.assigns.encounter do
@@ -111,6 +131,8 @@ defmodule ShuntWeb.GhostworkLive do
     {:noreply, assign(socket, :encounter, nil)}
   end
 
+  # TODO: Thread the target subroutine id through dispatch_act/4 to Ghostwork.act/4
+  # (encounter, player, decoded, subroutine_id) per the act/4 engine change.
   defp dispatch_act(socket, encounter, decoded) do
     resolver = fn player ->
       case Ghostwork.act(encounter, player, decoded) do
@@ -133,6 +155,9 @@ defmodule ShuntWeb.GhostworkLive do
     <Layouts.app flash={@flash} player={@player} active={:ghostwork} status={@status}>
       <Chrome.ladder_track tree={@tree} current_tier={@current_tier} />
 
+      <%!-- TODO: pass selected_subroutine={@selected_subroutine} once the target-select
+            state exists, and pass the encounter action bar the EQUIPPED loadout programs
+            (Ghostwork.Programs.loadout/1), not the full owned library. --%>
       <IceTerminal.ice_modal
         :if={@encounter}
         id="ice-modal"
@@ -229,6 +254,12 @@ defmodule ShuntWeb.GhostworkLive do
         </div>
 
         <div class="ghostwork-rail">
+          <%!-- TODO: Make LOADOUT editable (3 slots). List ALL owned programs (@programs is
+                the owned library here) with an equip/unequip toggle button per row
+                (phx-click "equip"/"unequip", phx-value-program={prog.id}); mark the <=3
+                equipped ones and show a "N/3 equipped" count (track equipped via a
+                @loadout assign of equipped ids from Ghostwork.loadout/1). Equipping past 3
+                is disabled. Keep the empty state. This is the pre-encounter prep decision. --%>
           <Chrome.section_header>LOADOUT</Chrome.section_header>
           <Chrome.panel id="loadout-panel">
             <p :if={@programs == []} id="loadout-empty" class="ghostwork-empty">
