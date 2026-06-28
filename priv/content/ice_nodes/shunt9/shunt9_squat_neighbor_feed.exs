@@ -13,18 +13,20 @@
     %{
       id: "bleed",
       name: "Signal Bleed",
-      progress_required: 6,
       trace_multiplier: 1.5,
-      weakness: :decrypt,
-      reward: [{:scrip, 6}]
+      reward: [{:scrip, 6}],
+      subroutines: [
+        %{id: "bleed_core", key: :decrypt, threat: :barrier, progress_required: 6}
+      ]
     },
     %{
       id: "buried_door",
       name: "Buried Backdoor",
-      progress_required: 8,
       trace_multiplier: 2.0,
-      weakness: :backdoor,
-      reward: [{:scrip, 12}]
+      reward: [{:scrip, 12}],
+      subroutines: [
+        %{id: "buried_door_core", key: :backdoor, threat: :barrier, progress_required: 8}
+      ]
     }
   ]
 }

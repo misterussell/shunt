@@ -13,18 +13,20 @@
     %{
       id: "tag_read",
       name: "Tag Handshake",
-      progress_required: 5,
       trace_multiplier: 1.0,
-      weakness: :spoof,
-      reward: [{:scrip, 4}]
+      reward: [{:scrip, 4}],
+      subroutines: [
+        %{id: "tag_read_core", key: :spoof, threat: :barrier, progress_required: 5}
+      ]
     },
     %{
       id: "manifest_row",
       name: "Manifest Row",
-      progress_required: 7,
       trace_multiplier: 1.5,
-      weakness: :decrypt,
-      reward: [{:inventory, "stripped_copper_coil", 1}]
+      reward: [{:inventory, "stripped_copper_coil", 1}],
+      subroutines: [
+        %{id: "manifest_row_core", key: :decrypt, threat: :barrier, progress_required: 7}
+      ]
     }
   ]
 }

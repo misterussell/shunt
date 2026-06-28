@@ -28,9 +28,12 @@ defmodule ShuntWeb.Components.IceTerminal do
 
   @trace_segments 20
 
+  # @programs is the player's EQUIPPED loadout (<= 3 runnable programs), passed in by the
+  # LiveView via Ghostwork.Programs.loadout/1 — not the full owned library.
   attr :id, :string, required: true
   attr :encounter, :map, required: true
   attr :programs, :list, required: true
+  attr :selected_subroutine, :string, default: nil
 
   def ice_modal(assigns) do
     encounter = assigns.encounter
@@ -75,22 +78,42 @@ defmodule ShuntWeb.Components.IceTerminal do
             </div>
           </div>
 
-          <div class="ice-meters">
-            <div class="ice-meter">
-              <span class="ice-meter-label">PROGRESS</span>
+          <div id="ice-subroutines" class="ice-subroutines">
+            <div
+              :for={sub <- @layer.subroutines}
+              id={"ice-sub-#{sub.id}"}
+              class={[
+                "ice-subroutine",
+                sub_down?(@encounter, sub) && "ice-subroutine--down",
+                sub.id == @selected_subroutine && "ice-subroutine--selected"
+              ]}
+              phx-click={not sub_down?(@encounter, sub) && "select_target"}
+              phx-value-subroutine={sub.id}
+            >
+              <span class={["ice-subroutine-threat", "ice-subroutine-threat--#{sub.threat}"]}>
+                {threat_label(sub.threat)}
+              </span>
+              <span class="ice-subroutine-key">
+                <%= if @weakness_known? do %>
+                  {key_text(sub.key)}
+                <% else %>
+                  <span class="ice-redact">▓▓▓</span>
+                <% end %>
+              </span>
               <div class="ice-meter-track">
                 <div
-                  id="ice-progress"
                   class="ice-meter-fill ice-meter-fill--progress"
-                  style={"width: #{Shunt.Ghostwork.progress_percent(@encounter.progress, @layer.progress_required)}%"}
+                  style={"width: #{Shunt.Ghostwork.progress_percent(sub_progress(@encounter, sub), sub.progress_required)}%"}
                 >
                 </div>
               </div>
               <span class="ice-meter-readout">
-                {@encounter.progress} / {@layer.progress_required}
+                {sub_progress(@encounter, sub)} / {sub.progress_required}
               </span>
             </div>
+          </div>
 
+          <div class="ice-meters">
             <div class="ice-meter">
               <span class="ice-meter-label">TRACE</span>
               <div
@@ -108,20 +131,17 @@ defmodule ShuntWeb.Components.IceTerminal do
               </div>
               <span class="ice-meter-readout ice-meter-readout--trace">{@encounter.trace} / 100</span>
             </div>
-
-            <p class="ice-weakness">
-              weakness:
-              <%= if @weakness_known? do %>
-                <span class="ice-weakness-tell">{weakness_text(@layer.weakness)}</span>
-              <% else %>
-                <span class="ice-redact ice-redact--wide">▓▓▓▓▓</span>
-              <% end %>
-            </p>
           </div>
 
           <%= if @encounter.status == :active do %>
             <div class="ice-actions">
-              <button id="ice-probe" class="ice-action" phx-click="act" phx-value-action="probe">
+              <button
+                id="ice-probe"
+                class="ice-action"
+                phx-click="act"
+                phx-value-action="probe"
+                phx-value-subroutine={@selected_subroutine}
+              >
                 <span class="ice-action-name">PROBE</span>
                 <.cost known={@numbers_known?} progress={@probe.progress} trace={@probe.trace} />
               </button>
@@ -131,6 +151,7 @@ defmodule ShuntWeb.Components.IceTerminal do
                 class="ice-action"
                 phx-click="act"
                 phx-value-action={"program:" <> prog.id}
+                phx-value-subroutine={@selected_subroutine}
               >
                 <span class="ice-action-name">{prog.name}</span>
                 <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
@@ -199,6 +220,14 @@ defmodule ShuntWeb.Components.IceTerminal do
   defp end_line(:busted), do: "Trace maxed — connection burned. Node hardened."
   defp end_line(:retreated), do: "Pulled out clean. Banked layers kept."
 
-  defp weakness_text(nil), do: "none"
-  defp weakness_text(action), do: to_string(action)
+  defp sub_progress(encounter, sub), do: Map.get(encounter.subroutine_progress, sub.id, 0)
+
+  defp sub_down?(encounter, sub), do: sub_progress(encounter, sub) >= sub.progress_required
+
+  defp threat_label(:barrier), do: "BARRIER"
+  defp threat_label(:sentry), do: "SENTRY"
+  defp threat_label(:trap), do: "TRAP"
+
+  defp key_text(nil), do: "—"
+  defp key_text(key), do: to_string(key)
 end

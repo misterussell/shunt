@@ -7,12 +7,16 @@ defmodule Shunt.Ghostwork.Encounter do
   See priv/docs/SHUNT_ghostwork_v1.md ("Where the logic lives").
 
   Fields:
-    * node        — the %Shunt.Ghostwork.IceNode{} being broken
-    * layer_index — 0-based index of the current layer (resumes at banked_layer + 1)
-    * progress    — accumulated progress on the current layer (resets to 0 per layer)
-    * trace       — 0..100, persists across all layers until the encounter ends
-    * mastery     — snapshot of the family's mastery count at begin (drives fog-of-war)
-    * status      — :active | :cracked | :busted | :retreated
+    * node                — the %Shunt.Ghostwork.IceNode{} being broken
+    * layer_index         — 0-based index of the current layer (resumes at banked_layer + 1)
+    * subroutine_progress — %{subroutine_id => accumulated_progress} for the CURRENT layer
+                            only. A subroutine is "down" when its progress >= its
+                            progress_required, "alive" otherwise. The layer is cleared when
+                            every subroutine is down. Re-zeroed to the next layer's
+                            subroutines each time the layer advances.
+    * trace               — 0..100, persists across all layers until the encounter ends
+    * mastery             — snapshot of the family's mastery count at begin (drives fog-of-war)
+    * status              — :active | :cracked | :busted | :retreated
   """
 
   @enforce_keys [:node, :layer_index, :mastery]
@@ -20,7 +24,7 @@ defmodule Shunt.Ghostwork.Encounter do
     :node,
     :layer_index,
     :mastery,
-    progress: 0,
+    subroutine_progress: %{},
     trace: 0,
     status: :active
   ]

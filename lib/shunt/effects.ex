@@ -84,6 +84,12 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, :ghostwork_state, new_state), meta)
   end
 
+  defp do_apply([{:ghostwork_loadout, ids} | rest], player, acc, meta) do
+    state = Map.get(acc, :ghostwork_state, player.ghostwork_state)
+    new_state = Map.put(state, "loadout", ids)
+    do_apply(rest, player, Map.put(acc, :ghostwork_state, new_state), meta)
+  end
+
   defp do_apply([{:ghostwork_node, node_id, op} | rest], player, acc, meta) do
     state = Map.get(acc, :ghostwork_state, player.ghostwork_state)
     nodes = Map.get(state, "nodes", %{})

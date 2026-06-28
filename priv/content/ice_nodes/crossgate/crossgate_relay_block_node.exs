@@ -17,18 +17,20 @@
     %{
       id: "mask",
       name: "Identity Mask",
-      progress_required: 9,
       trace_multiplier: 1.0,
-      weakness: :decrypt,
-      reward: [{:scrip, 15}]
+      reward: [{:scrip, 15}],
+      subroutines: [
+        %{id: "mask_core", key: :decrypt, threat: :barrier, progress_required: 9}
+      ]
     },
     %{
       id: "routing",
       name: "Routing Table",
-      progress_required: 12,
       trace_multiplier: 1.75,
-      weakness: :spoof,
-      reward: [{:knowledge, "crossgate_collective_routing_fragment"}]
+      reward: [{:knowledge, "crossgate_collective_routing_fragment"}],
+      subroutines: [
+        %{id: "routing_core", key: :spoof, threat: :barrier, progress_required: 12}
+      ]
     }
   ]
 }

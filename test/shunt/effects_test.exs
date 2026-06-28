@@ -191,6 +191,29 @@ defmodule Shunt.EffectsTest do
     end
   end
 
+  describe "apply/2 - :ghostwork_loadout" do
+    test "sets the equipped loadout list" do
+      player = %Player{ghostwork_state: %{}}
+
+      {changes, _meta} = Effects.apply(player, [{:ghostwork_loadout, ["maskchip", "ghostkey"]}])
+
+      assert changes.ghostwork_state == %{"loadout" => ["maskchip", "ghostkey"]}
+    end
+
+    test "replaces an existing loadout without disturbing other ghostwork_state" do
+      player = %Player{
+        ghostwork_state: %{"loadout" => ["old"], "mastery" => %{"ice_corp" => 2}}
+      }
+
+      {changes, _meta} = Effects.apply(player, [{:ghostwork_loadout, ["maskchip"]}])
+
+      assert changes.ghostwork_state == %{
+               "loadout" => ["maskchip"],
+               "mastery" => %{"ice_corp" => 2}
+             }
+    end
+  end
+
   describe "apply/2 - :ghostwork_mastery" do
     test "adds a new family mastery starting from zero" do
       player = %Player{ghostwork_state: %{}}

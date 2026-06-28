@@ -1907,6 +1907,44 @@
   color: var(--muted);
   font-size: 0.74rem;
 }
+.ghostwork-program-row--equipped {
+  border-left: 2px solid var(--cyan);
+  padding-left: 8px;
+  margin-left: -10px;
+}
+.ghostwork-loadout-count {
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-bottom: 6px;
+}
+.ghostwork-loadout-toggle {
+  padding: 3px 9px;
+  background: var(--sunk);
+  border: 1px solid var(--border-c);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease-out,
+    color 140ms ease-out;
+}
+.ghostwork-loadout-toggle:hover:not(:disabled) {
+  border-color: var(--cyan);
+  color: var(--text);
+}
+.ghostwork-loadout-toggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ghostwork-loadout-toggle--on {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
 
 .ghostwork-codex-mastery {
   margin-bottom: 12px;
@@ -2044,6 +2082,67 @@
   height: 100%;
   background: var(--cyan);
   transition: width 200ms ease-out;
+}
+
+/* Open-board subroutines: one selectable row per subroutine on the current layer. */
+.ice-subroutines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.ice-subroutine {
+  display: grid;
+  grid-template-columns: 5.5rem 3rem 1fr auto;
+  grid-template-areas: "threat key track readout";
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--sunk);
+  border: 1px solid var(--border-c);
+  border-left-width: 3px;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease-out,
+    background-color 140ms ease-out;
+}
+.ice-subroutine:hover {
+  border-color: var(--cyan);
+}
+.ice-subroutine--selected {
+  border-color: var(--cyan);
+  border-left-color: var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 9%, var(--sunk));
+}
+.ice-subroutine--down {
+  cursor: default;
+  opacity: 0.45;
+}
+.ice-subroutine--down:hover {
+  border-color: var(--border-c);
+}
+.ice-subroutine--down .ice-meter-readout {
+  text-decoration: line-through;
+}
+.ice-subroutine-threat {
+  grid-area: threat;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ice-subroutine-threat--sentry {
+  color: var(--amber);
+}
+.ice-subroutine-threat--trap {
+  color: var(--red);
+}
+.ice-subroutine-key {
+  grid-area: key;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cyan);
 }
 
 /* Signature: Trace as a segmented detection heartbeat. */

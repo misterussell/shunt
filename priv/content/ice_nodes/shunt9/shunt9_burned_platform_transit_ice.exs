@@ -17,26 +17,29 @@
     %{
       id: "challenge",
       name: "Access Challenge",
-      progress_required: 8,
       trace_multiplier: 1.0,
-      weakness: :spoof,
-      reward: [{:scrip, 8}]
+      reward: [{:scrip, 8}],
+      subroutines: [
+        %{id: "challenge_core", key: :spoof, threat: :barrier, progress_required: 8}
+      ]
     },
     %{
       id: "lock_mechanism",
       name: "Lock Mechanism",
-      progress_required: 11,
       trace_multiplier: 1.5,
-      weakness: :decrypt,
-      reward: [{:knowledge, "crossgate_transit_signal"}]
+      reward: [{:knowledge, "crossgate_transit_signal"}],
+      subroutines: [
+        %{id: "lock_mechanism_core", key: :decrypt, threat: :barrier, progress_required: 11}
+      ]
     },
     %{
       id: "emergency_override",
       name: "Emergency Override",
-      progress_required: 14,
       trace_multiplier: 2.0,
-      weakness: :backdoor,
-      reward: [{:knowledge, "crossgate_transit_unlocked"}]
+      reward: [{:knowledge, "crossgate_transit_unlocked"}],
+      subroutines: [
+        %{id: "emergency_override_core", key: :backdoor, threat: :barrier, progress_required: 14}
+      ]
     }
   ]
 }

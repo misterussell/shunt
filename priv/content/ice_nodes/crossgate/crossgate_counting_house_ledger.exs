@@ -17,26 +17,29 @@
     %{
       id: "outer_lock",
       name: "Outer Lock",
-      progress_required: 10,
       trace_multiplier: 1.0,
-      weakness: :spoof,
-      reward: [{:scrip, 20}]
+      reward: [{:scrip, 20}],
+      subroutines: [
+        %{id: "outer_lock_core", key: :spoof, threat: :barrier, progress_required: 10}
+      ]
     },
     %{
       id: "ledger_access",
       name: "Ledger Access",
-      progress_required: 13,
       trace_multiplier: 1.5,
-      weakness: :decrypt,
-      reward: [{:knowledge, "crossgate_syndicate_cut_structure"}]
+      reward: [{:knowledge, "crossgate_syndicate_cut_structure"}],
+      subroutines: [
+        %{id: "ledger_access_core", key: :decrypt, threat: :barrier, progress_required: 13}
+      ]
     },
     %{
       id: "debt_registry",
       name: "Debt Registry",
-      progress_required: 16,
       trace_multiplier: 2.25,
-      weakness: :backdoor,
-      reward: [{:knowledge, "crossgate_syndicate_debt_registry"}]
+      reward: [{:knowledge, "crossgate_syndicate_debt_registry"}],
+      subroutines: [
+        %{id: "debt_registry_core", key: :backdoor, threat: :barrier, progress_required: 16}
+      ]
     }
   ]
 }

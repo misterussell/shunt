@@ -30,6 +30,7 @@ defmodule ShuntWeb.GhostworkLive do
      |> assign(:tree, SkillsCatalog.fetch!("ghostwork"))
      |> assign(:status, nil)
      |> assign(:encounter, nil)
+     |> assign(:selected_subroutine, nil)
      |> assign(:lattice_live?, true)
      |> stream(:signal_feed, [])
      |> assign_deck(player)}
@@ -79,7 +80,11 @@ defmodule ShuntWeb.GhostworkLive do
 
     case Players.dispatch(socket.assigns.player_id, resolver) do
       {:ok, player, meta} ->
-        {:noreply, socket |> assign(:encounter, meta.encounter) |> assign_deck(player)}
+        {:noreply,
+         socket
+         |> assign(:encounter, meta.encounter)
+         |> assign(:selected_subroutine, Ghostwork.resolve_target(meta.encounter, nil))
+         |> assign_deck(player)}
 
       {:error, :hardened} ->
         {:noreply, assign(socket, :status, "#{node.name} HARDENED — cool off")}
@@ -89,11 +94,26 @@ defmodule ShuntWeb.GhostworkLive do
     end
   end
 
-  def handle_event("act", %{"action" => action}, socket) do
+  def handle_event("select_target", %{"subroutine" => subroutine_id}, socket) do
+    {:noreply, assign(socket, :selected_subroutine, subroutine_id)}
+  end
+
+  def handle_event("act", params, socket) do
     case socket.assigns.encounter do
-      nil -> {:noreply, socket}
-      encounter -> dispatch_act(socket, encounter, decode_action(action))
+      nil ->
+        {:noreply, socket}
+
+      encounter ->
+        dispatch_act(socket, encounter, decode_action(params["action"]), params["subroutine"])
     end
+  end
+
+  def handle_event("equip", %{"program" => program_id}, socket) do
+    dispatch_loadout(socket, &Ghostwork.equip(&1, program_id))
+  end
+
+  def handle_event("unequip", %{"program" => program_id}, socket) do
+    dispatch_loadout(socket, &Ghostwork.unequip(&1, program_id))
   end
 
   def handle_event("retreat", _params, socket) do
@@ -108,12 +128,21 @@ defmodule ShuntWeb.GhostworkLive do
   end
 
   def handle_event("close_encounter", _params, socket) do
-    {:noreply, assign(socket, :encounter, nil)}
+    {:noreply, socket |> assign(:encounter, nil) |> assign(:selected_subroutine, nil)}
   end
 
-  defp dispatch_act(socket, encounter, decoded) do
+  defp dispatch_loadout(socket, compute_ids) do
+    resolver = fn player -> {:ok, [{:ghostwork_loadout, compute_ids.(player)}], %{}} end
+
+    case Players.dispatch(socket.assigns.player_id, resolver) do
+      {:ok, player, _meta} -> {:noreply, assign_deck(socket, player)}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
+
+  defp dispatch_act(socket, encounter, decoded, subroutine_id) do
     resolver = fn player ->
-      case Ghostwork.act(encounter, player, decoded) do
+      case Ghostwork.act(encounter, player, decoded, subroutine_id) do
         {:ok, updated, effects} -> {:ok, effects, %{encounter: updated}}
         {:error, reason} -> {:error, reason}
       end
@@ -121,7 +150,11 @@ defmodule ShuntWeb.GhostworkLive do
 
     case Players.dispatch(socket.assigns.player_id, resolver) do
       {:ok, player, meta} ->
-        {:noreply, socket |> assign(:encounter, meta.encounter) |> assign_deck(player)}
+        {:noreply,
+         socket
+         |> assign(:encounter, meta.encounter)
+         |> assign(:selected_subroutine, Ghostwork.resolve_target(meta.encounter, subroutine_id))
+         |> assign_deck(player)}
 
       {:error, _reason} ->
         {:noreply, socket}
@@ -137,7 +170,8 @@ defmodule ShuntWeb.GhostworkLive do
         :if={@encounter}
         id="ice-modal"
         encounter={@encounter}
-        programs={@programs}
+        programs={@equipped_programs}
+        selected_subroutine={@selected_subroutine}
       />
 
       <div id="deck-tether" class="deck-tether">
@@ -229,15 +263,47 @@ defmodule ShuntWeb.GhostworkLive do
         </div>
 
         <div class="ghostwork-rail">
-          <Chrome.section_header>LOADOUT</Chrome.section_header>
+          <Chrome.section_header secondary="3 SLOTS · RUNNABLE IN ICE">
+            LOADOUT
+          </Chrome.section_header>
           <Chrome.panel id="loadout-panel">
-            <p :if={@programs == []} id="loadout-empty" class="ghostwork-empty">
-              NO PROGRAMS LOADED
+            <p id="loadout-count" class="ghostwork-loadout-count">
+              {length(@loadout)}/3 equipped
             </p>
-            <div :for={prog <- @programs} id={"program-#{prog.id}"} class="ghostwork-program-row">
+            <p :if={@programs == []} id="loadout-empty" class="ghostwork-empty">
+              NO PROGRAMS OWNED
+            </p>
+            <div
+              :for={prog <- @programs}
+              id={"program-#{prog.id}"}
+              class={[
+                "ghostwork-program-row",
+                prog.id in @loadout && "ghostwork-program-row--equipped"
+              ]}
+            >
               <span class="ghostwork-program-name">{prog.name}</span>
               <span class="ghostwork-program-action">{prog.action}</span>
               <span class="ghostwork-program-stats">P{prog.progress} / T{prog.trace}</span>
+              <%= if prog.id in @loadout do %>
+                <button
+                  id={"unequip-#{prog.id}"}
+                  class="ghostwork-loadout-toggle ghostwork-loadout-toggle--on"
+                  phx-click="unequip"
+                  phx-value-program={prog.id}
+                >
+                  EQUIPPED
+                </button>
+              <% else %>
+                <button
+                  id={"equip-#{prog.id}"}
+                  class="ghostwork-loadout-toggle"
+                  phx-click="equip"
+                  phx-value-program={prog.id}
+                  disabled={length(@loadout) >= 3}
+                >
+                  EQUIP
+                </button>
+              <% end %>
             </div>
           </Chrome.panel>
 
@@ -281,6 +347,8 @@ defmodule ShuntWeb.GhostworkLive do
     |> assign(:current_tier, SkillsCatalog.current_tier(player, socket.assigns.tree))
     |> assign(:nodes, Ghostwork.nodes_at(player, player.location_id))
     |> assign(:programs, Ghostwork.Programs.owned(player))
+    |> assign(:loadout, Ghostwork.loadout(player))
+    |> assign(:equipped_programs, Ghostwork.Programs.loadout(player))
     |> assign(:mastery, Ghostwork.mastery_summary(player))
   end
 

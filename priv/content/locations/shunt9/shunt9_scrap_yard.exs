@@ -25,6 +25,13 @@ alias Shunt.World.Exit
         text:
           "A weak pulse under the static — old inventory data cycling through a dead terminal somewhere in the heaps.",
         on_intercept: [{:knowledge, "shunt9_yard_manifest_found"}]
+      },
+      %{
+        id: "salvage_grid_signal",
+        requirements: [],
+        text:
+          "A sharper carrier cuts under the manifest hum — current-spec, Collective-stamped, wired into the intake. Whatever logs the scrap, this decides it.",
+        on_intercept: [{:knowledge, "shunt9_salvage_grid_found"}]
       }
     ],
     filler: [

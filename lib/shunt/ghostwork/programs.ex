@@ -27,4 +27,14 @@ defmodule Shunt.Ghostwork.Programs do
   def owned(player) do
     Enum.filter(all(), fn program -> Map.get(player.inventory, program.id, 0) >= 1 end)
   end
+
+  @doc """
+  The programs runnable in an encounter: owned programs whose id is in the player's
+  equipped loadout (Shunt.Ghostwork.loadout/1). The encounter action bar shows Probe +
+  these; owned/1 stays the full library the rail LOADOUT panel equips from.
+  """
+  def loadout(player) do
+    equipped = Shunt.Ghostwork.loadout(player)
+    Enum.filter(owned(player), &(&1.id in equipped))
+  end
 end

@@ -18,26 +18,34 @@
     %{
       id: "intake_shell",
       name: "Intake Shell",
-      progress_required: 9,
       trace_multiplier: 1.0,
-      weakness: :spoof,
-      reward: [{:scrip, 20}]
+      reward: [{:scrip, 20}],
+      subroutines: [
+        %{id: "intake_shell_core", key: :spoof, threat: :barrier, progress_required: 9}
+      ]
     },
     %{
       id: "template_lock",
       name: "Template Lock",
-      progress_required: 12,
       trace_multiplier: 1.7,
-      weakness: :decrypt,
-      reward: [{:knowledge, "registry_seam_open"}]
+      reward: [{:knowledge, "registry_seam_open"}],
+      subroutines: [
+        %{id: "template_lock_core", key: :decrypt, threat: :barrier, progress_required: 12}
+      ]
     },
     %{
       id: "write_head",
       name: "Write-Head",
-      progress_required: 15,
       trace_multiplier: 2.4,
-      weakness: :backdoor,
-      reward: [{:knowledge, "midgrid_echo"}]
+      reward: [{:knowledge, "midgrid_echo"}],
+      subroutines: [
+        # Feed it a Court-shaped template stub (spoof), keep the watch process from
+        # climbing while you work (decrypt sentry), and ease the write-head over without
+        # forcing it — trip the flag with the wrong key and the write lands flagged.
+        %{id: "template_stub", key: :spoof, threat: :barrier, progress_required: 8},
+        %{id: "court_watch", key: :decrypt, threat: :sentry, progress_required: 7},
+        %{id: "flag_head", key: :backdoor, threat: :trap, progress_required: 6}
+      ]
     }
   ]
 }
