@@ -2356,6 +2356,17 @@
    Everything around it stays quiet so that surge reads. Layout/coords are still
    set inline by the WebBoard hook; only the look lives here. */
 
+/* TODO: desktop layout for The Web — make the board fill the wide shell (no big blank
+   gutters). Add a `.web-grid` three-column grid: minmax(168px,200px) | 1fr | minmax(288px,340px)
+   with a small gap, stretched to fill the available viewport height. Make #web-board fill its
+   grid cell (height: 100%) and replace its `min-height: 62vh` with a smaller min fallback so it
+   grows with the grid. Turn `.intake-rail` into a vertical scrolling rail (flex-direction:
+   column; overflow-y: auto; drop the horizontal scroll + bottom-border). Style #board-rail as a
+   vertical stack with #board-signals on top and #board-dossier below; give the dossier empty
+   state muted, centered placeholder text. Desktop-only — no mobile breakpoints.
+   Verify: on /skills/the-web the three panes fill the wide shell, board is the largest region,
+   and intake scrolls vertically. */
+
 .dev-controls {
   display: flex;
   gap: 8px;

@@ -139,6 +139,20 @@ defmodule ShuntWeb.WebLive do
           </p>
         </Chrome.panel>
       <% else %>
+        <%!-- TODO: restructure this rumors-present branch into a desktop three-pane CSS grid
+        (#web-grid) that fills the wide shell — see the Investigation Board layout design.
+          - LEFT pane: the existing #intake-rail (markup unchanged; CSS turns it vertical).
+          - CENTER pane: the existing #web-board (with its board-hint).
+          - RIGHT pane: a new #board-rail holding (a) #board-signals — MOVE the existing
+            #resonance-controls strip in here (the warmth slice will add a leads group beside
+            it), and (b) #board-dossier — a new region rendering ONLY its empty state for now:
+            "SELECT (i) ON A RUMOR TO RECALL IT" (the recall slice fills the dossier body).
+          Keep every existing id/class/data-* on cards, wires, intake, and resonance controls so
+          the current LiveView tests keep passing. Leave #active-event where it is (a full-width
+          panel above #web-grid) — it only opens once rumors exist.
+          Verify: a LiveView test with the player holding rumors asserts #web-grid, #board-rail,
+          #board-signals and #board-dossier are present, and the existing intake/board/connect
+          tests still pass. --%>
         <div id="intake-rail" class="intake-rail">
           <div
             :for={rumor <- @intake}

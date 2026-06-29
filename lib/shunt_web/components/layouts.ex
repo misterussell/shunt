@@ -99,6 +99,10 @@ defmodule ShuntWeb.Layouts do
       </nav>
     </header>
 
+    <%!-- TODO: add :web to the wide-shell condition so The Web board page renders in the
+    1600px main-content--wide shell like the map. Change the class expr to
+    `@active in [:map, :web] && "main-content--wide"`. WebLive already passes active={:web}.
+    Verify: the rendered <main> on /skills/the-web carries "main-content--wide". --%>
     <main class={["main-content", @active == :map && "main-content--wide"]}>
       {render_slot(@inner_block)}
     </main>
