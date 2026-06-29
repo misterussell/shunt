@@ -87,13 +87,13 @@ export default {
 
       const card = this.card(a)
       const resonant = card && card.dataset.resonant === "true"
+      const warm = card && card.dataset.warm === "true"
       const solved = card && card.dataset.solved === "true"
-      // TODO: [warmth] also read `const warm = card && card.dataset.warm === "true"` and include
-      // `warm && "wire--warm"` in the class list below, so wires inside a warm cluster get the
-      // amber treatment (mirrors wire--resonant). data-warm is set on the board card by the LiveView.
       line.setAttribute(
         "class",
-        ["wire", resonant && "wire--resonant", solved && "wire--solved"].filter(Boolean).join(" ")
+        ["wire", resonant && "wire--resonant", warm && "wire--warm", solved && "wire--solved"]
+          .filter(Boolean)
+          .join(" ")
       )
 
       // Solved wires are locked (.wire--solved sets pointer-events: none); only live wires

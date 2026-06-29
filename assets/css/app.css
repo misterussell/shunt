@@ -2487,11 +2487,83 @@
   color: var(--text);
 }
 
-/* TODO: [warmth] add the amber warm tier (mirrors the cyan resonant tier with var(--amber)):
-   `.board-card[data-warm="true"]` (amber border + inset/glow) and its ::before pin; `.wire--warm`
-   (amber stroke + drop-shadow, a gentler surge than wire--resonant under prefers-reduced-motion:
-   no-preference). Add `.leads-controls` (like .resonance-controls but amber), a `.leads-meter`
-   row with `.leads-dot`/`.leads-dot--on` filled/empty dots, and the "<n> short" caption. */
+/* Warm tier — a near-miss cluster glows amber, one step short of the cyan resonant surge. */
+.board-card[data-warm="true"] {
+  border-color: var(--amber);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--amber) inset,
+    0 0 16px color-mix(in srgb, var(--amber) 30%, transparent);
+}
+
+.board-card[data-warm="true"]::before {
+  background: var(--amber);
+  box-shadow: 0 0 6px var(--amber);
+}
+
+.wire--warm {
+  stroke: var(--amber);
+  stroke-width: 1.75;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--amber) 55%, transparent));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wire--warm {
+    stroke-dasharray: 6 10;
+    animation: wire-surge 1.4s linear infinite;
+  }
+}
+
+/* Leads strip — the amber sibling of the resonance strip: a meter per warm cluster. */
+.leads-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--amber);
+  background: color-mix(in srgb, var(--amber) 6%, var(--sunk));
+}
+
+.leads-eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--amber) 40%, transparent);
+}
+
+.lead {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.leads-meter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.leads-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--amber);
+  opacity: 0.5;
+}
+
+.leads-dot--on {
+  background: var(--amber);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--amber) 60%, transparent);
+  opacity: 1;
+}
+
+.leads-count {
+  color: var(--amber);
+  font-weight: 700;
+}
 
 .dev-controls {
   display: flex;

@@ -116,13 +116,28 @@ defmodule ShuntWeb.WebLive do
     {:noreply, socket |> assign(:inspected_rumor_id, nil) |> board_assigns()}
   end
 
-  # TODO: [warmth] handle_event("follow_lead", %{"connection_id" => connection_id}, socket) —
-  # mirror connect_theory/2: find the warm entry by connection_id in socket.assigns.warm; only act
-  # when active_event_id is nil AND that entry's lead_ready? is true, then
-  # Players.dispatch(player_id, &Events.start(&1, entry.connection.partial_event_id)),
-  # assign(:active_event_id, partial_event_id), board_assigns/1. Any other case is a no-op (guards
-  # against stale/duplicate clicks and re-firing while an event is open). Partial events are
-  # repeatable, so re-following re-shows the lead text.
+  # Fired by [ FOLLOW LEAD ] on a lead-ready warm cluster. Like connect_theory/2 it ignores the
+  # click when an event is already open or when the cluster is no longer a lead-ready lead for this
+  # connection_id (stale/duplicate click). The partial event is repeatable, so re-following just
+  # re-shows the lead.
+  def handle_event("follow_lead", %{"connection_id" => connection_id}, socket) do
+    lead = Enum.find(socket.assigns.warm, &(&1.connection.id == connection_id))
+
+    case {socket.assigns.active_event_id, lead} do
+      {nil, %{lead_ready?: true, connection: conn}} ->
+        {:ok, player, _meta} =
+          Players.dispatch(socket.assigns.player_id, &Events.start(&1, conn.partial_event_id))
+
+        {:noreply,
+         socket
+         |> assign(:player, player)
+         |> assign(:active_event_id, conn.partial_event_id)
+         |> board_assigns()}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
 
   def render(assigns) do
     ~H"""
@@ -198,10 +213,6 @@ defmodule ShuntWeb.WebLive do
             <p :if={@placed == []} class="board-hint">
               DRAG RUMORS HERE TO INVESTIGATE
             </p>
-            <%!-- TODO: [warmth] add data-warm={to_string(card.warm)} to the board card below (set
-            by board_assigns/1 from Web.warm_clusters/1). The hook reads it to draw wire--warm, and
-            CSS uses .board-card[data-warm="true"] for the amber tier. Warm/resonant/solved are
-            mutually exclusive, so a card is at most one. --%>
             <div
               :for={card <- @placed}
               id={"rumor-#{card.rumor.id}"}
@@ -210,6 +221,7 @@ defmodule ShuntWeb.WebLive do
               data-x={card.x}
               data-y={card.y}
               data-resonant={to_string(card.resonant)}
+              data-warm={to_string(card.warm)}
               data-solved={to_string(card.solved)}
             >
               <button
@@ -250,12 +262,33 @@ defmodule ShuntWeb.WebLive do
                   [ CONNECT ]
                 </Chrome.btn>
               </div>
-              <%!-- TODO: [warmth] add a #leads-controls group here (sibling of #resonance-controls,
-              shown when @warm != [] and active_event_id is nil). For each warm entry render a meter
-              — matched/total with a dot row (●●○) and "<total - matched> short" — and, when the
-              entry's lead_ready? is true, a Chrome.btn id={"follow-lead-#{conn.id}"}
-              phx-click="follow_lead" phx-value-connection_id={conn.id} labelled [ FOLLOW LEAD ].
-              @warm comes from board_assigns/1 (Web.warm_clusters/1). --%>
+              <div
+                :if={@warm != [] and is_nil(@active_event_id)}
+                id="leads-controls"
+                class="leads-controls"
+              >
+                <span class="leads-eyebrow">Leads</span>
+                <div :for={lead <- @warm} id={"lead-#{lead.connection.id}"} class="lead">
+                  <div class="leads-meter">
+                    <span
+                      :for={i <- 1..lead.total}
+                      class={["leads-dot", i <= lead.matched && "leads-dot--on"]}
+                    >
+                    </span>
+                    <span class="leads-count">{lead.matched}/{lead.total}</span>
+                    <span class="leads-short">{lead.total - lead.matched} short</span>
+                  </div>
+                  <Chrome.btn
+                    :if={lead.lead_ready?}
+                    id={"follow-lead-#{lead.connection.id}"}
+                    variant={:ghost}
+                    phx-click="follow_lead"
+                    phx-value-connection_id={lead.connection.id}
+                  >
+                    [ FOLLOW LEAD ]
+                  </Chrome.btn>
+                </div>
+              </div>
             </div>
 
             <div id="board-dossier" class="board-dossier">
@@ -317,10 +350,11 @@ defmodule ShuntWeb.WebLive do
     resonant_ids = cluster_ids(Enum.map(resonant, fn {cluster, _conn} -> cluster end))
     solved_ids = cluster_ids(Enum.map(solved, fn {cluster, _conn} -> cluster end))
 
-    # TODO: [warmth] compute `warm = Web.warm_clusters(player)` and `warm_ids` (union of the warm
-    # cluster sets), then add `warm: MapSet.member?(warm_ids, id)` to each placed-card map below.
-    # Assign a render-friendly :warm list for the leads strip (e.g. each entry exposing
-    # connection_id, the connection, matched, total, lead_ready?). Warm excludes resonant/solved ids.
+    warm = Web.warm_clusters(player)
+
+    warm_ids =
+      Enum.reduce(warm, MapSet.new(), fn lead, acc -> MapSet.union(acc, lead.cluster) end)
+
     placed =
       Enum.flat_map(Web.placed(player), fn {id, x, y} ->
         case Rumor.fetch(id) do
@@ -331,6 +365,7 @@ defmodule ShuntWeb.WebLive do
                 x: x,
                 y: y,
                 resonant: MapSet.member?(resonant_ids, id),
+                warm: MapSet.member?(warm_ids, id),
                 solved: MapSet.member?(solved_ids, id)
               }
             ]
@@ -356,6 +391,7 @@ defmodule ShuntWeb.WebLive do
     |> assign(:placed, placed)
     |> assign(:wires, Web.wires(player))
     |> assign(:resonant, resonant)
+    |> assign(:warm, warm)
     |> assign(:inspected, inspected)
     |> assign(:inspected_status, inspected_status)
   end

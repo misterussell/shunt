@@ -69,14 +69,29 @@ defmodule ShuntWeb.WebLiveTest do
       on_complete: [{:scrip, 100}]
     }
 
+    partial_event = %Event{
+      id: "test_web_partial",
+      title: "Partial Read",
+      repeatable: true,
+      steps: [
+        %{
+          id: "partial",
+          text: "A thread, not the whole cloth.",
+          choices: [%{label: "Keep digging", complete: true}]
+        }
+      ],
+      on_complete: []
+    }
+
     :ets.insert(:rumors, Enum.map(rumors, &{&1.id, &1}))
     :ets.insert(:rumor_connections, {conn.id, conn})
-    :ets.insert(:events, [{success_event.id, success_event}])
+    :ets.insert(:events, [{success_event.id, success_event}, {partial_event.id, partial_event}])
 
     on_exit(fn ->
       Enum.each(rumors, &:ets.delete(:rumors, &1.id))
       :ets.delete(:rumor_connections, conn.id)
       :ets.delete(:events, success_event.id)
+      :ets.delete(:events, partial_event.id)
     end)
 
     %{player: player}
@@ -285,6 +300,56 @@ defmodule ShuntWeb.WebLiveTest do
 
       refute has_element?(view, "#connect-test_conn")
       assert has_element?(view, "#rumor-test_rumor_a[data-resonant='false']")
+    end
+  end
+
+  describe "warmth (leads)" do
+    test "a partial cluster marks its cards warm", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b"])
+
+      assert has_element?(view, "#rumor-test_rumor_a[data-warm='true']")
+    end
+
+    test "a warm cluster surfaces a leads meter", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b"])
+
+      assert has_element?(view, "#leads-controls", "2/3")
+    end
+
+    test "an exact (resonant) cluster is not warm and shows no leads", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+
+      refute has_element?(view, "#rumor-test_rumor_a[data-warm='true']")
+      refute has_element?(view, "#leads-controls")
+    end
+
+    test "FOLLOW LEAD on a lead-ready cluster opens the partial event", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b"])
+      view |> element("#follow-lead-test_conn") |> render_click()
+
+      assert has_element?(view, "#active-event", "A thread")
     end
   end
 
