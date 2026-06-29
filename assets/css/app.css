@@ -2401,11 +2401,91 @@
   opacity: 0.6;
 }
 
-/* TODO: [recall] style the inspect glyph and the populated dossier. `.inspect-glyph`: a small,
-   quiet ⓘ button (absolute, a corner of the card clear of .wire-port; subtle until card hover),
-   reset to look like a glyph not a button, cursor pointer, z-index above the card body. Dossier
-   body: a WHERE/WHAT/TAGS/IN PLAY stack reusing .rumor-tag for tags, a muted eyebrow per row, and
-   a ghost close control. Keep it readable in the ~300px rail. */
+/* Inspect glyph — a quiet ⓘ in the card's top-right that brightens on hover. Sits inside the
+   card so it clears the wire-port, which pokes out past the top-right corner. */
+.inspect-glyph {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 3;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--muted);
+  opacity: 0.4;
+  cursor: pointer;
+  transition: opacity 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.rumor-card:hover .inspect-glyph {
+  opacity: 1;
+}
+
+.inspect-glyph:hover {
+  color: var(--cyan);
+  transform: scale(1.2);
+}
+
+/* Dossier — the recalled rumor's WHERE / WHAT / TAGS / IN PLAY, in the right rail. */
+.dossier {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dossier-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-c);
+}
+
+.dossier-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--cyan);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 30%, transparent);
+}
+
+.dossier-close {
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.dossier-close:hover {
+  color: var(--red);
+}
+
+.dossier-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dossier-eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dossier-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
 
 /* TODO: [warmth] add the amber warm tier (mirrors the cyan resonant tier with var(--amber)):
    `.board-card[data-warm="true"]` (amber border + inset/glow) and its ::before pin; `.wire--warm`

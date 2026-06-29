@@ -22,9 +22,9 @@ defmodule ShuntWeb.WebLive do
      |> assign(:player_id, player_id)
      |> assign(:player, player)
      |> assign(:active_event_id, nil)
-     # TODO: [recall] assign(:inspected_rumor_id, nil) — the ephemeral id of the rumor whose
-     # dossier is open in #board-dossier (nil = none). Resets on navigate-away, like the working
-     # theory. board_assigns/1 derives the displayable rumor + status from it.
+     # Ephemeral id of the rumor whose dossier is open in #board-dossier (nil = none). Resets on
+     # navigate-away, like the working theory; board_assigns/1 derives the rumor + status from it.
+     |> assign(:inspected_rumor_id, nil)
      |> assign(:dev?, @dev_routes)
      |> board_assigns()}
   end
@@ -102,11 +102,19 @@ defmodule ShuntWeb.WebLive do
     {:noreply, socket}
   end
 
-  # TODO: [recall] handle_event("inspect_rumor", %{"id" => id}, socket) — set
-  # assign(:inspected_rumor_id, id) and refresh via board_assigns/1 so #board-dossier shows that
-  # rumor. Only accept ids the player actually holds (id in player.rumors); ignore otherwise.
-  # TODO: [recall] handle_event("close_dossier", _params, socket) — clear
-  # assign(:inspected_rumor_id, nil) and refresh, returning #board-dossier to its empty state.
+  # Opens the dossier for a held rumor. Ids the player doesn't hold are ignored (the client could
+  # push any id; the board only recalls intel actually collected).
+  def handle_event("inspect_rumor", %{"id" => id}, socket) do
+    if id in socket.assigns.player.rumors do
+      {:noreply, socket |> assign(:inspected_rumor_id, id) |> board_assigns()}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("close_dossier", _params, socket) do
+    {:noreply, socket |> assign(:inspected_rumor_id, nil) |> board_assigns()}
+  end
 
   # TODO: [warmth] handle_event("follow_lead", %{"connection_id" => connection_id}, socket) —
   # mirror connect_theory/2: find the warm entry by connection_id in socket.assigns.warm; only act
@@ -164,11 +172,16 @@ defmodule ShuntWeb.WebLive do
               class="rumor-card intake-card"
               data-rumor-id={rumor.id}
             >
-              <%!-- TODO: [recall] add an inspect glyph to this card — a small button carrying
-              data-inspect="true" phx-click="inspect_rumor" phx-value-id={rumor.id}
-              (aria-label "Inspect rumor", glyph ⓘ). data-inspect lets the WebBoard hook ignore
-              the pointerdown so the click opens the dossier instead of starting a drag. The SAME
-              glyph goes on the board card below (with phx-value-id={card.rumor.id}). --%>
+              <button
+                type="button"
+                class="inspect-glyph"
+                data-inspect="true"
+                phx-click="inspect_rumor"
+                phx-value-id={rumor.id}
+                aria-label="Inspect rumor"
+              >
+                ⓘ
+              </button>
               <p class="rumor-title">{rumor.title}</p>
               <p class="rumor-source">{rumor.source}</p>
             </div>
@@ -199,9 +212,16 @@ defmodule ShuntWeb.WebLive do
               data-resonant={to_string(card.resonant)}
               data-solved={to_string(card.solved)}
             >
-              <%!-- TODO: [recall] add the same inspect glyph as the intake card (data-inspect="true"
-              phx-click="inspect_rumor" phx-value-id={card.rumor.id}). Keep it clear of the existing
-              .wire-port (top-right) so the two affordances don't overlap. --%>
+              <button
+                type="button"
+                class="inspect-glyph"
+                data-inspect="true"
+                phx-click="inspect_rumor"
+                phx-value-id={card.rumor.id}
+                aria-label="Inspect rumor"
+              >
+                ⓘ
+              </button>
               <p class="rumor-title">{card.rumor.title}</p>
               <p class="rumor-source">{card.rumor.source}</p>
               <div :if={card.rumor.tags != []} class="rumor-tags">
@@ -239,13 +259,43 @@ defmodule ShuntWeb.WebLive do
             </div>
 
             <div id="board-dossier" class="board-dossier">
-              <%!-- TODO: [recall] when @inspected (the rumor struct derived by board_assigns/1 from
-              :inspected_rumor_id) is set, render its dossier instead of the empty state below:
-              title; WHERE = @inspected.origin || humanized @inspected.source; WHAT =
-              @inspected.description; TAGS = @inspected.tags; IN PLAY = a label from @inspected_status
-              (Web.rumor_status/2): not placed / on board / forming m/n / resonant / solved; plus a
-              close control (phx-click="close_dossier"). Keep this empty state for when none is open. --%>
-              <p class="dossier-empty">SELECT ⓘ ON A RUMOR TO RECALL IT</p>
+              <%= if @inspected do %>
+                <div class="dossier">
+                  <div class="dossier-head">
+                    <p class="dossier-title">{@inspected.title}</p>
+                    <button
+                      type="button"
+                      class="dossier-close"
+                      phx-click="close_dossier"
+                      aria-label="Close dossier"
+                    >
+                      [ × ]
+                    </button>
+                  </div>
+                  <div class="dossier-row">
+                    <span class="dossier-eyebrow">Where</span>
+                    <p class="dossier-text">
+                      {@inspected.origin || humanize_source(@inspected.source)}
+                    </p>
+                  </div>
+                  <div class="dossier-row">
+                    <span class="dossier-eyebrow">What</span>
+                    <p class="dossier-text">{@inspected.description}</p>
+                  </div>
+                  <div :if={@inspected.tags != []} class="dossier-row">
+                    <span class="dossier-eyebrow">Tags</span>
+                    <div class="rumor-tags">
+                      <span :for={tag <- @inspected.tags} class="rumor-tag">{tag}</span>
+                    </div>
+                  </div>
+                  <div class="dossier-row">
+                    <span class="dossier-eyebrow">In play</span>
+                    <p class="dossier-text">{status_label(@inspected_status)}</p>
+                  </div>
+                </div>
+              <% else %>
+                <p class="dossier-empty">SELECT ⓘ ON A RUMOR TO RECALL IT</p>
+              <% end %>
             </div>
           </div>
         </div>
@@ -290,17 +340,38 @@ defmodule ShuntWeb.WebLive do
         end
       end)
 
-    # TODO: [recall] derive the dossier assigns from socket.assigns.inspected_rumor_id (nil-safe):
-    # assign(:inspected, the %Rumor{} via Rumor.fetch/1 or nil if missing/cleared) and
-    # assign(:inspected_status, Web.rumor_status(player, id) or nil). Recomputing here keeps the IN
-    # PLAY line live as the board changes while a dossier is open.
+    # The dossier rumor + its live status, derived from the open id so the IN PLAY line tracks the
+    # board while a dossier stays open. nil id (or removed content) falls back to the empty state.
+    inspected =
+      case socket.assigns[:inspected_rumor_id] do
+        nil -> nil
+        id -> fetch_rumor(id) |> List.first()
+      end
+
+    inspected_status = inspected && Web.rumor_status(player, inspected.id)
+
     socket
     |> assign(:rumors, player.rumors)
     |> assign(:intake, Enum.flat_map(Web.intake(player), &fetch_rumor/1))
     |> assign(:placed, placed)
     |> assign(:wires, Web.wires(player))
     |> assign(:resonant, resonant)
+    |> assign(:inspected, inspected)
+    |> assign(:inspected_status, inspected_status)
   end
+
+  defp status_label(:not_placed), do: "Not placed"
+  defp status_label(:on_board), do: "On the board"
+  defp status_label({:forming, matched, total}), do: "Forming · #{matched}/#{total}"
+  defp status_label(:resonant), do: "Resonant"
+  defp status_label(:solved), do: "Solved"
+  defp status_label(nil), do: ""
+
+  defp humanize_source("npc"), do: "From a contact"
+  defp humanize_source("latticework"), do: "Off the latticework"
+  defp humanize_source("street"), do: "Word on the street"
+  defp humanize_source(source) when is_binary(source), do: source
+  defp humanize_source(_), do: "Source unknown"
 
   defp dispatch_board(socket, fun) do
     {:ok, player, _meta} = Players.dispatch(socket.assigns.player_id, fun)

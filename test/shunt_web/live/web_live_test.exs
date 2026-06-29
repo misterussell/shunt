@@ -18,7 +18,8 @@ defmodule ShuntWeb.WebLiveTest do
         title: "Intel A",
         description: "First.",
         source: "npc",
-        tags: []
+        origin: "Overheard in the back-rows",
+        tags: ["alpha"]
       },
       %Rumor{
         id: "test_rumor_b",
@@ -122,6 +123,66 @@ defmodule ShuntWeb.WebLiveTest do
       assert has_element?(view, "#web-grid #web-board")
       assert has_element?(view, "#web-grid #board-rail #board-signals")
       assert has_element?(view, "#web-grid #board-rail #board-dossier")
+    end
+  end
+
+  describe "dossier (recall)" do
+    test "the dossier starts empty", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "#board-dossier .dossier-empty")
+    end
+
+    test "every card carries an inspect glyph", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "#intake-test_rumor_a [data-inspect]")
+
+      render_hook(view, "place_rumor", %{"id" => "test_rumor_a", "x" => "0.5", "y" => "0.5"})
+
+      assert has_element?(view, "#rumor-test_rumor_a [data-inspect]")
+    end
+
+    test "inspecting a rumor opens its dossier with origin and description", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      view |> element("#intake-test_rumor_a [data-inspect]") |> render_click()
+
+      assert has_element?(view, "#board-dossier", "Intel A")
+      assert has_element?(view, "#board-dossier", "Overheard in the back-rows")
+      assert has_element?(view, "#board-dossier", "First.")
+      refute has_element?(view, "#board-dossier .dossier-empty")
+    end
+
+    test "the dossier reflects a rumor's in-play status", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b"])
+      view |> element("#rumor-test_rumor_a [data-inspect]") |> render_click()
+
+      assert has_element?(view, "#board-dossier", "2/3")
+    end
+
+    test "the dossier can be closed back to the empty state", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      view |> element("#intake-test_rumor_a [data-inspect]") |> render_click()
+      view |> element("#board-dossier [phx-click='close_dossier']") |> render_click()
+
+      assert has_element?(view, "#board-dossier .dossier-empty")
     end
   end
 

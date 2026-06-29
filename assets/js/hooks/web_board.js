@@ -108,9 +108,9 @@ export default {
   // --- pointer routing ---------------------------------------------------
 
   onPointerDown(e) {
-    // TODO: [recall] short-circuit when the pointerdown originates on the inspect glyph:
-    // `if (e.target.closest("[data-inspect]")) return` (before the port/card checks), mirroring
-    // the [data-port] handling, so the glyph's phx-click opens the dossier instead of dragging.
+    // The inspect glyph's phx-click must reach the server, so bail before any drag/wire routing
+    // (mirrors the [data-port] handling below).
+    if (e.target.closest("[data-inspect]")) return
     const port = e.target.closest("[data-port]")
     if (port) {
       e.preventDefault()
@@ -248,8 +248,8 @@ export default {
       if (this.boundIntake.has(card)) return
       this.boundIntake.add(card)
       card.addEventListener("pointerdown", (e) => {
-        // TODO: [recall] bail out here too when e.target.closest("[data-inspect]") so tapping the
-        // glyph on an intake card opens the dossier instead of starting a drag.
+        // Let the inspect glyph's click through instead of starting a drag (see onPointerDown).
+        if (e.target.closest("[data-inspect]")) return
         e.preventDefault()
         this.startDrag(card, e, true)
       })

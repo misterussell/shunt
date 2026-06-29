@@ -3,5 +3,6 @@
   title: "Juno's Supplier",
   description: "Someone has been supplying Juno with corporate-grade hardware. The shipments don't show up on any manifest.",
   source: "npc",
+  origin: "Let slip by Juno between jobs.",
   tags: ["corporate", "smuggling", "juno"]
 }

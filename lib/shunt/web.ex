@@ -165,25 +165,83 @@ defmodule Shunt.Web do
     |> Enum.reduce(MapSet.new(), &MapSet.union(&2, &1))
   end
 
-  # TODO: [recall] add `warm_clusters(player)` — the shared partial-match primitive (built in the
-  # recall group because rumor_status/2 needs it; the warmth UI group consumes the same fn).
-  # A cluster is "warm" toward a connection X iff its rumor set is a PROPER subset of X.rumors with
-  # >= 2 members — so it excludes single placed cards and exact matches. Walk clusters/1 against
-  # RumorConnection.all() the way matched_clusters/1 does, skip any connection that is solved?/2,
-  # and for each warm cluster return a map:
-  #   %{cluster: MapSet, connection: %RumorConnection{}, matched: n, total: length(X.rumors),
-  #     lead_ready?: n >= X.partial_threshold}
-  # If a cluster is a proper subset of more than one connection, keep the closest (highest
-  # matched/total) — connections are disjoint today so in practice it's <= 1. Warm and resonant
-  # (exact, via resonant_clusters/1) must stay mutually exclusive.
+  @doc """
+  Warm (near-miss) clusters, as a list of maps. A cluster is warm toward a connection when its
+  rumor set is a *proper* subset of that connection's rumors and holds at least two — so a lone
+  placed card and an exact (resonant) match are both excluded. Already-solved connections are
+  skipped. Each entry is `%{cluster, connection, matched, total, lead_ready?}` where
+  `lead_ready?` is whether the cluster has reached the connection's `partial_threshold`.
 
-  # TODO: [recall] add `rumor_status(player, id)` — pure fn describing a rumor's board state for the
-  # dossier IN PLAY line. Returns exactly one of:
-  #   :not_placed (held but not on the board) |
-  #   :on_board (placed but in no warm/resonant/solved cluster) |
-  #   {:forming, matched, total} (id is in a warm cluster — reuse warm_clusters/1) |
-  #   :resonant (id is in an exact, unsolved cluster — reuse resonant_clusters/1) |
-  #   :solved (id is in a solved cluster — reuse solved_clusters/1).
+  This is the shared partial-match primitive: the dossier's "in play" status and the leads strip
+  both read it.
+  """
+  def warm_clusters(player) do
+    connections = RumorConnection.all()
+
+    player
+    |> clusters()
+    |> Enum.flat_map(fn cluster ->
+      with true <- MapSet.size(cluster) >= 2,
+           conn when not is_nil(conn) <- best_partial_connection(player, cluster, connections) do
+        [
+          %{
+            cluster: cluster,
+            connection: conn,
+            matched: MapSet.size(cluster),
+            total: length(conn.rumors),
+            lead_ready?: MapSet.size(cluster) >= conn.partial_threshold
+          }
+        ]
+      else
+        _ -> []
+      end
+    end)
+  end
+
+  @doc """
+  A placed rumor's board state for the dossier "in play" line:
+
+    * `:not_placed` — held but not on the board
+    * `:on_board` — placed, in no warm/resonant/solved cluster
+    * `{:forming, matched, total}` — in a warm cluster
+    * `:resonant` — in an exact, unsolved cluster
+    * `:solved` — in a solved cluster
+  """
+  def rumor_status(player, id) do
+    cond do
+      not Map.has_key?(board(player)["positions"], id) -> :not_placed
+      MapSet.member?(locked_rumor_ids(player), id) -> :solved
+      MapSet.member?(resonant_rumor_ids(player), id) -> :resonant
+      true -> forming_status(player, id)
+    end
+  end
+
+  # The closest connection a cluster is a proper subset of (smallest total = highest match ratio,
+  # since the matched count is fixed at the cluster size), excluding solved connections. nil when
+  # the cluster is not a partial of any unsolved connection.
+  defp best_partial_connection(player, cluster, connections) do
+    connections
+    |> Enum.filter(fn conn ->
+      conn_set = MapSet.new(conn.rumors)
+
+      MapSet.subset?(cluster, conn_set) and MapSet.size(cluster) < MapSet.size(conn_set) and
+        not solved?(player, conn)
+    end)
+    |> Enum.min_by(&length(&1.rumors), fn -> nil end)
+  end
+
+  defp forming_status(player, id) do
+    case Enum.find(warm_clusters(player), &MapSet.member?(&1.cluster, id)) do
+      nil -> :on_board
+      warm -> {:forming, warm.matched, warm.total}
+    end
+  end
+
+  defp resonant_rumor_ids(player) do
+    player
+    |> resonant_clusters()
+    |> Enum.reduce(MapSet.new(), fn {cluster, _conn}, acc -> MapSet.union(acc, cluster) end)
+  end
 
   defp locked?(player, id), do: MapSet.member?(locked_rumor_ids(player), id)
 
