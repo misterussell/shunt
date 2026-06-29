@@ -154,14 +154,21 @@ defmodule ShuntWeb.WebLive do
       </div>
 
       <%= if @active_event_id do %>
+        <% event = Events.get!(@active_event_id) %>
         <% step = Events.current_step(@player, @active_event_id) %>
-        <Chrome.panel id="active-event">
-          <p class="event-step-text">{String.trim(step.text)}</p>
-          <div class="event-choices">
+        <Chrome.panel id="active-event" active>
+          <div class="active-event-header">
+            <span class="section-header-bracket">┌─[ {event.title} ]</span>
+            <span class="section-header-rule"></span>
+            <span class="section-header-secondary">[ ACTIVE ]</span>
+            <span class="section-header-bracket">─┐</span>
+          </div>
+          <p class="active-event-text">{String.trim(step.text)}</p>
+          <div class="active-event-choices">
             <button
               :for={choice <- step.choices}
               id={"active-event-choice-#{String.replace(choice.label, " ", "-")}"}
-              class="btn-ghost event-choice-button"
+              class="btn-ghost active-event-choice"
               phx-click="event_choice"
               phx-value-event_id={@active_event_id}
               phx-value-choice={choice.label}

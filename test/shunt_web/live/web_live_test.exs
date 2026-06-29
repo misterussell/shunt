@@ -368,6 +368,20 @@ defmodule ShuntWeb.WebLiveTest do
       assert has_element?(view, "#active-event", "The pieces fit.")
     end
 
+    test "the active-event panel renders a framed header with the event title", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+      view |> element("#connect-test_conn") |> render_click()
+
+      assert has_element?(view, "#active-event .section-header-bracket", "Breakthrough")
+    end
+
     test "completing the event applies rewards and locks the solved cluster", %{
       conn: conn,
       player: player
