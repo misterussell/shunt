@@ -161,6 +161,11 @@ export default {
     card.style.position = "fixed"
     card.style.zIndex = "1000"
     card.style.transform = "none"
+    // Pin the measured width: intake cards are width:100% of the rail, so once they go
+    // position:fixed the percentage resolves against the viewport and the card would balloon to
+    // full-page width until dropped. Board cards have a fixed width and are unaffected, but this
+    // is harmless for them. Cleared in resetCard.
+    card.style.width = `${r.width}px`
     card.style.left = `${e.clientX - this.drag.offX}px`
     card.style.top = `${e.clientY - this.drag.offY}px`
   },
@@ -196,6 +201,7 @@ export default {
     card.style.left = ""
     card.style.top = ""
     card.style.transform = ""
+    card.style.width = ""
   },
 
   // --- wire drag ---------------------------------------------------------
