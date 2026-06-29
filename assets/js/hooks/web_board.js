@@ -88,6 +88,9 @@ export default {
       const card = this.card(a)
       const resonant = card && card.dataset.resonant === "true"
       const solved = card && card.dataset.solved === "true"
+      // TODO: [warmth] also read `const warm = card && card.dataset.warm === "true"` and include
+      // `warm && "wire--warm"` in the class list below, so wires inside a warm cluster get the
+      // amber treatment (mirrors wire--resonant). data-warm is set on the board card by the LiveView.
       line.setAttribute(
         "class",
         ["wire", resonant && "wire--resonant", solved && "wire--solved"].filter(Boolean).join(" ")
@@ -105,6 +108,9 @@ export default {
   // --- pointer routing ---------------------------------------------------
 
   onPointerDown(e) {
+    // TODO: [recall] short-circuit when the pointerdown originates on the inspect glyph:
+    // `if (e.target.closest("[data-inspect]")) return` (before the port/card checks), mirroring
+    // the [data-port] handling, so the glyph's phx-click opens the dossier instead of dragging.
     const port = e.target.closest("[data-port]")
     if (port) {
       e.preventDefault()
@@ -242,6 +248,8 @@ export default {
       if (this.boundIntake.has(card)) return
       this.boundIntake.add(card)
       card.addEventListener("pointerdown", (e) => {
+        // TODO: [recall] bail out here too when e.target.closest("[data-inspect]") so tapping the
+        // glyph on an intake card opens the dossier instead of starting a drag.
         e.preventDefault()
         this.startDrag(card, e, true)
       })

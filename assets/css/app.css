@@ -2401,6 +2401,18 @@
   opacity: 0.6;
 }
 
+/* TODO: [recall] style the inspect glyph and the populated dossier. `.inspect-glyph`: a small,
+   quiet ⓘ button (absolute, a corner of the card clear of .wire-port; subtle until card hover),
+   reset to look like a glyph not a button, cursor pointer, z-index above the card body. Dossier
+   body: a WHERE/WHAT/TAGS/IN PLAY stack reusing .rumor-tag for tags, a muted eyebrow per row, and
+   a ghost close control. Keep it readable in the ~300px rail. */
+
+/* TODO: [warmth] add the amber warm tier (mirrors the cyan resonant tier with var(--amber)):
+   `.board-card[data-warm="true"]` (amber border + inset/glow) and its ::before pin; `.wire--warm`
+   (amber stroke + drop-shadow, a gentler surge than wire--resonant under prefers-reduced-motion:
+   no-preference). Add `.leads-controls` (like .resonance-controls but amber), a `.leads-meter`
+   row with `.leads-dot`/`.leads-dot--on` filled/empty dots, and the "<n> short" caption. */
+
 .dev-controls {
   display: flex;
   gap: 8px;
