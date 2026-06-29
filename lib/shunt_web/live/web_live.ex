@@ -139,77 +139,73 @@ defmodule ShuntWeb.WebLive do
           </p>
         </Chrome.panel>
       <% else %>
-        <%!-- TODO: restructure this rumors-present branch into a desktop three-pane CSS grid
-        (#web-grid) that fills the wide shell — see the Investigation Board layout design.
-          - LEFT pane: the existing #intake-rail (markup unchanged; CSS turns it vertical).
-          - CENTER pane: the existing #web-board (with its board-hint).
-          - RIGHT pane: a new #board-rail holding (a) #board-signals — MOVE the existing
-            #resonance-controls strip in here (the warmth slice will add a leads group beside
-            it), and (b) #board-dossier — a new region rendering ONLY its empty state for now:
-            "SELECT (i) ON A RUMOR TO RECALL IT" (the recall slice fills the dossier body).
-          Keep every existing id/class/data-* on cards, wires, intake, and resonance controls so
-          the current LiveView tests keep passing. Leave #active-event where it is (a full-width
-          panel above #web-grid) — it only opens once rumors exist.
-          Verify: a LiveView test with the player holding rumors asserts #web-grid, #board-rail,
-          #board-signals and #board-dossier are present, and the existing intake/board/connect
-          tests still pass. --%>
-        <div id="intake-rail" class="intake-rail">
-          <div
-            :for={rumor <- @intake}
-            id={"intake-#{rumor.id}"}
-            class="rumor-card intake-card"
-            data-rumor-id={rumor.id}
-          >
-            <p class="rumor-title">{rumor.title}</p>
-            <p class="rumor-source">{rumor.source}</p>
-          </div>
-        </div>
-
-        <div
-          :if={@resonant != [] and is_nil(@active_event_id)}
-          id="resonance-controls"
-          class="resonance-controls"
-        >
-          <span class="resonance-eyebrow">Resonance</span>
-          <Chrome.btn
-            :for={{_cluster, conn} <- @resonant}
-            id={"connect-#{conn.id}"}
-            variant={:primary}
-            phx-click="connect_theory"
-            phx-value-connection_id={conn.id}
-          >
-            [ CONNECT ]
-          </Chrome.btn>
-        </div>
-
-        <div
-          id="web-board"
-          class="web-board"
-          phx-hook="WebBoard"
-          data-wires={Jason.encode!(@wires)}
-        >
-          <%!-- JS-owned wire layer: ignored so morphdom leaves the hook's drawn paths alone. --%>
-          <svg id="wire-layer" class="wire-layer" phx-update="ignore"></svg>
-          <p :if={@placed == []} class="board-hint">
-            DRAG RUMORS HERE TO INVESTIGATE
-          </p>
-          <div
-            :for={card <- @placed}
-            id={"rumor-#{card.rumor.id}"}
-            class="rumor-card board-card"
-            data-rumor-id={card.rumor.id}
-            data-x={card.x}
-            data-y={card.y}
-            data-resonant={to_string(card.resonant)}
-            data-solved={to_string(card.solved)}
-          >
-            <p class="rumor-title">{card.rumor.title}</p>
-            <p class="rumor-source">{card.rumor.source}</p>
-            <div :if={card.rumor.tags != []} class="rumor-tags">
-              <span :for={tag <- card.rumor.tags} class="rumor-tag">{tag}</span>
+        <div id="web-grid" class="web-grid">
+          <div id="intake-rail" class="intake-rail">
+            <div
+              :for={rumor <- @intake}
+              id={"intake-#{rumor.id}"}
+              class="rumor-card intake-card"
+              data-rumor-id={rumor.id}
+            >
+              <p class="rumor-title">{rumor.title}</p>
+              <p class="rumor-source">{rumor.source}</p>
             </div>
-            <span :if={card.solved} class="rumor-stamp">SOLVED</span>
-            <div :if={not card.solved} class="wire-port" data-port="true"></div>
+          </div>
+
+          <div
+            id="web-board"
+            class="web-board"
+            phx-hook="WebBoard"
+            data-wires={Jason.encode!(@wires)}
+          >
+            <%!-- JS-owned wire layer: ignored so morphdom leaves the hook's drawn paths alone. --%>
+            <svg id="wire-layer" class="wire-layer" phx-update="ignore"></svg>
+            <p :if={@placed == []} class="board-hint">
+              DRAG RUMORS HERE TO INVESTIGATE
+            </p>
+            <div
+              :for={card <- @placed}
+              id={"rumor-#{card.rumor.id}"}
+              class="rumor-card board-card"
+              data-rumor-id={card.rumor.id}
+              data-x={card.x}
+              data-y={card.y}
+              data-resonant={to_string(card.resonant)}
+              data-solved={to_string(card.solved)}
+            >
+              <p class="rumor-title">{card.rumor.title}</p>
+              <p class="rumor-source">{card.rumor.source}</p>
+              <div :if={card.rumor.tags != []} class="rumor-tags">
+                <span :for={tag <- card.rumor.tags} class="rumor-tag">{tag}</span>
+              </div>
+              <span :if={card.solved} class="rumor-stamp">SOLVED</span>
+              <div :if={not card.solved} class="wire-port" data-port="true"></div>
+            </div>
+          </div>
+
+          <div id="board-rail" class="board-rail">
+            <div id="board-signals" class="board-signals">
+              <div
+                :if={@resonant != [] and is_nil(@active_event_id)}
+                id="resonance-controls"
+                class="resonance-controls"
+              >
+                <span class="resonance-eyebrow">Resonance</span>
+                <Chrome.btn
+                  :for={{_cluster, conn} <- @resonant}
+                  id={"connect-#{conn.id}"}
+                  variant={:primary}
+                  phx-click="connect_theory"
+                  phx-value-connection_id={conn.id}
+                >
+                  [ CONNECT ]
+                </Chrome.btn>
+              </div>
+            </div>
+
+            <div id="board-dossier" class="board-dossier">
+              <p class="dossier-empty">SELECT ⓘ ON A RUMOR TO RECALL IT</p>
+            </div>
           </div>
         </div>
       <% end %>

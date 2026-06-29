@@ -103,6 +103,28 @@ defmodule ShuntWeb.WebLiveTest do
     end
   end
 
+  describe "desktop layout" do
+    test "the board page renders in the wide shell", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "main.main-content--wide")
+    end
+
+    test "the rumors view is laid out as a three-pane grid", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "#web-grid")
+      assert has_element?(view, "#web-grid #intake-rail")
+      assert has_element?(view, "#web-grid #web-board")
+      assert has_element?(view, "#web-grid #board-rail #board-signals")
+      assert has_element?(view, "#web-grid #board-rail #board-dossier")
+    end
+  end
+
   describe "place_rumor" do
     test "moves a rumor from the intake rail onto the board", %{conn: conn, player: player} do
       give_player_rumors(player, ["test_rumor_a"])

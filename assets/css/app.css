@@ -2356,16 +2356,50 @@
    Everything around it stays quiet so that surge reads. Layout/coords are still
    set inline by the WebBoard hook; only the look lives here. */
 
-/* TODO: desktop layout for The Web — make the board fill the wide shell (no big blank
-   gutters). Add a `.web-grid` three-column grid: minmax(168px,200px) | 1fr | minmax(288px,340px)
-   with a small gap, stretched to fill the available viewport height. Make #web-board fill its
-   grid cell (height: 100%) and replace its `min-height: 62vh` with a smaller min fallback so it
-   grows with the grid. Turn `.intake-rail` into a vertical scrolling rail (flex-direction:
-   column; overflow-y: auto; drop the horizontal scroll + bottom-border). Style #board-rail as a
-   vertical stack with #board-signals on top and #board-dossier below; give the dossier empty
-   state muted, centered placeholder text. Desktop-only — no mobile breakpoints.
-   Verify: on /skills/the-web the three panes fill the wide shell, board is the largest region,
-   and intake scrolls vertically. */
+/* Desktop three-pane layout: intake rail | board | signals + dossier rail. The board is the
+   star and fills the center; the rails stretch alongside and scroll their own overflow. */
+.web-grid {
+  display: grid;
+  grid-template-columns: minmax(168px, 200px) 1fr minmax(288px, 340px);
+  gap: 14px;
+  min-height: 78vh;
+  margin-bottom: 20px;
+}
+
+.board-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.board-signals {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.board-dossier {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid var(--border-c);
+  background: var(--sunk);
+}
+
+.dossier-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.6;
+}
 
 .dev-controls {
   display: flex;
@@ -2376,17 +2410,18 @@
 /* Intake rail — collected rumors waiting to be pinned; warm edge = unprocessed. */
 .intake-rail {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  overflow-x: auto;
-  padding: 4px 2px 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px dashed var(--border-c);
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 12px 4px 2px;
+  border-right: 1px dashed var(--border-c);
 }
 
 .intake-card {
   position: relative;
   flex: 0 0 auto;
-  width: 150px;
+  width: 100%;
   padding-left: 16px;
   cursor: grab;
   touch-action: none;
@@ -2410,8 +2445,8 @@
 /* The forensic plotting surface — graph grid + inset depth + corner brackets. */
 .web-board {
   position: relative;
-  min-height: 62vh;
-  margin-bottom: 20px;
+  height: 100%;
+  min-height: 320px;
   border: 1px solid var(--border-c);
   background-color: var(--sunk);
   background-image:
