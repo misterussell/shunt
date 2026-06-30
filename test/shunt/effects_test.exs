@@ -22,6 +22,32 @@ defmodule Shunt.EffectsTest do
     end
   end
 
+  describe "apply/2 - :install_module" do
+    test "appends a module key to an empty modules list" do
+      player = %Player{modules: []}
+
+      {changes, _meta} = Effects.apply(player, [{:install_module, "stash"}])
+
+      assert changes.modules == ["stash"]
+    end
+
+    test "appends to existing modules while preserving order" do
+      player = %Player{modules: ["stash"]}
+
+      {changes, _meta} = Effects.apply(player, [{:install_module, "latticework_bleed"}])
+
+      assert changes.modules == ["stash", "latticework_bleed"]
+    end
+
+    test "installing an already-owned module is a no-op (no duplicate)" do
+      player = %Player{modules: ["stash"]}
+
+      {changes, _meta} = Effects.apply(player, [{:install_module, "stash"}])
+
+      assert changes.modules == ["stash"]
+    end
+  end
+
   describe "apply/2 - :web_board" do
     test "sets the web_board to the given map" do
       board = %{"positions" => %{"a" => %{"x" => 0.1, "y" => 0.2}}, "wires" => [["a", "b"]]}

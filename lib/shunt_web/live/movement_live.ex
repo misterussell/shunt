@@ -167,6 +167,16 @@ defmodule ShuntWeb.MovementLive do
           <Chrome.section_header>LOCATION</Chrome.section_header>
           <Chrome.panel id="current-location">
             <p class="location-name">{@location.name}</p>
+            <%!-- Territory: the diegetic door into the hideout interior, shown only when this
+              location is the player's home base. See priv/docs/SHUNT_territory_ladder_v1.md §5. --%>
+            <.link
+              :if={@player.location_id == @player.premises_id}
+              navigate={~p"/hideout"}
+              id="enter-hideout"
+              class="btn-ghost location-event-button"
+            >
+              [ Enter the Hideout ]
+            </.link>
             <span
               :if={Shunt.Ghostwork.lattice_active?(@player, @location, @ghostwork_tool_key)}
               id="lattice-cue"

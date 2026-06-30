@@ -55,6 +55,32 @@ defmodule Shunt.RequirementsTest do
     end
   end
 
+  describe "met?/2 with {:has_module, key}" do
+    test "met when the key is in player.modules" do
+      player = %Player{modules: ["stash"]}
+
+      assert Requirements.met?(player, [{:has_module, "stash"}])
+    end
+
+    test "unmet when the key is absent" do
+      refute Requirements.met?(%Player{modules: []}, [{:has_module, "stash"}])
+    end
+  end
+
+  describe "met?/2 with {:premises_at_least, class}" do
+    test "met when the premises class is at or above the threshold" do
+      player = %Player{premises_id: "shunt9_player_squat"}
+
+      assert Requirements.met?(player, [{:premises_at_least, 1}])
+    end
+
+    test "unmet when the premises class is below the threshold" do
+      player = %Player{premises_id: "shunt9_player_squat"}
+
+      refute Requirements.met?(player, [{:premises_at_least, 2}])
+    end
+  end
+
   describe "met?/2 with {:infra_state, id, state}" do
     test "met when the repairable is in the given state" do
       player = %Player{infrastructure: %{"gen" => "repaired"}}

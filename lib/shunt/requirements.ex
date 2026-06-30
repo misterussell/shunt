@@ -40,6 +40,12 @@ defmodule Shunt.Requirements do
 
   defp check(player, {:has_item, key}), do: Map.get(player.inventory, key, 0) >= 1
 
+  defp check(player, {:has_module, key}), do: key in player.modules
+
+  defp check(player, {:premises_at_least, class}) do
+    Shunt.Territory.premises_class(player) >= class
+  end
+
   defp check(player, {:ghostwork_mastery_at_least, family, threshold}) do
     player.ghostwork_state
     |> Map.get("mastery", %{})

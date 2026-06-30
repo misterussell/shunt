@@ -186,6 +186,23 @@ defmodule ShuntWeb.MovementLiveTest do
     assert has_element?(view, ".section-header", "LOCATION")
   end
 
+  describe "the Enter the Hideout link" do
+    test "shows at the player's home base (location_id == premises_id)", %{conn: conn} do
+      # The default player starts at the squat, which is their premises.
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      assert has_element?(view, "#enter-hideout")
+    end
+
+    test "is absent when the player is away from their premises", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/map")
+
+      view |> element("#move-to-shunt9_maintenance_tunnel") |> render_click()
+
+      refute has_element?(view, "#enter-hideout")
+    end
+  end
+
   describe "events at shunt9_player_squat" do
     @event_id "shunt9_player_squat_deck"
 

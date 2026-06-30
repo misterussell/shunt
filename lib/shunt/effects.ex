@@ -136,6 +136,10 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, :web_board, board), meta)
   end
 
+  defp do_apply([{:install_module, key} | rest], player, acc, meta) do
+    append_distinct(rest, player, acc, meta, :modules, key)
+  end
+
   defp apply_node_op(node, {:bank_layer, n}), do: Map.put(node, "banked_layer", n)
   defp apply_node_op(node, :harden), do: Map.put(node, "hardened", true)
   defp apply_node_op(node, :clear_hardened), do: Map.put(node, "hardened", false)

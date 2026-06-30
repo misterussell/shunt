@@ -33,6 +33,14 @@ defmodule Shunt.Players.Player do
     # repairable's initial_state (resolved by Shunt.Repair.state/2).
     field :infrastructure, :map, default: %{}
 
+    # Territory ladder (see priv/docs/SHUNT_territory_ladder_v1.md §3). :premises_id is the home
+    # base location, distinct from :location_id (current location, which moves as the player
+    # travels). :modules holds installed hideout-module keys (append-only). :last_collected is the
+    # timestamp the income reservoir is computed from (nil until the first income module).
+    field :premises_id, :string, default: "shunt9_player_squat"
+    field :modules, {:array, :string}, default: []
+    field :last_collected, :utc_datetime
+
     field :location_id, :string, default: "shunt9_player_squat"
     field :discovered_locations, {:array, :string}, default: []
 

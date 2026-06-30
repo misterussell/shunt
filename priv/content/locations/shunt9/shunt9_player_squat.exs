@@ -4,6 +4,10 @@ alias Shunt.World.Exit
   id: "shunt9_player_squat",
   name: "Player Squat",
 
+  # Territory premises (the player's starting home base). Class 1 — the Squatter shell.
+  # See priv/docs/SHUNT_territory_ladder_v1.md.
+  premises_class: 1,
+
   short_description:
     "Your squat, such as it is.",
 
