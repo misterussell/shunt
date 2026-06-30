@@ -58,4 +58,13 @@ defmodule Shunt.Requirements do
   defp check(player, {:district, district_id, fact, op, target}) do
     Shunt.District.fact_meets?(player, district_id, fact, op, target)
   end
+
+  # TODO: [Territory] Add check for {:has_module, key} — true when key in player.modules.
+  # Mirrors the {:has_item, key} clause above. Unit-test both the present and absent case.
+
+  # TODO: [Territory] Add check for {:premises_at_least, class} — true when the class of the
+  # player's current premises (Shunt.Territory.premises_class(player), read from the premises
+  # location content) is >= class. Degrade to false on unknown premises content (matching how
+  # {:infra_state, ...} / {:district, ...} degrade rather than crash). Unit-test >=, <, and the
+  # unknown-premises case.
 end

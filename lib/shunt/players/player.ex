@@ -33,6 +33,14 @@ defmodule Shunt.Players.Player do
     # repairable's initial_state (resolved by Shunt.Repair.state/2).
     field :infrastructure, :map, default: %{}
 
+    # TODO: [Territory] Add three Territory fields (see priv/docs/SHUNT_territory_ladder_v1.md §3):
+    #   field :premises_id, :string, default: "shunt9_player_squat"  # home base location; distinct
+    #     from :location_id (current location). Relocation sets this.
+    #   field :modules, {:array, :string}, default: []  # installed module keys; append-only in v1.
+    #   field :last_collected, :utc_datetime  # timestamp the income reservoir is computed from; nil
+    #     until the first income module, set on collect.
+    # Create migration priv/repo/migrations/20260630120000_add_territory_to_players.exs adding the
+    # three columns with these defaults (premises_id default "shunt9_player_squat", modules default []).
     field :location_id, :string, default: "shunt9_player_squat"
     field :discovered_locations, {:array, :string}, default: []
 
