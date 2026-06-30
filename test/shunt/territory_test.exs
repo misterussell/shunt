@@ -74,6 +74,21 @@ defmodule Shunt.TerritoryTest do
     end
   end
 
+  describe "bleed/2" do
+    test "snapshots rate, reservoir, cap, and projected Heat in one pass" do
+      player = %Player{modules: ["latticework_bleed"], last_collected: @start}
+      now = DateTime.add(@start, 3 * 3600, :second)
+
+      # 3h * 5 scrip/hr = 15 pooled (cap 60); 15 scrip at 1 Heat / 30 -> 0 Heat.
+      assert Territory.bleed(player, now) == %{rate: 5, reservoir: 15, cap: 60, heat: 0}
+    end
+
+    test "is all zeros with no income running" do
+      assert Territory.bleed(%Player{modules: []}, @start) ==
+               %{rate: 0, reservoir: 0, cap: 0, heat: 0}
+    end
+  end
+
   describe "install_module/3" do
     test "errors on an unknown module" do
       assert Territory.install_module(%Player{}, "no_such_module", @start) ==

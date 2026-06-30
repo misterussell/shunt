@@ -68,8 +68,7 @@ defmodule ShuntWeb.HideoutLive do
   defp assign_hideout(socket, player) do
     now = now()
     {tier_n, tier_name} = Territory.tier(player)
-    reservoir = Territory.reservoir(player, now)
-    cap = Territory.reservoir_cap(player)
+    bleed = Territory.bleed(player, now)
 
     socket
     |> assign(:player, player)
@@ -77,11 +76,11 @@ defmodule ShuntWeb.HideoutLive do
     |> assign(:tier_n, tier_n)
     |> assign(:tier_name, tier_name)
     |> assign(:premises_class, Territory.premises_class(player))
-    |> assign(:income_rate, Territory.income_rate(player))
-    |> assign(:reservoir, reservoir)
-    |> assign(:reservoir_cap, cap)
-    |> assign(:reservoir_pct, Territory.reservoir_pct(reservoir, cap))
-    |> assign(:projected_heat, Territory.projected_heat(player, now))
+    |> assign(:income_rate, bleed.rate)
+    |> assign(:reservoir, bleed.reservoir)
+    |> assign(:reservoir_cap, bleed.cap)
+    |> assign(:reservoir_pct, Territory.reservoir_pct(bleed.reservoir, bleed.cap))
+    |> assign(:projected_heat, bleed.heat)
     |> assign(:available_modules, Territory.available_modules(player))
     |> assign(:available_relocations, Territory.available_relocations(player))
   end

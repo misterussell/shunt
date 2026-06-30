@@ -69,13 +69,31 @@ defmodule Shunt.Territory do
     player |> reservoirs(now) |> Enum.map(& &1.amount) |> Enum.sum()
   end
 
-  # Per income module: the scrip it has pooled at `now` and its trace_per (scrip per 1 Heat on
-  # collect). Per-module capping; for v1's single bleed module this equals the §4 global formula.
+  @doc """
+  A single-pass snapshot of the income bleed for the Hideout page and `collect/2`: the `rate`,
+  pooled `reservoir`, `cap`, and the `heat` a collect at `now` would cost — walking the player's
+  income modules once, instead of each value re-deriving them. Zeros for a player with no income.
+  """
+  def bleed(%Player{} = player, now) do
+    reservoirs = reservoirs(player, now)
+
+    %{
+      rate: reservoirs |> Enum.map(& &1.rate) |> Enum.sum(),
+      cap: reservoirs |> Enum.map(& &1.cap) |> Enum.sum(),
+      reservoir: reservoirs |> Enum.map(& &1.amount) |> Enum.sum(),
+      heat: reservoirs |> Enum.map(&div(&1.amount, &1.trace_per)) |> Enum.sum()
+    }
+  end
+
+  # Per income module: the scrip it has pooled at `now`, its trace_per (scrip per 1 Heat on
+  # collect), and its rate/cap. Per-module capping; for v1's single bleed module this equals the §4
+  # global formula.
   defp reservoirs(%Player{} = player, now) do
     elapsed = elapsed_hours(player.last_collected, now)
 
     for e <- income_effects(player) do
-      %{amount: min(trunc(e.rate * elapsed), e.rate * e.cap_hours), trace_per: e.trace_per}
+      cap = e.rate * e.cap_hours
+      %{amount: min(trunc(e.rate * elapsed), cap), trace_per: e.trace_per, rate: e.rate, cap: cap}
     end
   end
 
@@ -100,13 +118,14 @@ defmodule Shunt.Territory do
   so a greedy collect that crosses a band can trip a Heat event.
   """
   def collect(%Player{} = player, now) do
-    case reservoir(player, now) do
+    bleed = bleed(player, now)
+
+    case bleed.reservoir do
       0 ->
         {:error, :nothing_to_collect}
 
       take ->
-        {:ok,
-         [{:scrip, take}, {:heat, projected_heat(player, now)}, {:set, :last_collected, now}]}
+        {:ok, [{:scrip, take}, {:heat, bleed.heat}, {:set, :last_collected, now}]}
     end
   end
 
