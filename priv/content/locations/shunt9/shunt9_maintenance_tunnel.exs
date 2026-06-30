@@ -60,10 +60,6 @@ alias Shunt.World.Exit
       to: "shunt9_player_squat"
     },
     %Exit{
-      id: "maintenance_tunnel_to_cold_store",
-      to: "shunt9_cold_store"
-    },
-    %Exit{
       id: "maintenance_tunnel_to_freight_tunnel",
       to: "shunt9_freight_tunnel",
       requirements: [{:contact_known, "dex_broker"}]

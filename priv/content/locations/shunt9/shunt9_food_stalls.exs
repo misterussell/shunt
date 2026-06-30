@@ -51,6 +51,10 @@ alias Shunt.World.Exit
     %Exit{
       id: "food_stalls_to_bazaar",
       to: "shunt9_bazaar"
+    },
+    %Exit{
+      id: "food_stalls_to_cold_store",
+      to: "shunt9_cold_store"
     }
   ]
 }
