@@ -192,4 +192,5 @@ defmodule ShuntWeb.Layouts do
   defp cwd(:chrome_meat), do: "chrome-meat"
   defp cwd(:web), do: "the-web"
   defp cwd(:street_alchemy), do: "street-alchemy"
+  defp cwd(:hideout), do: "hideout"
 end

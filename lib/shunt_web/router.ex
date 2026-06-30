@@ -24,9 +24,10 @@ defmodule ShuntWeb.Router do
     live "/skills/chrome-meat", SkillsLive, :chrome_meat
     live "/skills/the-web", WebLive
     live "/skills/street-alchemy", SkillsLive, :street_alchemy
-    # TODO: [Territory] Add `live "/hideout", HideoutLive` (the hideout interior page;
-    # see priv/docs/SHUNT_territory_ladder_v1.md §5). HideoutLive self-gates access in mount
-    # (redirects to /map unless location_id == premises_id).
+    # The hideout interior (Territory). Self-gates access in mount: redirects to /map unless the
+    # player is physically at their premises (location_id == premises_id). Reached from the map's
+    # "Enter the Hideout" link. See priv/docs/SHUNT_territory_ladder_v1.md §5.
+    live "/hideout", HideoutLive
   end
 
   # Other scopes may use custom stacks.

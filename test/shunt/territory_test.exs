@@ -153,11 +153,33 @@ defmodule Shunt.TerritoryTest do
       assert Territory.relocate(player, "shunt9_cold_store") == {:error, :insufficient_cred}
     end
 
-    test "spends cost and sets the new premises on success" do
+    test "spends cost, sets the new premises, and moves the player into it" do
       player = %Player{premises_id: "shunt9_player_squat", scrip: 1000, cred: 100}
 
       assert Territory.relocate(player, "shunt9_cold_store") ==
-               {:ok, [{:scrip, -400}, {:cred, -30}, {:set, :premises_id, "shunt9_cold_store"}]}
+               {:ok,
+                [
+                  {:scrip, -400},
+                  {:cred, -30},
+                  {:set, :premises_id, "shunt9_cold_store"},
+                  {:set, :location_id, "shunt9_cold_store"}
+                ]}
+    end
+  end
+
+  describe "projected_heat/2" do
+    test "is the Heat a collect would cost, without collecting" do
+      player = %Player{modules: ["latticework_bleed"], last_collected: @start}
+      now = DateTime.add(@start, 12 * 3600, :second)
+
+      # full 60-scrip reservoir, 1 Heat / 30 scrip -> 2
+      assert Territory.projected_heat(player, now) == 2
+    end
+
+    test "is 0 when the reservoir is empty" do
+      player = %Player{modules: ["latticework_bleed"], last_collected: nil}
+
+      assert Territory.projected_heat(player, @start) == 0
     end
   end
 

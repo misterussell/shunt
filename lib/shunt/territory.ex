@@ -96,15 +96,22 @@ defmodule Shunt.Territory do
   so a greedy collect that crosses a band can trip a Heat event.
   """
   def collect(%Player{} = player, now) do
-    sources = reservoirs(player, now)
-    take = sources |> Enum.map(& &1.amount) |> Enum.sum()
+    case reservoir(player, now) do
+      0 ->
+        {:error, :nothing_to_collect}
 
-    if take == 0 do
-      {:error, :nothing_to_collect}
-    else
-      heat = sources |> Enum.map(&div(&1.amount, &1.trace_per)) |> Enum.sum()
-      {:ok, [{:scrip, take}, {:heat, heat}, {:set, :last_collected, now}]}
+      take ->
+        {:ok,
+         [{:scrip, take}, {:heat, projected_heat(player, now)}, {:set, :last_collected, now}]}
     end
+  end
+
+  @doc """
+  The Heat a collect at `now` would cost — for the Hideout page to show the cost before the player
+  commits — computed without collecting. Scales per each income module's `trace_per`.
+  """
+  def projected_heat(%Player{} = player, now) do
+    player |> reservoirs(now) |> Enum.map(&div(&1.amount, &1.trace_per)) |> Enum.sum()
   end
 
   @doc """
@@ -139,7 +146,9 @@ defmodule Shunt.Territory do
 
       with :ok <- ensure_requirements_met(player, Map.get(relocation, :requirements, [])),
            :ok <- ensure_affordable(player, cost) do
-        {:ok, spend(cost) ++ [{:set, :premises_id, target_id}]}
+        # Move the player into the new base too, so they stay inside the hideout after relocating
+        # (location_id == premises_id is what the Hideout page gates on).
+        {:ok, spend(cost) ++ [{:set, :premises_id, target_id}, {:set, :location_id, target_id}]}
       end
     end
   end

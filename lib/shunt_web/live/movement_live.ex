@@ -167,12 +167,16 @@ defmodule ShuntWeb.MovementLive do
           <Chrome.section_header>LOCATION</Chrome.section_header>
           <Chrome.panel id="current-location">
             <p class="location-name">{@location.name}</p>
-            <%!-- TODO: [Territory] When this location IS the player's home base
-              (@player.location_id == @player.premises_id), render an "Enter the Hideout" link
-              (<.link navigate={~p"/hideout"} id="enter-hideout">) — the diegetic door to the
-              hideout interior page. See priv/docs/SHUNT_territory_ladder_v1.md §5. The premises
-              map location's description can also shift with the derived tier so the exterior
-              reflects progress. (premises_id is already on @player; no extra assign needed.) --%>
+            <%!-- Territory: the diegetic door into the hideout interior, shown only when this
+              location is the player's home base. See priv/docs/SHUNT_territory_ladder_v1.md §5. --%>
+            <.link
+              :if={@player.location_id == @player.premises_id}
+              navigate={~p"/hideout"}
+              id="enter-hideout"
+              class="btn-ghost location-event-button"
+            >
+              [ Enter the Hideout ]
+            </.link>
             <span
               :if={Shunt.Ghostwork.lattice_active?(@player, @location, @ghostwork_tool_key)}
               id="lattice-cue"
