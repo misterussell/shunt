@@ -30,13 +30,13 @@ defmodule Shunt.Content.Store do
     {:repairables, "priv/content/repairables"},
     # District world-state defs (%Shunt.District.Def{}), the source of derived district facts.
     # The generic load_source/2 handles them via .id.
-    {:districts, "priv/content/districts"}
-    # TODO: [Territory] Register two new sources (see priv/docs/SHUNT_territory_ladder_v1.md §3):
-    #   {:modules, "priv/content/modules"}   — hideout upgrade defs (plain %{id, name, description,
-    #     cost, requirements, effect} maps); generic load_source/2 handles them via .id.
-    #   {:territory, "priv/content/territory"} — the single ladder def keyed id "ladder"; generic
-    #     load_source/2 handles it via .id. Directories may be empty until content lands (Path.wildcard
-    #     returns [] and the table is created empty, like :ice_nodes/:programs do today).
+    {:districts, "priv/content/districts"},
+    # Territory ladder + hideout modules (see priv/docs/SHUNT_territory_ladder_v1.md). The ladder
+    # is a single def keyed "ladder"; modules are plain %{id, ...} upgrade defs. Generic
+    # load_source/2 handles both via .id. The modules dir may be empty until content lands
+    # (Path.wildcard returns [] and the table is created empty, like :ice_nodes/:programs).
+    {:territory, "priv/content/territory"},
+    {:modules, "priv/content/modules"}
   ]
 
   def start_link(_opts) do

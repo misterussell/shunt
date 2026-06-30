@@ -11,23 +11,39 @@ defmodule Shunt.Territory do
   *class* and the *tier* name are derived, never stored (mirrors Shunt.District).
   """
 
-  # alias Shunt.Content
-  # alias Shunt.Players.Player
-  # alias Shunt.Requirements
+  alias Shunt.Content
+  alias Shunt.Players.Player
+  alias Shunt.Requirements
 
-  # TODO: [Territory] premises/1 — fetch the player's premises location content
-  # (Content.fetch!(:locations, player.premises_id)). premises_class/1 — read its
-  # :premises_class field (the premises shell is a location flagged with :premises_class +
-  # an optional :relocation block; see §3/§6). Decide the unknown/missing-class behavior:
-  # default to class 1 so a player on a non-premises location still resolves sanely.
+  @default_premises_class 1
+  @default_tier {1, "Squatter"}
 
-  # TODO: [Territory] tier/1 — return {n, name} for the deepest ladder tier the player
-  # satisfies. Model on Shunt.District.derive for :ordinal facts: fetch the ladder def
-  # (Content.fetch!(:territory, "ladder")), scan its tiers ordered DEEPEST-FIRST, return the
-  # first whose requirements are all met via Requirements.met?/2, else the default
-  # {1, "Squatter"}. Tier requirements use {:has_module, key} / {:premises_at_least, class}.
-  # Unit-test: no modules -> Squatter; stash -> Tenant; bleed (with class >=2) -> Operator;
-  # drop_point -> Fixture; an unauthored higher-tier keystone never derives.
+  @doc """
+  The player's derived Territory tier as `{n, name}` — the deepest ladder rung whose keystone
+  requirements are met (`Content` `:territory` "ladder", ordered deepest-first), else the default
+  `#{inspect(@default_tier)}`. Derived from `player.modules`; never stored (mirrors Shunt.District).
+  """
+  def tier(%Player{} = player) do
+    Content.fetch!(:territory, "ladder").tiers
+    |> Enum.find_value(@default_tier, fn rung ->
+      if Requirements.met?(player, rung.requirements), do: {rung.tier, rung.name}
+    end)
+  end
+
+  @doc "The player's premises location content, or `:error` if its id is unknown."
+  def premises(%Player{premises_id: id}), do: Content.fetch(:locations, id)
+
+  @doc """
+  The class of the player's current premises, read from the location's `:premises_class`.
+  Defaults to class #{@default_premises_class} for a non-premises location or an unknown
+  premises id (degrades rather than crashing, like the other derived reads).
+  """
+  def premises_class(%Player{} = player) do
+    case premises(player) do
+      {:ok, location} -> Map.get(location, :premises_class, @default_premises_class)
+      :error -> @default_premises_class
+    end
+  end
 
   # TODO: [Territory] Income math (pure; see §4). All take a fixed `now` so they unit-test
   # without a clock:
@@ -69,16 +85,13 @@ defmodule Shunt.Territory do
   # :relocation.requirements met, each with its cost and the class it unlocks. Unit-test the
   # buyable/locked partition against a player at class 1 vs class 2.
 
-  # TODO: [Territory] Author the content this module reads (Constitution pass on names per §9):
-  #   priv/content/territory/ladder.exs — one def %{id: "ladder", tiers: [...]} listing all 10
-  #     tiers ordered deepest-first; v1 wires real requirements for tiers 1-4 (Squatter default,
-  #     Tenant={:has_module,"stash"}, Operator={:has_module,"latticework_bleed"},
-  #     Fixture={:has_module,"drop_point"}); tiers 5-10 reference future modules so they never derive.
+  # TODO: [Territory] Author the remaining content (Constitution pass on names per §9). Done in the
+  # foundation slice: priv/content/territory/ladder.exs and premises_class: 1 on the squat. Still to
+  # author, alongside the resolvers/catalog that read them:
   #   priv/content/modules/stash.exs — :gate, premises_class_min 1, scrip cost (Tenant keystone).
   #   priv/content/modules/latticework_bleed.exs — :income, premises_class_min 2, scrip+cred cost,
   #     rate 5/hr, cap_hours 12, trace ~1 Heat/30 scrip (Operator keystone; the flagship).
   #   priv/content/modules/drop_point.exs — :gate, premises_class_min 2, scrip+cred cost (Fixture keystone).
-  #   priv/content/locations/shunt9/shunt9_player_squat.exs — add premises_class: 1.
   #   priv/content/locations/shunt9/<new class-2 safehouse>.exs — premises_class: 2, a :relocation
   #     block (cost + requirements), and an exit wired into the Shunt 9 map graph so it's navigable.
 end

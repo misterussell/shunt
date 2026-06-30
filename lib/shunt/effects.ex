@@ -136,11 +136,9 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, :web_board, board), meta)
   end
 
-  # TODO: [Territory] Add a {:install_module, key} handler that appends key to player.modules
-  # unless already present, threaded through acc — reuse append_distinct/6 exactly like the
-  # {:contact, key} / {:rumor, key} handlers above. Relocation and income-collect need no new
-  # effect: they ride the existing {:set, :premises_id, id} and {:set, :last_collected, now}.
-  # Unit-test that installing an already-owned module is a no-op (no duplicate).
+  defp do_apply([{:install_module, key} | rest], player, acc, meta) do
+    append_distinct(rest, player, acc, meta, :modules, key)
+  end
 
   defp apply_node_op(node, {:bank_layer, n}), do: Map.put(node, "banked_layer", n)
   defp apply_node_op(node, :harden), do: Map.put(node, "hardened", true)
