@@ -106,22 +106,24 @@ defmodule ShuntWeb.WebLive do
   # push any id; the board only recalls intel actually collected).
   def handle_event("inspect_rumor", %{"id" => id}, socket) do
     if id in socket.assigns.player.rumors do
-      {:noreply, socket |> assign(:inspected_rumor_id, id) |> board_assigns()}
+      {:noreply, socket |> assign(:inspected_rumor_id, id) |> assign_inspected()}
     else
       {:noreply, socket}
     end
   end
 
   def handle_event("close_dossier", _params, socket) do
-    {:noreply, socket |> assign(:inspected_rumor_id, nil) |> board_assigns()}
+    {:noreply, socket |> assign(:inspected_rumor_id, nil) |> assign_inspected()}
   end
 
-  # Fired by [ FOLLOW LEAD ] on a lead-ready warm cluster. Like connect_theory/2 it ignores the
-  # click when an event is already open or when the cluster is no longer a lead-ready lead for this
-  # connection_id (stale/duplicate click). The partial event is repeatable, so re-following just
-  # re-shows the lead.
-  def handle_event("follow_lead", %{"connection_id" => connection_id}, socket) do
-    lead = Enum.find(socket.assigns.warm, &(&1.connection.id == connection_id))
+  # Fired by [ FOLLOW LEAD ] on a lead-ready warm cluster. The lead is keyed on its cluster, not
+  # the connection, since two warm sub-clusters can point at the same connection. Like
+  # connect_theory/2 it ignores the click when an event is already open or when the named cluster
+  # is no longer a lead-ready lead (stale/duplicate click, or a non-repeatable partial already
+  # followed — warm_clusters drops lead_ready? once that partial is completed, so a re-click can't
+  # reopen the finished event into a soft-lock).
+  def handle_event("follow_lead", %{"lead_id" => lead_id}, socket) do
+    lead = Enum.find(socket.assigns.warm, &(&1.key == lead_id))
 
     case {socket.assigns.active_event_id, lead} do
       {nil, %{lead_ready?: true, connection: conn}} ->
@@ -275,7 +277,7 @@ defmodule ShuntWeb.WebLive do
                 class="leads-controls"
               >
                 <span class="leads-eyebrow">Leads</span>
-                <div :for={lead <- @warm} id={"lead-#{lead.connection.id}"} class="lead">
+                <div :for={lead <- @warm} id={"lead-#{lead.key}"} class="lead">
                   <div class="leads-meter">
                     <span
                       :for={i <- 1..lead.total}
@@ -283,14 +285,14 @@ defmodule ShuntWeb.WebLive do
                     >
                     </span>
                     <span class="leads-count">{lead.matched}/{lead.total}</span>
-                    <span class="leads-short">{lead.total - lead.matched} short</span>
+                    <span class="leads-short">{lead.short} short</span>
                   </div>
                   <Chrome.btn
                     :if={lead.lead_ready?}
-                    id={"follow-lead-#{lead.connection.id}"}
+                    id={"follow-lead-#{lead.key}"}
                     variant={:ghost}
                     phx-click="follow_lead"
-                    phx-value-connection_id={lead.connection.id}
+                    phx-value-lead_id={lead.key}
                   >
                     [ FOLLOW LEAD ]
                   </Chrome.btn>
@@ -357,10 +359,14 @@ defmodule ShuntWeb.WebLive do
     resonant_ids = cluster_ids(Enum.map(resonant, fn {cluster, _conn} -> cluster end))
     solved_ids = cluster_ids(Enum.map(solved, fn {cluster, _conn} -> cluster end))
 
-    warm = Web.warm_clusters(player)
+    # Each warm lead is keyed on its cluster (sorted rumor ids), not the connection: two warm
+    # sub-clusters can point at the same connection, so connection.id is not unique among leads.
+    warm =
+      player
+      |> Web.warm_clusters()
+      |> Enum.map(&Map.put(&1, :key, lead_key(&1.cluster)))
 
-    warm_ids =
-      Enum.reduce(warm, MapSet.new(), fn lead, acc -> MapSet.union(acc, lead.cluster) end)
+    warm_ids = cluster_ids(Enum.map(warm, & &1.cluster))
 
     placed =
       Enum.flat_map(Web.placed(player), fn {id, x, y} ->
@@ -382,16 +388,6 @@ defmodule ShuntWeb.WebLive do
         end
       end)
 
-    # The dossier rumor + its live status, derived from the open id so the IN PLAY line tracks the
-    # board while a dossier stays open. nil id (or removed content) falls back to the empty state.
-    inspected =
-      case socket.assigns[:inspected_rumor_id] do
-        nil -> nil
-        id -> fetch_rumor(id) |> List.first()
-      end
-
-    inspected_status = inspected && Web.rumor_status(player, inspected.id)
-
     socket
     |> assign(:rumors, player.rumors)
     |> assign(:intake, Enum.flat_map(Web.intake(player), &fetch_rumor/1))
@@ -399,6 +395,35 @@ defmodule ShuntWeb.WebLive do
     |> assign(:wires, Web.wires(player))
     |> assign(:resonant, resonant)
     |> assign(:warm, warm)
+    |> assign(:solved_ids, solved_ids)
+    |> assign(:resonant_ids, resonant_ids)
+    |> assign_inspected()
+  end
+
+  # The dossier rumor + its live status, derived from the open id so the IN PLAY line tracks the
+  # board while a dossier stays open. nil id (or removed content) falls back to the empty state.
+  # Reads the board breakdown board_assigns already stored in assigns, so a dossier-only toggle
+  # (inspect/close) refreshes the status without re-walking the board graph.
+  defp assign_inspected(socket) do
+    player = socket.assigns.player
+
+    inspected =
+      case socket.assigns[:inspected_rumor_id] do
+        nil -> nil
+        id -> fetch_rumor(id) |> List.first()
+      end
+
+    inspected_status =
+      inspected &&
+        Web.rumor_status(
+          player,
+          inspected.id,
+          socket.assigns.solved_ids,
+          socket.assigns.resonant_ids,
+          socket.assigns.warm
+        )
+
+    socket
     |> assign(:inspected, inspected)
     |> assign(:inspected_status, inspected_status)
   end
@@ -422,6 +447,11 @@ defmodule ShuntWeb.WebLive do
   end
 
   defp cluster_ids(clusters), do: Enum.reduce(clusters, MapSet.new(), &MapSet.union(&2, &1))
+
+  # Disjoint clusters → the sorted member ids uniquely and stably identify each warm lead, so the
+  # leads strip's DOM id (and follow_lead's handle) stay distinct even when two warm sub-clusters
+  # target the same connection.
+  defp lead_key(cluster), do: cluster |> Enum.sort() |> Enum.join("--")
 
   # Skips ids that no longer resolve to a rumor (renamed/removed content) instead of crashing.
   defp fetch_rumor(id) do

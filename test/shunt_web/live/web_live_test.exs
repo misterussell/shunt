@@ -72,7 +72,7 @@ defmodule ShuntWeb.WebLiveTest do
     partial_event = %Event{
       id: "test_web_partial",
       title: "Partial Read",
-      repeatable: true,
+      repeatable: false,
       steps: [
         %{
           id: "partial",
@@ -347,9 +347,31 @@ defmodule ShuntWeb.WebLiveTest do
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
 
       build_cluster(view, ["test_rumor_a", "test_rumor_b"])
-      view |> element("#follow-lead-test_conn") |> render_click()
+      view |> element("#leads-controls [phx-click='follow_lead']") |> render_click()
 
       assert has_element?(view, "#active-event", "A thread")
+    end
+
+    test "completing a non-repeatable lead retires FOLLOW LEAD (no re-follow soft-lock)", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b"])
+      view |> element("#leads-controls [phx-click='follow_lead']") |> render_click()
+
+      view
+      |> element("#active-event [phx-click='event_choice']", "Keep digging")
+      |> render_click()
+
+      # Partial done: panel closed and the cluster is still warm, but the lead can no longer be
+      # re-followed into the now-completed event.
+      refute has_element?(view, "#active-event")
+      assert has_element?(view, "#rumor-test_rumor_a[data-warm='true']")
+      refute has_element?(view, "#leads-controls [phx-click='follow_lead']")
     end
   end
 

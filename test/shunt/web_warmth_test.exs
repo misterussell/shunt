@@ -44,6 +44,7 @@ defmodule Shunt.WebWarmthTest do
       assert warm.cluster == MapSet.new(["ww_a", "ww_b"])
       assert warm.matched == 2
       assert warm.total == 3
+      assert warm.short == 1
       assert warm.lead_ready? == true
     end
 
@@ -72,6 +73,7 @@ defmodule Shunt.WebWarmthTest do
       assert warm.connection.id == "ww_quint"
       assert warm.matched == 2
       assert warm.total == 5
+      assert warm.short == 3
       assert warm.lead_ready? == false
     end
 
@@ -80,6 +82,19 @@ defmodule Shunt.WebWarmthTest do
         board_player(["ww_a", "ww_b"], [["ww_a", "ww_b"]], completed_events: ["ww_trio_success"])
 
       assert Web.warm_clusters(player) == []
+    end
+
+    test "a lead-ready cluster stops being lead-ready once its partial event is completed" do
+      # Following a non-repeatable partial lands its id in completed_events; the cluster stays warm
+      # (the connection's success event is still open) but can no longer be re-followed — otherwise
+      # re-clicking [ FOLLOW LEAD ] would reopen the finished event and soft-lock the panel.
+      player =
+        board_player(["ww_a", "ww_b"], [["ww_a", "ww_b"]], completed_events: ["ww_trio_partial"])
+
+      assert [warm] = Web.warm_clusters(player)
+      assert warm.matched == 2
+      assert warm.total == 3
+      assert warm.lead_ready? == false
     end
   end
 

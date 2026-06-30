@@ -2335,16 +2335,7 @@
   padding: 12px 0;
 }
 
-/* Active event panel — scoped so it doesn't fight the ghostwork event-log rules */
-#active-event .event-step-text {
-  color: var(--text);
-  font-size: 13.5px;
-  line-height: 1.55;
-  white-space: pre-line;
-  margin: 0 0 12px;
-}
-
-#active-event .event-choices,
+/* Repair modal shows its choices outright, overriding the hidden-by-default .event-choices base. */
 #repair-modal .event-choices {
   display: flex;
   opacity: 1;

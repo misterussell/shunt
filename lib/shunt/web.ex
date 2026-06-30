@@ -169,8 +169,11 @@ defmodule Shunt.Web do
   Warm (near-miss) clusters, as a list of maps. A cluster is warm toward a connection when its
   rumor set is a *proper* subset of that connection's rumors and holds at least two — so a lone
   placed card and an exact (resonant) match are both excluded. Already-solved connections are
-  skipped. Each entry is `%{cluster, connection, matched, total, lead_ready?}` where
-  `lead_ready?` is whether the cluster has reached the connection's `partial_threshold`.
+  skipped. Each entry is `%{cluster, connection, matched, total, short, lead_ready?}` where
+  `short` is how many rumors the cluster is still shy of the full set, and `lead_ready?` is
+  whether the cluster has reached the connection's `partial_threshold` *and* its
+  `partial_event_id` has not already been followed — a non-repeatable partial drops out of
+  lead-ready once completed, so the lead can't be re-followed into an already-finished event.
 
   This is the shared partial-match primitive: the dossier's "in play" status and the leads strip
   both read it.
@@ -183,13 +186,19 @@ defmodule Shunt.Web do
     |> Enum.flat_map(fn cluster ->
       with true <- MapSet.size(cluster) >= 2,
            conn when not is_nil(conn) <- best_partial_connection(player, cluster, connections) do
+        matched = MapSet.size(cluster)
+        total = length(conn.rumors)
+
         [
           %{
             cluster: cluster,
             connection: conn,
-            matched: MapSet.size(cluster),
-            total: length(conn.rumors),
-            lead_ready?: MapSet.size(cluster) >= conn.partial_threshold
+            matched: matched,
+            total: total,
+            short: total - matched,
+            lead_ready?:
+              matched >= conn.partial_threshold and
+                conn.partial_event_id not in player.completed_events
           }
         ]
       else
@@ -208,11 +217,37 @@ defmodule Shunt.Web do
     * `:solved` — in a solved cluster
   """
   def rumor_status(player, id) do
+    rumor_status(
+      player,
+      id,
+      locked_rumor_ids(player),
+      resonant_rumor_ids(player),
+      warm_clusters(player)
+    )
+  end
+
+  @doc """
+  `rumor_status/2` against an already-computed board breakdown — the locked (solved) and
+  resonant id sets and the warm-cluster list. Callers that just built those (the board LiveView)
+  pass them in so the status line doesn't re-walk the graph and reload connections for each open
+  dossier.
+  """
+  def rumor_status(player, id, solved_ids, resonant_ids, warm) do
     cond do
-      not Map.has_key?(board(player)["positions"], id) -> :not_placed
-      MapSet.member?(locked_rumor_ids(player), id) -> :solved
-      MapSet.member?(resonant_rumor_ids(player), id) -> :resonant
-      true -> forming_status(player, id)
+      not Map.has_key?(board(player)["positions"], id) ->
+        :not_placed
+
+      MapSet.member?(solved_ids, id) ->
+        :solved
+
+      MapSet.member?(resonant_ids, id) ->
+        :resonant
+
+      true ->
+        case Enum.find(warm, &MapSet.member?(&1.cluster, id)) do
+          nil -> :on_board
+          warm_cluster -> {:forming, warm_cluster.matched, warm_cluster.total}
+        end
     end
   end
 
@@ -228,13 +263,6 @@ defmodule Shunt.Web do
         not solved?(player, conn)
     end)
     |> Enum.min_by(&length(&1.rumors), fn -> nil end)
-  end
-
-  defp forming_status(player, id) do
-    case Enum.find(warm_clusters(player), &MapSet.member?(&1.cluster, id)) do
-      nil -> :on_board
-      warm -> {:forming, warm.matched, warm.total}
-    end
   end
 
   defp resonant_rumor_ids(player) do
