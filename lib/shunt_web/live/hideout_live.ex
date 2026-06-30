@@ -249,14 +249,14 @@ defmodule ShuntWeb.HideoutLive do
                 :for={entry <- @available_modules}
                 id={"module-#{entry.module.id}"}
                 class="hideout-acq-item"
-                data-state={catalog_state(entry)}
+                data-state={state_css(catalog_state(entry))}
               >
                 <p class="hideout-acq-name">{entry.module.name}</p>
                 <p class="hideout-acq-desc">{entry.module.description}</p>
                 <div class="hideout-acq-foot">
                   <span class="hideout-cost">{cost_label(entry.module.cost)}</span>
-                  <%= cond do %>
-                    <% entry.status == :buyable and entry.affordable? -> %>
+                  <%= case catalog_state(entry) do %>
+                    <% :ready -> %>
                       <button
                         id={"buy-module-#{entry.module.id}"}
                         phx-click="buy_module"
@@ -265,11 +265,11 @@ defmodule ShuntWeb.HideoutLive do
                       >
                         [ Install ]
                       </button>
-                    <% entry.status == :buyable -> %>
+                    <% :short -> %>
                       <span class="hideout-locked">Can't afford it.</span>
-                    <% entry.status == :locked_class -> %>
+                    <% :locked_class -> %>
                       <span class="hideout-locked">Needs a bigger place — relocate first.</span>
-                    <% true -> %>
+                    <% _ -> %>
                       <span class="hideout-locked">Locked.</span>
                   <% end %>
                 </div>
@@ -288,14 +288,14 @@ defmodule ShuntWeb.HideoutLive do
                 :for={entry <- @available_relocations}
                 id={"relocation-#{entry.location.id}"}
                 class="hideout-acq-item"
-                data-state={relocate_state(entry)}
+                data-state={state_css(relocate_state(entry))}
               >
                 <p class="hideout-acq-name">{entry.location.name}</p>
                 <p class="hideout-acq-desc">Unlocks class {entry.unlocks_class}.</p>
                 <div class="hideout-acq-foot">
                   <span class="hideout-cost">{cost_label(entry.cost)}</span>
-                  <%= cond do %>
-                    <% entry.status == :available and entry.affordable? -> %>
+                  <%= case relocate_state(entry) do %>
+                    <% :ready -> %>
                       <button
                         id={"relocate-#{entry.location.id}"}
                         phx-click="relocate"
@@ -304,9 +304,9 @@ defmodule ShuntWeb.HideoutLive do
                       >
                         [ Relocate Here ]
                       </button>
-                    <% entry.status == :available -> %>
+                    <% :short -> %>
                       <span class="hideout-locked">Can't afford the move.</span>
-                    <% true -> %>
+                    <% _ -> %>
                       <span class="hideout-locked">Locked.</span>
                   <% end %>
                 </div>
@@ -329,14 +329,22 @@ defmodule ShuntWeb.HideoutLive do
   defp fixture_glyph("drop_point"), do: "▤"
   defp fixture_glyph(_key), do: "▪"
 
-  # data-state for the acquisitions rail cards (drives the cyan/dim CSS treatment).
-  defp catalog_state(%{status: :buyable, affordable?: true}), do: "ready"
-  defp catalog_state(%{status: :buyable}), do: "short"
-  defp catalog_state(_entry), do: "locked"
+  # Presentation state for an acquisitions-rail card, derived once from (status, affordable?). Both
+  # the data-state CSS hook and the template's button/message branch read these, so the ready/short/
+  # locked rule lives in one place.
+  defp catalog_state(%{status: :buyable, affordable?: true}), do: :ready
+  defp catalog_state(%{status: :buyable}), do: :short
+  defp catalog_state(%{status: :locked_class}), do: :locked_class
+  defp catalog_state(_entry), do: :locked
 
-  defp relocate_state(%{status: :available, affordable?: true}), do: "ready"
-  defp relocate_state(%{status: :available}), do: "short"
-  defp relocate_state(_entry), do: "locked"
+  defp relocate_state(%{status: :available, affordable?: true}), do: :ready
+  defp relocate_state(%{status: :available}), do: :short
+  defp relocate_state(_entry), do: :locked
+
+  # The cyan/dim CSS treatment only distinguishes ready/short from everything locked.
+  defp state_css(:ready), do: "ready"
+  defp state_css(:short), do: "short"
+  defp state_css(_state), do: "locked"
 
   # Human-readable cost (e.g. "40 scrip", "150 scrip · 20 cred"). Pure formatting helper.
   defp cost_label(cost) do
