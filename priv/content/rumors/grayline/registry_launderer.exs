@@ -4,5 +4,6 @@
   description:
     "The Court's echoes hold up because they aren't forgeries — Sana writes them into the Midgrid registry directly, using real access borrowed off a clerk uptown who doesn't know he's lending it. Cut that borrowed access and the Court can't seat a single name.",
   source: "npc",
+  origin: "From someone near Sana's work who knows whose access does the writing.",
   tags: ["court", "registry", "identity"]
 }

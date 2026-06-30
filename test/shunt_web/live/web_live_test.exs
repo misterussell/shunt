@@ -18,7 +18,8 @@ defmodule ShuntWeb.WebLiveTest do
         title: "Intel A",
         description: "First.",
         source: "npc",
-        tags: []
+        origin: "Overheard in the back-rows",
+        tags: ["alpha"]
       },
       %Rumor{
         id: "test_rumor_b",
@@ -68,14 +69,29 @@ defmodule ShuntWeb.WebLiveTest do
       on_complete: [{:scrip, 100}]
     }
 
+    partial_event = %Event{
+      id: "test_web_partial",
+      title: "Partial Read",
+      repeatable: false,
+      steps: [
+        %{
+          id: "partial",
+          text: "A thread, not the whole cloth.",
+          choices: [%{label: "Keep digging", complete: true}]
+        }
+      ],
+      on_complete: []
+    }
+
     :ets.insert(:rumors, Enum.map(rumors, &{&1.id, &1}))
     :ets.insert(:rumor_connections, {conn.id, conn})
-    :ets.insert(:events, [{success_event.id, success_event}])
+    :ets.insert(:events, [{success_event.id, success_event}, {partial_event.id, partial_event}])
 
     on_exit(fn ->
       Enum.each(rumors, &:ets.delete(:rumors, &1.id))
       :ets.delete(:rumor_connections, conn.id)
       :ets.delete(:events, success_event.id)
+      :ets.delete(:events, partial_event.id)
     end)
 
     %{player: player}
@@ -100,6 +116,88 @@ defmodule ShuntWeb.WebLiveTest do
       assert has_element?(view, "#intake-test_rumor_a", "Intel A")
       assert has_element?(view, "#intake-test_rumor_b", "Intel B")
       refute has_element?(view, "#board-empty")
+    end
+  end
+
+  describe "desktop layout" do
+    test "the board page renders in the wide shell", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "main.main-content--wide")
+    end
+
+    test "the rumors view is laid out as a three-pane grid", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "#web-grid")
+      assert has_element?(view, "#web-grid #intake-rail")
+      assert has_element?(view, "#web-grid #web-board")
+      assert has_element?(view, "#web-grid #board-rail #board-signals")
+      assert has_element?(view, "#web-grid #board-rail #board-dossier")
+    end
+  end
+
+  describe "dossier (recall)" do
+    test "the dossier starts empty", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "#board-dossier .dossier-empty")
+    end
+
+    test "every card carries an inspect glyph", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "#intake-test_rumor_a [data-inspect]")
+
+      render_hook(view, "place_rumor", %{"id" => "test_rumor_a", "x" => "0.5", "y" => "0.5"})
+
+      assert has_element?(view, "#rumor-test_rumor_a [data-inspect]")
+    end
+
+    test "inspecting a rumor opens its dossier with origin and description", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      view |> element("#intake-test_rumor_a [data-inspect]") |> render_click()
+
+      assert has_element?(view, "#board-dossier", "Intel A")
+      assert has_element?(view, "#board-dossier", "Overheard in the back-rows")
+      assert has_element?(view, "#board-dossier", "First.")
+      refute has_element?(view, "#board-dossier .dossier-empty")
+    end
+
+    test "the dossier reflects a rumor's in-play status", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b"])
+      view |> element("#rumor-test_rumor_a [data-inspect]") |> render_click()
+
+      assert has_element?(view, "#board-dossier", "2/3")
+    end
+
+    test "the dossier can be closed back to the empty state", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      view |> element("#intake-test_rumor_a [data-inspect]") |> render_click()
+      view |> element("#board-dossier [phx-click='close_dossier']") |> render_click()
+
+      assert has_element?(view, "#board-dossier .dossier-empty")
     end
   end
 
@@ -205,6 +303,78 @@ defmodule ShuntWeb.WebLiveTest do
     end
   end
 
+  describe "warmth (leads)" do
+    test "a partial cluster marks its cards warm", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b"])
+
+      assert has_element?(view, "#rumor-test_rumor_a[data-warm='true']")
+    end
+
+    test "a warm cluster surfaces a leads meter", %{conn: conn, player: player} do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b"])
+
+      assert has_element?(view, "#leads-controls", "2/3")
+    end
+
+    test "an exact (resonant) cluster is not warm and shows no leads", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+
+      refute has_element?(view, "#rumor-test_rumor_a[data-warm='true']")
+      refute has_element?(view, "#leads-controls")
+    end
+
+    test "FOLLOW LEAD on a lead-ready cluster opens the partial event", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b"])
+      view |> element("#leads-controls [phx-click='follow_lead']") |> render_click()
+
+      assert has_element?(view, "#active-event", "A thread")
+    end
+
+    test "completing a non-repeatable lead retires FOLLOW LEAD (no re-follow soft-lock)", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b"])
+      view |> element("#leads-controls [phx-click='follow_lead']") |> render_click()
+
+      view
+      |> element("#active-event [phx-click='event_choice']", "Keep digging")
+      |> render_click()
+
+      # Partial done: panel closed and the cluster is still warm, but the lead can no longer be
+      # re-followed into the now-completed event.
+      refute has_element?(view, "#active-event")
+      assert has_element?(view, "#rumor-test_rumor_a[data-warm='true']")
+      refute has_element?(view, "#leads-controls [phx-click='follow_lead']")
+    end
+  end
+
   describe "connect_theory" do
     test "clicking CONNECT on a resonant cluster opens the success event", %{
       conn: conn,
@@ -218,6 +388,20 @@ defmodule ShuntWeb.WebLiveTest do
       view |> element("#connect-test_conn") |> render_click()
 
       assert has_element?(view, "#active-event", "The pieces fit.")
+    end
+
+    test "the active-event panel renders a framed header with the event title", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      build_cluster(view, ["test_rumor_a", "test_rumor_b", "test_rumor_c"])
+      view |> element("#connect-test_conn") |> render_click()
+
+      assert has_element?(view, "#active-event .section-header-bracket", "Breakthrough")
     end
 
     test "completing the event applies rewards and locks the solved cluster", %{

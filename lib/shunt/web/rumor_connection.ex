@@ -3,11 +3,12 @@ defmodule Shunt.Web.RumorConnection do
 
   alias Shunt.Content
 
-  # NOTE: `partial_threshold`, `partial_event_id`, and `failure_event_id` are currently unused —
-  # the v2 board resonates on exact cluster match only, and the old `Web.resolve_theory/2` that
-  # consumed them was removed. They're kept on purpose as scaffolding: partial matching will
-  # likely surface later. Don't drop these (or the supplier_conspiracy partial/failure events and
-  # the authority_involvement rumor) as dead code.
+  # NOTE: `failure_event_id` is currently unused — the v2 board has no failure path yet (the old
+  # `Web.resolve_theory/2` that consumed it was removed). It's kept on purpose as scaffolding,
+  # along with the connections' failure events, since a failure path will likely surface later;
+  # don't drop them as dead code. (`partial_threshold` and `partial_event_id` are now live: the
+  # warmth/leads strip reads the threshold, and [ FOLLOW LEAD ] starts the partial event — which
+  # for supplier_conspiracy in turn awards the authority_involvement rumor.)
   @enforce_keys [
     :id,
     :rumors,

@@ -99,7 +99,7 @@ defmodule ShuntWeb.Layouts do
       </nav>
     </header>
 
-    <main class={["main-content", @active == :map && "main-content--wide"]}>
+    <main class={["main-content", @active in [:map, :web] && "main-content--wide"]}>
       {render_slot(@inner_block)}
     </main>
 

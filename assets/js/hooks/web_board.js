@@ -87,10 +87,13 @@ export default {
 
       const card = this.card(a)
       const resonant = card && card.dataset.resonant === "true"
+      const warm = card && card.dataset.warm === "true"
       const solved = card && card.dataset.solved === "true"
       line.setAttribute(
         "class",
-        ["wire", resonant && "wire--resonant", solved && "wire--solved"].filter(Boolean).join(" ")
+        ["wire", resonant && "wire--resonant", warm && "wire--warm", solved && "wire--solved"]
+          .filter(Boolean)
+          .join(" ")
       )
 
       // Solved wires are locked (.wire--solved sets pointer-events: none); only live wires
@@ -105,6 +108,9 @@ export default {
   // --- pointer routing ---------------------------------------------------
 
   onPointerDown(e) {
+    // The inspect glyph's phx-click must reach the server, so bail before any drag/wire routing
+    // (mirrors the [data-port] handling below).
+    if (e.target.closest("[data-inspect]")) return
     const port = e.target.closest("[data-port]")
     if (port) {
       e.preventDefault()
@@ -155,6 +161,11 @@ export default {
     card.style.position = "fixed"
     card.style.zIndex = "1000"
     card.style.transform = "none"
+    // Pin the measured width: intake cards are width:100% of the rail, so once they go
+    // position:fixed the percentage resolves against the viewport and the card would balloon to
+    // full-page width until dropped. Board cards have a fixed width and are unaffected, but this
+    // is harmless for them. Cleared in resetCard.
+    card.style.width = `${r.width}px`
     card.style.left = `${e.clientX - this.drag.offX}px`
     card.style.top = `${e.clientY - this.drag.offY}px`
   },
@@ -190,6 +201,7 @@ export default {
     card.style.left = ""
     card.style.top = ""
     card.style.transform = ""
+    card.style.width = ""
   },
 
   // --- wire drag ---------------------------------------------------------
@@ -242,6 +254,8 @@ export default {
       if (this.boundIntake.has(card)) return
       this.boundIntake.add(card)
       card.addEventListener("pointerdown", (e) => {
+        // Let the inspect glyph's click through instead of starting a drag (see onPointerDown).
+        if (e.target.closest("[data-inspect]")) return
         e.preventDefault()
         this.startDrag(card, e, true)
       })
