@@ -34,12 +34,19 @@ defmodule ShuntWeb.HideoutLive do
   alias Shunt.Players
   alias Shunt.Territory
 
+  # The reservoir accrues with real time, so a page left open goes stale. Re-derive on this cadence
+  # to keep the pooled scrip — and the Heat a collect will cost — truthful, so a collect never
+  # spikes more Heat than the page last showed.
+  @refresh_interval :timer.seconds(30)
+
   @impl true
   def mount(_params, _session, socket) do
     player_id = Players.get_player!().id
     player = Players.current(player_id)
 
     if player.location_id == player.premises_id do
+      if connected?(socket), do: :timer.send_interval(@refresh_interval, self(), :refresh)
+
       {:ok,
        socket |> assign(:player_id, player_id) |> assign(:status, nil) |> assign_hideout(player)}
     else
@@ -90,6 +97,13 @@ defmodule ShuntWeb.HideoutLive do
   defp percent(value, cap), do: round(value / cap * 100)
 
   @impl true
+  def handle_info(:refresh, socket) do
+    # Nothing about the player changed — only elapsed accrual — so re-derive from the held player at
+    # the current time (no DB read) to advance the reservoir/Heat readout.
+    {:noreply, assign_hideout(socket, socket.assigns.player)}
+  end
+
+  @impl true
   def handle_event("collect", _params, socket) do
     now = now()
 
@@ -99,6 +113,9 @@ defmodule ShuntWeb.HideoutLive do
 
       {:error, :nothing_to_collect} ->
         {:noreply, put_flash(socket, :info, "Nothing pooled yet.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, error_message(reason))}
     end
   end
 

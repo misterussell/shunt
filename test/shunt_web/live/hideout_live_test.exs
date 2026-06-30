@@ -51,6 +51,23 @@ defmodule ShuntWeb.HideoutLiveTest do
       assert Players.get_player!().scrip == 15
       refute has_element?(view, "#bleed-collect")
     end
+
+    test "the periodic refresh re-derives the bleed without crashing", %{conn: conn} do
+      three_hours_ago =
+        DateTime.utc_now() |> DateTime.add(-3 * 3600, :second) |> DateTime.truncate(:second)
+
+      setup_state([
+        {:install_module, "latticework_bleed"},
+        {:set, :last_collected, three_hours_ago}
+      ])
+
+      {:ok, view, _html} = live(conn, ~p"/hideout")
+
+      send(view.pid, :refresh)
+
+      # The reservoir readout still renders after a refresh tick.
+      assert has_element?(view, "#bleed-reservoir")
+    end
   end
 
   describe "modules" do
