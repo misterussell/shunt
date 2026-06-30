@@ -2878,3 +2878,400 @@
   box-shadow: 0 0 6px var(--cyan);
   animation: recblink 1.6s steps(1) infinite;
 }
+
+/* ── The Hideout (lib/shunt_web/live/hideout_live.ex) ──────────────────────────
+   The player's premises rendered as a place they stand in, not an inventory list:
+   a top-down floorplan where installed modules sit as placed fixtures, a wall-
+   mounted Bleed meter, and an off-site acquisitions rail. Every value references
+   the shared --tokens so both street/corp themes recolor. */
+
+.hideout-topbar {
+  margin-bottom: 14px;
+}
+
+.hideout-exit {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+
+.hideout-exit:hover {
+  color: var(--cyan);
+}
+
+.hideout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(248px, 320px);
+  gap: 14px;
+  align-items: start;
+}
+
+.hideout-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Identity — a stamped premises placard. */
+.hideout-placard {
+  position: relative;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, var(--p1), var(--p2));
+  border: 1px solid var(--border-c);
+  border-left: 2px solid var(--cyan);
+  box-shadow: inset 0 1px 0 0 var(--hi);
+}
+
+.hideout-placard-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hideout-premises-name {
+  margin: 0 0 6px;
+  font-family: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--cyan) 18%, transparent);
+}
+
+.hideout-placard-line {
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--cyan);
+}
+
+.hideout-placard-line .hideout-class {
+  color: var(--muted);
+}
+
+#hideout-tier {
+  color: var(--cyan);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 40%, transparent);
+}
+
+/* Floorplan + wall meter, side by side. */
+/* Installed rack (left) + Bleed meter (right), aligned to the top. */
+.hideout-room-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(186px, 208px);
+  gap: 14px;
+  align-items: start;
+}
+
+/* Installed equipment — a standard, scalable list styled as rack-mounted units.
+   Each owned module is one wide 1U unit; the list grows downward, no fixed slots. */
+.hideout-rack {
+  padding: 12px 14px 14px;
+  background: linear-gradient(180deg, var(--p1), var(--p2));
+  border: 1px solid var(--border-c);
+  box-shadow: inset 0 1px 0 0 var(--hi);
+}
+
+.hideout-rack-label {
+  display: block;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border-c);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hideout-rack-empty {
+  padding: 28px 8px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+.hideout-rack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* A rack unit — wide, thin, mounted on the cyan rail; reads as 1U equipment. */
+.hideout-rack-unit {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1px solid var(--border-c);
+  border-left: 2px solid var(--cyan);
+  box-shadow: inset 0 1px 0 0 var(--hi);
+}
+
+/* Status LED. */
+.hideout-rack-unit::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+}
+
+.hideout-unit-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-c);
+  background: var(--sunk);
+  color: var(--cyan);
+  font-size: 15px;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 55%, transparent);
+}
+
+.hideout-unit-name {
+  font-family: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.hideout-unit-tag {
+  margin-left: auto;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--cyan) 60%, var(--muted));
+}
+
+/* The Bleed — a metered device mounted on the room's wall. */
+.hideout-bleed {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 16px;
+  background: linear-gradient(180deg, var(--p1), var(--p2));
+  border: 1px solid var(--border-c);
+  box-shadow: inset 0 1px 0 0 var(--hi);
+}
+
+.hideout-bleed-eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--cyan) 40%, transparent);
+}
+
+/* Vertical reservoir tank — fills bottom-up to --fill%. */
+.hideout-reservoir {
+  position: relative;
+  height: 150px;
+  border: 1px solid var(--border-c);
+  background: var(--bar2);
+  overflow: hidden;
+}
+
+.hideout-reservoir-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--fill) * 1%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cyan) 85%, transparent),
+    color-mix(in srgb, var(--cyan) 35%, transparent)
+  );
+  box-shadow: 0 0 14px color-mix(in srgb, var(--cyan) 45%, transparent);
+  transition: height 400ms ease;
+}
+
+.hideout-reservoir::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: repeating-linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--border-c) 80%, transparent) 0 1px,
+    transparent 1px 30px
+  );
+}
+
+.hideout-reservoir-pct {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  text-align: center;
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text);
+}
+
+.hideout-bleed-readout {
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  color: var(--text);
+}
+
+.hideout-bleed-sep {
+  color: var(--muted);
+}
+
+.hideout-bleed-unit {
+  display: block;
+  margin-top: 2px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hideout-bleed-rate {
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--amber);
+}
+
+.hideout-bleed-warn {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.hideout-bleed-heat {
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  color: var(--red);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--red) 40%, transparent);
+}
+
+.hideout-collect {
+  width: 100%;
+  margin-top: 2px;
+}
+
+/* Shared small type. */
+.hideout-muted {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.hideout-locked {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hideout-cost {
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--amber);
+}
+
+/* Acquisitions rail — the off-site requisition board. */
+.hideout-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.hideout-acq {
+  padding: 12px 14px 14px;
+  background: linear-gradient(180deg, var(--p1), var(--p2));
+  border: 1px solid var(--border-c);
+  box-shadow: inset 0 1px 0 0 var(--hi);
+}
+
+.hideout-acq-title {
+  display: block;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border-c);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hideout-acq-item {
+  padding: 10px 0;
+  border-top: 1px solid color-mix(in srgb, var(--border-c) 55%, transparent);
+}
+
+.hideout-acq-item:first-of-type {
+  border-top: none;
+}
+
+.hideout-acq-name {
+  margin-bottom: 4px;
+  font-family: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text);
+}
+
+.hideout-acq-desc {
+  margin-bottom: 9px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.hideout-acq-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hideout-acq-item[data-state="ready"] .hideout-acq-name {
+  color: var(--cyan);
+}
+
+.hideout-acq-item[data-state="locked"] {
+  opacity: 0.55;
+}
+
+.hideout-acq-item[data-state="locked"] .hideout-acq-name {
+  color: var(--muted);
+}
+
+@media (max-width: 1040px) {
+  .hideout-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .hideout-room-wrap {
+    grid-template-columns: 1fr;
+  }
+}

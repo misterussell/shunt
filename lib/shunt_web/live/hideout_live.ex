@@ -22,8 +22,12 @@ defmodule ShuntWeb.HideoutLive do
     4. `#module-catalog`   — buyable vs locked modules.
     5. `#relocate`         — premises you can move up into.
 
-  Markup here is deliberately minimal/functional (plain classes, no visual polish) — the styling,
-  the reservoir gauge visualisation, locked-state treatment, and layout are the frontend pass's job.
+  The frontend pass renders these five sections as a physical space: a rack of installed
+  equipment (`#installed-modules`, one rack unit per owned module — a standard list that scales
+  as modules grow), a wall-mounted Bleed meter with a vertical reservoir gauge (`#bleed`), and an
+  off-site acquisitions rail (`#module-catalog` + `#relocate`). All visual rules live in
+  assets/css/app.css (`.hideout-*`); the section ids and phx-click/phx-value contracts above are
+  the stable surface the tests rely on.
   """
   use ShuntWeb, :live_view
 
@@ -145,124 +149,180 @@ defmodule ShuntWeb.HideoutLive do
     ~H"""
     <Layouts.app flash={@flash} player={@player} active={:hideout} status={@status}>
       <div id="hideout" class="hideout">
-        <.link navigate={~p"/map"} id="hideout-exit" class="hideout-exit">← Back to the street</.link>
+        <div class="hideout-topbar">
+          <.link navigate={~p"/map"} id="hideout-exit" class="hideout-exit">
+            ← Back to the street
+          </.link>
+        </div>
 
-        <%!-- 1. IDENTITY: who you are now. FRONTEND: this is the page's headline. --%>
-        <section id="hideout-identity" class="hideout-identity">
-          <p class="hideout-premises-name">{@premises_name}</p>
-          <p>
-            Tier {@tier_n}: <span id="hideout-tier">{@tier_name}</span>
-            <span class="hideout-class">· class {@premises_class} premises</span>
-          </p>
-        </section>
-
-        <%!-- 2. THE BLEED: income reservoir + collect. FRONTEND: the reservoir gauge (@reservoir /
-          @reservoir_cap, @reservoir_pct) is the marquee visual; show @projected_heat as the cost
-          of collecting BEFORE the click. The collect button only exists when something is pooled. --%>
-        <section id="bleed" class="hideout-bleed">
-          <h2>The Bleed</h2>
-          <%= if @income_rate > 0 do %>
-            <p id="bleed-reservoir">
-              {@reservoir} / {@reservoir_cap} scrip pooled ({@reservoir_pct}%)
-            </p>
-            <p class="hideout-muted">+{@income_rate} scrip/hr</p>
-            <%= if @reservoir > 0 do %>
-              <p>
-                Collecting now spikes Heat by <span id="bleed-projected-heat">{@projected_heat}</span>.
+        <div class="hideout-layout">
+          <%!-- LEFT: the room you stand in. --%>
+          <div class="hideout-stage">
+            <%!-- 1. IDENTITY: who you are now. The premises placard. --%>
+            <section id="hideout-identity" class="hideout-placard">
+              <span class="hideout-placard-eyebrow">Premises</span>
+              <p class="hideout-premises-name">{@premises_name}</p>
+              <p class="hideout-placard-line">
+                Tier {@tier_n}: <span id="hideout-tier">{@tier_name}</span>
+                <span class="hideout-class">· class {@premises_class} premises</span>
               </p>
-              <button id="bleed-collect" phx-click="collect" class="btn-ghost">
-                [ Collect Takings ]
-              </button>
-            <% else %>
-              <p class="hideout-muted">Nothing pooled yet — give it time.</p>
-            <% end %>
-          <% else %>
-            <p id="bleed-empty" class="hideout-muted">
-              No income running. Install a bleed to start skimming the Latticework.
-            </p>
-          <% end %>
-        </section>
+            </section>
 
-        <%!-- 3. INSTALLED: the "guts" you've added. FRONTEND: this is where a visual floorplan /
-          module slots could live later. Empty-state when nothing is installed. --%>
-        <section id="installed-modules" class="hideout-installed">
-          <h2>Installed</h2>
-          <p :if={@player.modules == []} class="hideout-muted">Bare walls. Nothing installed yet.</p>
-          <ul>
-            <li :for={key <- @player.modules} id={"installed-#{key}"}>{key}</li>
-          </ul>
-        </section>
+            <div class="hideout-room-wrap">
+              <%!-- 3. INSTALLED: the "guts" you've added, as a rack of equipment. A standard,
+                scalable list — one rack unit per owned module; grows downward, no fixed slots. --%>
+              <section id="installed-modules" class="hideout-rack">
+                <span class="hideout-rack-label">Installed // Rack</span>
+                <p :if={@player.modules == []} class="hideout-rack-empty">
+                  Bare walls. Nothing installed yet.
+                </p>
+                <div :if={@player.modules != []} class="hideout-rack-list">
+                  <div :for={key <- @player.modules} id={"installed-#{key}"} class="hideout-rack-unit">
+                    <span class="hideout-unit-glyph">{fixture_glyph(key)}</span>
+                    <span class="hideout-unit-name">{fixture_label(key)}</span>
+                    <span class="hideout-unit-tag">installed</span>
+                  </div>
+                </div>
+              </section>
 
-        <%!-- 4. CATALOG: buyable vs locked modules. FRONTEND: :buyable+affordable gets the buy
-          button; :buyable-but-unaffordable, :locked_class ("relocate to unlock"), and :locked each
-          want a distinct visual treatment. Every entry keeps id="module-<key>". --%>
-        <section id="module-catalog" class="hideout-catalog">
-          <h2>Upgrades</h2>
-          <div
-            :for={entry <- @available_modules}
-            id={"module-#{entry.module.id}"}
-            class="hideout-catalog-item"
-          >
-            <p class="hideout-catalog-name">{entry.module.name}</p>
-            <p class="hideout-muted">{entry.module.description}</p>
-            <p class="hideout-cost">{cost_label(entry.module.cost)}</p>
-            <%= cond do %>
-              <% entry.status == :buyable and entry.affordable? -> %>
-                <button
-                  id={"buy-module-#{entry.module.id}"}
-                  phx-click="buy_module"
-                  phx-value-key={entry.module.id}
-                  class="btn-ghost"
-                >
-                  [ Install ]
-                </button>
-              <% entry.status == :buyable -> %>
-                <p class="hideout-locked">Can't afford it.</p>
-              <% entry.status == :locked_class -> %>
-                <p class="hideout-locked">Needs a bigger place — relocate first.</p>
-              <% true -> %>
-                <p class="hideout-locked">Locked.</p>
-            <% end %>
+              <%!-- 2. THE BLEED: income reservoir + collect — a meter on the wall. The vertical
+                reservoir gauge fills to @reservoir_pct; @projected_heat warns of the cost of
+                collecting before the click. The collect button only exists when something is pooled. --%>
+              <section id="bleed" class="hideout-bleed">
+                <span class="hideout-bleed-eyebrow">The Bleed</span>
+                <%= if @income_rate > 0 do %>
+                  <div class="hideout-reservoir">
+                    <div class="hideout-reservoir-fill" style={"--fill: #{@reservoir_pct}"}></div>
+                    <span class="hideout-reservoir-pct">{@reservoir_pct}%</span>
+                  </div>
+                  <p id="bleed-reservoir" class="hideout-bleed-readout">
+                    {@reservoir} <span class="hideout-bleed-sep">/</span> {@reservoir_cap}
+                    <span class="hideout-bleed-unit">scrip pooled</span>
+                  </p>
+                  <p class="hideout-bleed-rate">+{@income_rate} scrip/hr</p>
+                  <%= if @reservoir > 0 do %>
+                    <p class="hideout-bleed-warn">
+                      Collecting now spikes Heat by <span
+                        id="bleed-projected-heat"
+                        class="hideout-bleed-heat"
+                      >{@projected_heat}</span>.
+                    </p>
+                    <button id="bleed-collect" phx-click="collect" class="btn-primary hideout-collect">
+                      [ Collect Takings ]
+                    </button>
+                  <% else %>
+                    <p class="hideout-muted">Nothing pooled yet — give it time.</p>
+                  <% end %>
+                <% else %>
+                  <p id="bleed-empty" class="hideout-muted">
+                    No income running. Install a bleed to start skimming the Latticework.
+                  </p>
+                <% end %>
+              </section>
+            </div>
           </div>
-        </section>
 
-        <%!-- 5. RELOCATE: premises you can move up into. FRONTEND: show cost + the class it unlocks;
-          higher rungs you can't reach yet are good "aspirational goal" UI. Each keeps
-          id="relocation-<location_id>"; the move button is id="relocate-<location_id>". --%>
-        <section id="relocate" class="hideout-relocate">
-          <h2>Move Up</h2>
-          <p :if={@available_relocations == []} class="hideout-muted">
-            Nothing bigger within reach. Build out what you've got.
-          </p>
-          <div
-            :for={entry <- @available_relocations}
-            id={"relocation-#{entry.location.id}"}
-            class="hideout-relocate-item"
-          >
-            <p class="hideout-catalog-name">{entry.location.name}</p>
-            <p class="hideout-muted">Unlocks class {entry.unlocks_class}.</p>
-            <p class="hideout-cost">{cost_label(entry.cost)}</p>
-            <%= cond do %>
-              <% entry.status == :available and entry.affordable? -> %>
-                <button
-                  id={"relocate-#{entry.location.id}"}
-                  phx-click="relocate"
-                  phx-value-to={entry.location.id}
-                  class="btn-ghost"
-                >
-                  [ Relocate Here ]
-                </button>
-              <% entry.status == :available -> %>
-                <p class="hideout-locked">Can't afford the move.</p>
-              <% true -> %>
-                <p class="hideout-locked">Locked.</p>
-            <% end %>
+          <%!-- RIGHT: the off-site acquisitions rail. --%>
+          <div class="hideout-rail">
+            <%!-- 4. CATALOG: buyable vs locked modules. :buyable+affordable gets the buy button;
+              the other states render as desaturated, un-actionable rows. Each keeps id="module-<key>". --%>
+            <section id="module-catalog" class="hideout-acq">
+              <span class="hideout-acq-title">Upgrades // Installable</span>
+              <p :if={@available_modules == []} class="hideout-muted">
+                Nothing left to bolt in. You're running the full kit.
+              </p>
+              <div
+                :for={entry <- @available_modules}
+                id={"module-#{entry.module.id}"}
+                class="hideout-acq-item"
+                data-state={catalog_state(entry)}
+              >
+                <p class="hideout-acq-name">{entry.module.name}</p>
+                <p class="hideout-acq-desc">{entry.module.description}</p>
+                <div class="hideout-acq-foot">
+                  <span class="hideout-cost">{cost_label(entry.module.cost)}</span>
+                  <%= cond do %>
+                    <% entry.status == :buyable and entry.affordable? -> %>
+                      <button
+                        id={"buy-module-#{entry.module.id}"}
+                        phx-click="buy_module"
+                        phx-value-key={entry.module.id}
+                        class="btn-ghost"
+                      >
+                        [ Install ]
+                      </button>
+                    <% entry.status == :buyable -> %>
+                      <span class="hideout-locked">Can't afford it.</span>
+                    <% entry.status == :locked_class -> %>
+                      <span class="hideout-locked">Needs a bigger place — relocate first.</span>
+                    <% true -> %>
+                      <span class="hideout-locked">Locked.</span>
+                  <% end %>
+                </div>
+              </div>
+            </section>
+
+            <%!-- 5. RELOCATE: premises you can move up into. Shows cost + the class it unlocks;
+              higher rungs you can't reach yet read as dim, aspirational rows. Each keeps
+              id="relocation-<location_id>"; the move button is id="relocate-<location_id>". --%>
+            <section id="relocate" class="hideout-acq">
+              <span class="hideout-acq-title">Relocate // Move Up</span>
+              <p :if={@available_relocations == []} class="hideout-muted">
+                Nothing bigger within reach. Build out what you've got.
+              </p>
+              <div
+                :for={entry <- @available_relocations}
+                id={"relocation-#{entry.location.id}"}
+                class="hideout-acq-item"
+                data-state={relocate_state(entry)}
+              >
+                <p class="hideout-acq-name">{entry.location.name}</p>
+                <p class="hideout-acq-desc">Unlocks class {entry.unlocks_class}.</p>
+                <div class="hideout-acq-foot">
+                  <span class="hideout-cost">{cost_label(entry.cost)}</span>
+                  <%= cond do %>
+                    <% entry.status == :available and entry.affordable? -> %>
+                      <button
+                        id={"relocate-#{entry.location.id}"}
+                        phx-click="relocate"
+                        phx-value-to={entry.location.id}
+                        class="btn-ghost"
+                      >
+                        [ Relocate Here ]
+                      </button>
+                    <% entry.status == :available -> %>
+                      <span class="hideout-locked">Can't afford the move.</span>
+                    <% true -> %>
+                      <span class="hideout-locked">Locked.</span>
+                  <% end %>
+                </div>
+              </div>
+            </section>
           </div>
-        </section>
+        </div>
       </div>
     </Layouts.app>
     """
   end
+
+  # Presentation-only helpers for the floorplan fixtures: a readable name and a glyph from the
+  # raw module key (player.modules holds only keys). Unmapped keys degrade to the humanized key.
+  defp fixture_label(key),
+    do: key |> String.split("_") |> Enum.map_join(" ", &String.capitalize/1)
+
+  defp fixture_glyph("stash"), do: "▣"
+  defp fixture_glyph("latticework_bleed"), do: "◈"
+  defp fixture_glyph("drop_point"), do: "▤"
+  defp fixture_glyph(_key), do: "▪"
+
+  # data-state for the acquisitions rail cards (drives the cyan/dim CSS treatment).
+  defp catalog_state(%{status: :buyable, affordable?: true}), do: "ready"
+  defp catalog_state(%{status: :buyable}), do: "short"
+  defp catalog_state(_entry), do: "locked"
+
+  defp relocate_state(%{status: :available, affordable?: true}), do: "ready"
+  defp relocate_state(%{status: :available}), do: "short"
+  defp relocate_state(_entry), do: "locked"
 
   # Human-readable cost (e.g. "40 scrip", "150 scrip · 20 cred"). Pure formatting helper.
   defp cost_label(cost) do
