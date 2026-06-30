@@ -1,6 +1,7 @@
 defmodule ShuntWeb.HideoutLiveTest do
   use ShuntWeb.ConnCase
 
+  import ExUnit.CaptureLog, only: [with_log: 1]
   import Phoenix.LiveViewTest
 
   alias Shunt.Players
@@ -67,6 +68,21 @@ defmodule ShuntWeb.HideoutLiveTest do
 
       # The reservoir readout still renders after a refresh tick.
       assert has_element?(view, "#bleed-reservoir")
+    end
+
+    test "an unexpected dispatch error flashes gracefully instead of crashing" do
+      # The collect handler must not fall through on a dispatch error other than
+      # :nothing_to_collect (a DB/server failure mid-collect). A mounted LiveView can't reach that
+      # branch — its player server stays alive all test — so drive the callback directly with a
+      # player_id that has no row and no server, which makes Players.dispatch return
+      # {:error, :not_found}. with_log swallows the expected start-failure crash report.
+      socket = %Phoenix.LiveView.Socket{assigns: %{__changed__: %{}, player_id: -1, flash: %{}}}
+
+      {result, _log} =
+        with_log(fn -> ShuntWeb.HideoutLive.handle_event("collect", %{}, socket) end)
+
+      assert {:noreply, errored} = result
+      assert errored.assigns.flash["error"] == "That didn't work."
     end
   end
 
