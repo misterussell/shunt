@@ -80,7 +80,7 @@ defmodule ShuntWeb.HideoutLive do
     |> assign(:income_rate, Territory.income_rate(player))
     |> assign(:reservoir, reservoir)
     |> assign(:reservoir_cap, cap)
-    |> assign(:reservoir_pct, percent(reservoir, cap))
+    |> assign(:reservoir_pct, Territory.reservoir_pct(reservoir, cap))
     |> assign(:projected_heat, Territory.projected_heat(player, now))
     |> assign(:available_modules, Territory.available_modules(player))
     |> assign(:available_relocations, Territory.available_relocations(player))
@@ -92,9 +92,6 @@ defmodule ShuntWeb.HideoutLive do
       :error -> "Unknown"
     end
   end
-
-  defp percent(_value, 0), do: 0
-  defp percent(value, cap), do: round(value / cap * 100)
 
   @impl true
   def handle_info(:refresh, socket) do

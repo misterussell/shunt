@@ -55,6 +55,10 @@ defmodule Shunt.Territory do
     player |> income_effects() |> Enum.map(&(&1.rate * &1.cap_hours)) |> Enum.sum()
   end
 
+  @doc "Reservoir fill as a 0–100 percentage of its cap (0 when the cap is 0)."
+  def reservoir_pct(_reservoir, 0), do: 0
+  def reservoir_pct(reservoir, cap), do: round(reservoir / cap * 100)
+
   @doc """
   Scrip currently pooled in the income reservoir at `now`, computed on demand from
   `player.last_collected` (offline-earnings; no scheduler). Each income module accrues

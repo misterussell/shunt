@@ -34,6 +34,17 @@ defmodule Shunt.TerritoryTest do
     end
   end
 
+  describe "reservoir_pct/2" do
+    test "is the fill as a 0–100 percentage of the cap" do
+      assert Territory.reservoir_pct(30, 60) == 50
+      assert Territory.reservoir_pct(60, 60) == 100
+    end
+
+    test "is 0 when the cap is 0 (no income running)" do
+      assert Territory.reservoir_pct(0, 0) == 0
+    end
+  end
+
   describe "reservoir/2" do
     test "is 0 when last_collected is nil (no accrual started)" do
       player = %Player{modules: ["latticework_bleed"], last_collected: nil}
