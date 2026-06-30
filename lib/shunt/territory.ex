@@ -107,35 +107,152 @@ defmodule Shunt.Territory do
     end
   end
 
-  # TODO: [Territory] install_module/2 (resolver) — given (player, module_key): look up the
-  # module def; return {:error, :unknown_module} / {:error, :already_owned} /
-  # {:error, :premises_class_too_low} / {:error, :insufficient_scrip|:insufficient_cred} /
-  # {:error, :requirements_unmet} as appropriate, else {:ok, effects} = [{:scrip, -cost.scrip},
-  # {:cred, -cost.cred}, {:install_module, key}] plus, when the module's effect is :income and
-  # player.last_collected is nil, {:set, :last_collected, now} to start accrual (pass `now` in).
-  # Unit-test each error branch and the happy path effect list.
+  @doc """
+  Buy and install a hideout module (a pure resolver). Validates, in order, that the module exists,
+  isn't already owned, the premises class meets its `premises_class_min`, its extra `requirements`
+  are met, and the player can afford its `cost`. On success returns the spend + install effects;
+  installing an income module with no `last_collected` yet also starts accrual (`now` is passed in).
+  """
+  def install_module(%Player{} = player, module_key, now) do
+    with {:ok, module} <- fetch_module(module_key),
+         :ok <- ensure_not_owned(player, module_key),
+         :ok <- ensure_premises_class(player, module),
+         :ok <- ensure_requirements_met(player, module.requirements),
+         :ok <- ensure_affordable(player, module.cost) do
+      {:ok,
+       spend(module.cost) ++ [{:install_module, module_key}] ++ income_start(player, module, now)}
+    end
+  end
 
-  # TODO: [Territory] relocate/2 (resolver) — given (player, premises_location_id): the target
-  # must be a location carrying :premises_class and a :relocation block, with class greater than
-  # the current premises, cost affordable, and :relocation.requirements met. Errors:
-  # {:error, :not_a_premises} / {:error, :not_an_upgrade} / {:error, :insufficient_scrip|:insufficient_cred}
-  # / {:error, :requirements_unmet}; else {:ok, [{:scrip, -cost.scrip}, {:cred, -cost.cred},
-  # {:set, :premises_id, target_id}]}. Note: modules and last_collected carry across relocation
-  # (do NOT reset them). Unit-test the error branches and the happy path.
+  @doc """
+  Relocate to a better premises (a pure resolver). The target must be a premises location
+  (carries `:premises_class`) of a higher class than the current one, with its `:relocation`
+  gates met and cost affordable. On success returns the spend + `{:set, :premises_id, ...}`;
+  modules and `last_collected` carry across (not reset). Errors: `:not_a_premises`,
+  `:not_an_upgrade`, `:requirements_unmet`, `:insufficient_scrip`/`:insufficient_cred`.
+  """
+  def relocate(%Player{} = player, target_id) do
+    with {:ok, location} <- fetch_premises(target_id),
+         :ok <- ensure_upgrade(player, location) do
+      relocation = Map.get(location, :relocation, %{})
+      cost = Map.get(relocation, :cost, %{})
 
-  # TODO: [Territory] available_modules/1 and available_relocations/1 — for the Hideout catalog.
-  # available_modules: module defs not already owned, partitioned for the UI into buyable
-  # (class + cost + requirements all met) vs locked (class ceiling not yet met -> "relocate"
-  # hint). available_relocations: premises-flagged locations with class greater than current and
-  # :relocation.requirements met, each with its cost and the class it unlocks. Unit-test the
-  # buyable/locked partition against a player at class 1 vs class 2.
+      with :ok <- ensure_requirements_met(player, Map.get(relocation, :requirements, [])),
+           :ok <- ensure_affordable(player, cost) do
+        {:ok, spend(cost) ++ [{:set, :premises_id, target_id}]}
+      end
+    end
+  end
 
-  # TODO: [Territory] Author the remaining content (Constitution pass on names per §9). Done in the
-  # foundation slice: priv/content/territory/ladder.exs and premises_class: 1 on the squat. Still to
-  # author, alongside the resolvers/catalog that read them:
-  #   priv/content/modules/stash.exs — :gate, premises_class_min 1, scrip cost (Tenant keystone).
-  #   priv/content/modules/drop_point.exs — :gate, premises_class_min 2, scrip+cred cost (Fixture keystone).
-  #   (latticework_bleed.exs is authored — the income slice.)
-  #   priv/content/locations/shunt9/<new class-2 safehouse>.exs — premises_class: 2, a :relocation
-  #     block (cost + requirements), and an exit wired into the Shunt 9 map graph so it's navigable.
+  defp fetch_premises(id) do
+    case Content.fetch(:locations, id) do
+      {:ok, %{premises_class: _} = location} -> {:ok, location}
+      _ -> {:error, :not_a_premises}
+    end
+  end
+
+  defp ensure_upgrade(player, location) do
+    unless_error(location.premises_class <= premises_class(player), :not_an_upgrade)
+  end
+
+  defp fetch_module(key) do
+    case Content.fetch(:modules, key) do
+      {:ok, module} -> {:ok, module}
+      :error -> {:error, :unknown_module}
+    end
+  end
+
+  defp ensure_not_owned(player, key), do: unless_error(key in player.modules, :already_owned)
+
+  defp ensure_premises_class(player, module) do
+    unless_error(premises_class(player) < module.premises_class_min, :premises_class_too_low)
+  end
+
+  defp ensure_requirements_met(player, requirements) do
+    unless_error(not Requirements.met?(player, requirements), :requirements_unmet)
+  end
+
+  defp income_start(%Player{last_collected: nil}, %{effect: %{kind: :income}}, now),
+    do: [{:set, :last_collected, now}]
+
+  defp income_start(_player, _module, _now), do: []
+
+  defp ensure_affordable(player, cost) do
+    cond do
+      player.scrip < Map.get(cost, :scrip, 0) -> {:error, :insufficient_scrip}
+      player.cred < Map.get(cost, :cred, 0) -> {:error, :insufficient_cred}
+      true -> :ok
+    end
+  end
+
+  # Spend effects for a cost map, omitting zero deltas so the effect list stays clean.
+  defp spend(cost) do
+    for field <- [:scrip, :cred], amount = Map.get(cost, field, 0), amount > 0 do
+      {field, -amount}
+    end
+  end
+
+  defp unless_error(true, error), do: {:error, error}
+  defp unless_error(false, _error), do: :ok
+
+  @doc """
+  The hideout module catalog for the player: every not-yet-owned module, each tagged with a
+  `status` (`:buyable` | `:locked_class` when the premises class is too low | `:locked` when other
+  requirements are unmet) and `affordable?`. The Hideout page renders straight from this.
+  """
+  def available_modules(%Player{} = player) do
+    :modules
+    |> Content.all()
+    |> Enum.reject(&(&1.id in player.modules))
+    |> Enum.map(fn module ->
+      %{
+        module: module,
+        status: module_status(player, module),
+        affordable?: affordable?(player, module.cost)
+      }
+    end)
+  end
+
+  defp module_status(player, module) do
+    cond do
+      premises_class(player) < module.premises_class_min -> :locked_class
+      not Requirements.met?(player, module.requirements) -> :locked
+      true -> :buyable
+    end
+  end
+
+  @doc """
+  The relocation catalog: every premises location of a higher class than the player's current one,
+  each with its `cost`, the `unlocks_class` it grants, a `status` (`:available` | `:locked` when the
+  relocation requirements are unmet), and `affordable?`.
+  """
+  def available_relocations(%Player{} = player) do
+    current = premises_class(player)
+
+    :locations
+    |> Content.all()
+    |> Enum.filter(&(Map.has_key?(&1, :premises_class) and &1.premises_class > current))
+    |> Enum.map(fn location ->
+      relocation = Map.get(location, :relocation, %{})
+      cost = Map.get(relocation, :cost, %{})
+
+      %{
+        location: location,
+        cost: cost,
+        unlocks_class: location.premises_class,
+        status: relocation_status(player, relocation),
+        affordable?: affordable?(player, cost)
+      }
+    end)
+  end
+
+  defp relocation_status(player, relocation) do
+    if Requirements.met?(player, Map.get(relocation, :requirements, [])),
+      do: :available,
+      else: :locked
+  end
+
+  defp affordable?(player, cost) do
+    player.scrip >= Map.get(cost, :scrip, 0) and player.cred >= Map.get(cost, :cred, 0)
+  end
 end

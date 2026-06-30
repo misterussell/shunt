@@ -8,7 +8,8 @@
   # Operator (tier 3) keystone. Needs a real safehouse to run, so the install is gated to a
   # class-2 premises; the heat lands when you move the take, not while it runs (see effect.trace_per).
   cost: %{scrip: 150, cred: 20},
-  requirements: [{:premises_at_least, 2}],
+  premises_class_min: 2,
+  requirements: [],
 
   # The flagship income module. rate scrip/hr; cap_hours bounds the reservoir; trace_per is the
   # scrip-per-1-Heat charged on collect. See priv/docs/SHUNT_territory_ladder_v1.md §4.
