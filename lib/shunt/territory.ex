@@ -45,22 +45,67 @@ defmodule Shunt.Territory do
     end
   end
 
-  # TODO: [Territory] Income math (pure; see §4). All take a fixed `now` so they unit-test
-  # without a clock:
-  #   income_rate(player)    = sum of rate over installed :income modules
-  #   reservoir_cap(player)  = sum of (rate * cap_hours) over installed :income modules
-  #   reservoir(player, now) = min(income_rate * elapsed_hours, reservoir_cap) |> floor,
-  #     where elapsed_hours = max(0, now - player.last_collected) in fractional hours, and a
-  #     nil last_collected yields reservoir 0. Unit-test: nil last_collected -> 0; partial
-  #     fill; capping at reservoir_cap; negative elapsed (clock skew) clamps to 0.
+  @doc "Total scrip/hour the player's installed income modules produce."
+  def income_rate(%Player{} = player) do
+    player |> income_effects() |> Enum.map(& &1.rate) |> Enum.sum()
+  end
 
-  # TODO: [Territory] collect/2 (resolver) — given (player, now):
-  #   reservoir == 0 -> {:error, :nothing_to_collect}
-  #   take          -> {:ok, [{:scrip, +take}, {:heat, +trace(take)}, {:set, :last_collected, now}]}
-  # trace(take) scales Heat to the amount banked (starter tuning ~1 Heat per 30 scrip; read the
-  # coefficient from the income module content so it's tunable). Heat routes through Effects.apply
-  # -> Heat.resolve, so a greedy collect can trip a Heat event — covered by a Players.Server test,
-  # not here. Unit-test the effect list and the :nothing_to_collect guard with a fixed now.
+  @doc "The combined income reservoir cap (the most scrip that can pool before collection)."
+  def reservoir_cap(%Player{} = player) do
+    player |> income_effects() |> Enum.map(&(&1.rate * &1.cap_hours)) |> Enum.sum()
+  end
+
+  @doc """
+  Scrip currently pooled in the income reservoir at `now`, computed on demand from
+  `player.last_collected` (offline-earnings; no scheduler). Each income module accrues
+  `rate * min(elapsed_hours, cap_hours)` and they sum; a nil `last_collected` or negative
+  elapsed (clock skew) yields 0.
+  """
+  def reservoir(%Player{} = player, now) do
+    player |> reservoirs(now) |> Enum.map(& &1.amount) |> Enum.sum()
+  end
+
+  # Per income module: the scrip it has pooled at `now` and its trace_per (scrip per 1 Heat on
+  # collect). Per-module capping; for v1's single bleed module this equals the §4 global formula.
+  defp reservoirs(%Player{} = player, now) do
+    elapsed = elapsed_hours(player.last_collected, now)
+
+    for e <- income_effects(player) do
+      %{amount: min(trunc(e.rate * elapsed), e.rate * e.cap_hours), trace_per: e.trace_per}
+    end
+  end
+
+  # The :income effect maps of the player's installed modules (gate/unauthored modules contribute none).
+  defp income_effects(%Player{modules: modules}) do
+    modules
+    |> Enum.map(&Content.fetch(:modules, &1))
+    |> Enum.flat_map(fn
+      {:ok, %{effect: %{kind: :income} = effect}} -> [effect]
+      _ -> []
+    end)
+  end
+
+  defp elapsed_hours(nil, _now), do: 0.0
+  defp elapsed_hours(last_collected, now), do: max(0, DateTime.diff(now, last_collected)) / 3600
+
+  @doc """
+  Collect the income reservoir at `now` (a pure resolver dispatched via `Players.dispatch`).
+  Banks the pooled scrip, charges trace Heat scaled to the take (per each income module's
+  `trace_per`), and resets `last_collected`. Returns `{:error, :nothing_to_collect}` when the
+  reservoir is empty. The `{:heat, ...}` effect routes through `Effects.apply -> Heat.resolve`,
+  so a greedy collect that crosses a band can trip a Heat event.
+  """
+  def collect(%Player{} = player, now) do
+    sources = reservoirs(player, now)
+    take = sources |> Enum.map(& &1.amount) |> Enum.sum()
+
+    if take == 0 do
+      {:error, :nothing_to_collect}
+    else
+      heat = sources |> Enum.map(&div(&1.amount, &1.trace_per)) |> Enum.sum()
+      {:ok, [{:scrip, take}, {:heat, heat}, {:set, :last_collected, now}]}
+    end
+  end
 
   # TODO: [Territory] install_module/2 (resolver) — given (player, module_key): look up the
   # module def; return {:error, :unknown_module} / {:error, :already_owned} /
@@ -89,9 +134,8 @@ defmodule Shunt.Territory do
   # foundation slice: priv/content/territory/ladder.exs and premises_class: 1 on the squat. Still to
   # author, alongside the resolvers/catalog that read them:
   #   priv/content/modules/stash.exs — :gate, premises_class_min 1, scrip cost (Tenant keystone).
-  #   priv/content/modules/latticework_bleed.exs — :income, premises_class_min 2, scrip+cred cost,
-  #     rate 5/hr, cap_hours 12, trace ~1 Heat/30 scrip (Operator keystone; the flagship).
   #   priv/content/modules/drop_point.exs — :gate, premises_class_min 2, scrip+cred cost (Fixture keystone).
+  #   (latticework_bleed.exs is authored — the income slice.)
   #   priv/content/locations/shunt9/<new class-2 safehouse>.exs — premises_class: 2, a :relocation
   #     block (cost + requirements), and an exit wired into the Shunt 9 map graph so it's navigable.
 end

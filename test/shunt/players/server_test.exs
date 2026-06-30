@@ -85,5 +85,29 @@ defmodule Shunt.Players.ServerTest do
 
       assert Players.dispatch(player.id, fn _p -> {:ok, []} end) == {:error, :not_found}
     end
+
+    test "a greedy Territory.collect banks scrip and the trace Heat trips a Heat event" do
+      start = ~U[2026-06-30 00:00:00Z]
+
+      player =
+        Players.create_player!()
+        |> Ecto.Changeset.change(%{
+          heat: 29,
+          modules: ["latticework_bleed"],
+          last_collected: start
+        })
+        |> Repo.update!()
+
+      # 12h later -> full 60-scrip reservoir -> +2 trace Heat -> 29 crosses into the :low band (30).
+      now = DateTime.add(start, 12 * 3600, :second)
+
+      assert {:ok, updated, meta} =
+               Players.dispatch(player.id, fn p -> Shunt.Territory.collect(p, now) end)
+
+      assert meta.heat_event
+      assert updated.heat == 30
+      assert updated.scrip == 60 - meta.heat_event.scrip_loss
+      assert updated.last_collected == now
+    end
   end
 end
