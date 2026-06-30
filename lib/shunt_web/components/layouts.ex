@@ -37,8 +37,8 @@ defmodule ShuntWeb.Layouts do
 
   attr :active, :atom,
     required: true,
-    values: [:hub, :map, :ghostwork, :chrome_meat, :web, :street_alchemy],
-    doc: "which nav tab to highlight"
+    values: [:hub, :map, :ghostwork, :chrome_meat, :web, :street_alchemy, :hideout],
+    doc: "which nav tab to highlight (:hideout has no nav tab — it's a location interior page)"
 
   attr :status, :string, default: nil, doc: "footer-ticker status line set by handle_events"
 
