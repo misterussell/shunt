@@ -14,7 +14,7 @@ alias Shunt.World.Exit
   # (surfaced automatically by location_id) and drive the district :draw fact — DONE.
   # TODO: atmosphere tiers on :draw (the spine ticks louder / the ducts sing with heat as the
   # Spire pulls harder); optional Street Alchemy fixer NPC who trades in duct-work.
-  npcs: [],
+  npcs: ["bloom_soot"],
   events: [],
   exits: [
     %Exit{id: "vent_run_to_afterburn", to: "bloom_afterburn"},

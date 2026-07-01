@@ -13,7 +13,7 @@ alias Shunt.World.Exit
   # atmosphere on :season (the room's talk warms from polite to vicious). Seed multiple rumors
   # here. The "bloom_reserve_invited" flag that opens the private booths is earned here.
   npcs: [],
-  events: [],
+  events: ["bloom_the_table"],
   exits: [
     %Exit{id: "spread_to_throat", to: "bloom_throat"},
     # The booths are invitation-only.

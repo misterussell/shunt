@@ -14,7 +14,7 @@ alias Shunt.World.Exit
   # establishes the Bloom + the ascent premise (everyone's clawing toward the throat), and seed
   # the believed-cover rumor (ascent = echo-harvest, "they buy your name and retire you").
   npcs: [],
-  events: [],
+  events: ["bloom_arrival"],
   exits: [
     %Exit{id: "rimwalk_to_throat", to: "bloom_throat"},
     # Return down the anchor to the Windlass (the up-exit is authored on windlass_anchor_gate).

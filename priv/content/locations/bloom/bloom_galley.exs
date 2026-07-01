@@ -12,7 +12,7 @@ alias Shunt.World.Exit
   # TODO: pocket-of-C grooming imagery (the believed meat-cover flavour — the crop being fattened
   # and finished); the back-route hinge from the eat petal into the Vent Run; optional
   # kitchen-worker NPC who's seen too much and can be turned into a lead.
-  npcs: [],
+  npcs: ["bloom_pia"],
   events: [],
   exits: [
     %Exit{id: "galley_to_spread", to: "bloom_spread"},

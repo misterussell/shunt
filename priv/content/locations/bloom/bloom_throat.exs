@@ -13,7 +13,7 @@ alias Shunt.World.Exit
   # TODO: Authority presence here (the ascent officer NPC who decides who's "listed"); atmosphere
   # tiers on :draw (the throat brightens/roars as the Spire pulls harder); this is the watched
   # front-route hub radiating to all four petals. The ascent-clearance framing lives here.
-  npcs: [],
+  npcs: ["bloom_aurel"],
   events: [],
   exits: [
     %Exit{id: "throat_to_rimwalk", to: "bloom_rimwalk"},

@@ -13,7 +13,7 @@ alias Shunt.World.Exit
   # (this is a primary place to pick up leads); atmosphere on :draw (the burn roars brighter as
   # the Spire pulls); seed at least one rumor here; the "bloom_den_vouched" flag that opens the
   # Afterburn is earned somewhere in the party petal (here or via the bartender).
-  npcs: [],
+  npcs: ["bloom_cass"],
   events: [],
   exits: [
     %Exit{id: "burnoff_to_throat", to: "bloom_throat"},

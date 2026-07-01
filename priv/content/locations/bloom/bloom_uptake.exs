@@ -26,7 +26,7 @@ alias Shunt.World.Exit
   # No exit up into the Spire — dangling by design (mirrors how the Windlass Anchor Gate dangled
   # up into the Bloom).
   npcs: [],
-  events: [],
+  events: ["bloom_ascend", "bloom_expose"],
   exits: [
     %Exit{id: "uptake_to_throat", to: "bloom_throat"}
   ]

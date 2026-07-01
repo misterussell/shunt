@@ -18,7 +18,7 @@ alias Shunt.World.Exit
   #     meat-cover and the substrate-truth together at the clinic).
   # ANCHOR FOR LATER: when the Chrome & Meat skill / body-state storage is built, wire real
   # augments in here — the fiction (the gloss is already a neural shunt) is the seam to hang them on.
-  npcs: [],
+  npcs: ["bloom_bevel"],
   events: [],
   exits: [
     %Exit{id: "gloss_to_gilt_row", to: "bloom_gilt_row"},

@@ -12,7 +12,7 @@ alias Shunt.World.Exit
   # TODO: gated Web deal-space (via bloom_reserve_invited). A Whisper Syndicate contact who
   # brokers reputation here; a required investigation rumor sourced in the booths; the
   # RumorConnection's partial resolution may surface here. Cred/favor changes hands.
-  npcs: [],
+  npcs: ["bloom_yara"],
   events: [],
   exits: [
     %Exit{id: "reserve_to_spread", to: "bloom_spread"}
