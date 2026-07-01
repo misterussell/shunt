@@ -308,9 +308,18 @@ defmodule ShuntWeb.SkillsLive do
     |> assign(:current_tier, SkillsCatalog.current_tier(player, tree))
     |> assign(:raws, RawCatalog.items())
     |> assign(:recipes, recipes)
+    |> assign_chrome(player, tree)
+  end
+
+  # The Chrome Load meter and implant catalog only render on the chrome_meat tree, so only pay for
+  # them there — every event (scavenge/assemble/...) routes through assign_player/2.
+  defp assign_chrome(socket, player, %{id: "chrome_meat"}) do
+    socket
     |> assign(:implants, ChromeMeat.catalog(player))
     |> assign(:chrome_band, ChromeMeat.band_for(player.chrome_load))
   end
+
+  defp assign_chrome(socket, _player, _tree), do: socket
 
   defp flash_heat_event(socket, nil), do: socket
 
