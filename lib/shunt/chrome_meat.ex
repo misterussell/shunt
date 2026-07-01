@@ -16,14 +16,42 @@ defmodule Shunt.ChromeMeat do
   alias Shunt.Skills.Catalog, as: SkillsCatalog
 
   @max_load 100
+  @low_threshold 30
+  @medium_threshold 60
+  @high_threshold 85
 
   @doc "Pins a Chrome Load value to 0..#{@max_load}. Distinct meter from Authority Heat."
   def clamp(load), do: load |> max(0) |> min(@max_load)
 
-  # Note: unlike Shunt.Heat, Chrome Load does NOT fire events mid-effect. The Shunt 9 v1
-  # foreshadowing beat is a narrative conditional event gated on {:chrome_load_at_least, n}
-  # (see Milestone 4 content TODOs), which is more idiomatic than a Heat-style resolve. A
-  # band_for/1 (for UI styling) is added in Milestone 3 when the meter is rendered.
+  @doc "The Chrome Load band for a value, for UI styling. Threshold shape mirrors Shunt.Heat."
+  def band_for(load) when load >= @high_threshold, do: :high
+  def band_for(load) when load >= @medium_threshold, do: :medium
+  def band_for(load) when load >= @low_threshold, do: :low
+  def band_for(_load), do: :none
+
+  @doc """
+  Decorates every implant def with the player's relationship to it, so the LiveView renders state
+  without recomputing domain rules. State is one of :installed, :owned (built, uninstalled),
+  :fabricable (can build now), or :locked (missing tool/schematic/materials). Sorted by name.
+
+  Note: unlike Shunt.Heat, Chrome Load does NOT fire events mid-effect. The Shunt 9 v1 foreshadowing
+  beat is a narrative conditional event gated on {:chrome_load_at_least, n} — more idiomatic than a
+  Heat-style resolve.
+  """
+  def catalog(%Player{} = player) do
+    Implants.items()
+    |> Enum.sort_by(& &1.name)
+    |> Enum.map(fn def -> %{def: def, state: state_for(player, def)} end)
+  end
+
+  defp state_for(player, def) do
+    cond do
+      Map.has_key?(player.implants, def.id) -> :installed
+      Map.get(player.inventory, def.id, 0) >= 1 -> :owned
+      match?({:ok, _}, fabricate(player, def.id)) -> :fabricable
+      true -> :locked
+    end
+  end
 
   @doc """
   Fabricate an (uninstalled) implant from its `fabrication` block. Self-contained under Chrome &

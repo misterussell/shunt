@@ -27,6 +27,45 @@ defmodule Shunt.ChromeMeatTest do
     end
   end
 
+  describe "band_for/1" do
+    test "maps load values to bands by threshold" do
+      assert ChromeMeat.band_for(0) == :none
+      assert ChromeMeat.band_for(29) == :none
+      assert ChromeMeat.band_for(30) == :low
+      assert ChromeMeat.band_for(60) == :medium
+      assert ChromeMeat.band_for(85) == :high
+    end
+  end
+
+  describe "catalog/1" do
+    test "marks an implant :fabricable when the player can build it" do
+      def = Implants.fetch!("lineman_graft")
+      player = ready_to_fabricate(def)
+
+      entry = Enum.find(ChromeMeat.catalog(player), &(&1.def.id == "lineman_graft"))
+      assert entry.state == :fabricable
+    end
+
+    test "marks an implant :locked when the player cannot build it" do
+      entry = Enum.find(ChromeMeat.catalog(%Player{}), &(&1.def.id == "lineman_graft"))
+      assert entry.state == :locked
+    end
+
+    test "marks an owned but uninstalled implant :owned" do
+      player = %Player{inventory: %{"lineman_graft" => 1}}
+
+      entry = Enum.find(ChromeMeat.catalog(player), &(&1.def.id == "lineman_graft"))
+      assert entry.state == :owned
+    end
+
+    test "marks an installed implant :installed" do
+      player = %Player{implants: %{"lineman_graft" => %{}}}
+
+      entry = Enum.find(ChromeMeat.catalog(player), &(&1.def.id == "lineman_graft"))
+      assert entry.state == :installed
+    end
+  end
+
   describe "fabricate/2" do
     test "consumes the inputs and grants the uninstalled implant item" do
       def = Implants.fetch!("lineman_graft")

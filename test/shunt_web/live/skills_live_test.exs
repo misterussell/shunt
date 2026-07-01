@@ -8,29 +8,51 @@ defmodule ShuntWeb.SkillsLiveTest do
     :ok
   end
 
-  test "chrome_meat renders the dormant stub panel with its stub text", %{conn: conn} do
+  test "chrome_meat renders the Chrome Load meter and augments, not the dormant stub", %{
+    conn: conn
+  } do
     {:ok, view, _html} = live(conn, ~p"/skills/chrome-meat")
 
-    assert has_element?(view, "#skill-tree-stub", "No table prepped. No hands steady enough yet.")
+    refute has_element?(view, "#skill-tree-stub")
+    assert has_element?(view, "#chrome-load", "/100")
+    assert has_element?(view, "#chrome-implants")
   end
 
-  test "stub page shows a DORMANT MODULE badge, the generic subsystem line, and the signal-lost footer",
-       %{conn: conn} do
+  test "an augment with no learned schematic renders locked", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/skills/chrome-meat")
 
-    assert has_element?(view, "#skill-tree-stub .stub-badge", "DORMANT MODULE")
+    assert has_element?(view, "#implant-lineman_graft", "NO SCHEMATIC")
+    refute has_element?(view, "#fabricate-lineman_graft-button")
+    refute has_element?(view, "#install-lineman_graft-button")
+  end
 
-    assert has_element?(
-             view,
-             "#skill-tree-stub .stub-generic-line",
-             "This subsystem only tracks progression"
-           )
+  test "fabricating a graft turns it into an installable augment", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    fab = Shunt.Implants.fetch!("lineman_graft").fabrication
+    inventory = fab.inputs |> Map.put("patchwork_scalpel", 1)
 
-    assert has_element?(
-             view,
-             "#skill-tree-stub .stub-footer",
-             "SIGNAL LOST · 0x00 · NO HANDSHAKE"
-           )
+    Shunt.Repo.update!(
+      Ecto.Changeset.change(player, inventory: inventory, knowledge: [fab.schematic])
+    )
+
+    {:ok, view, _html} = live(conn, ~p"/skills/chrome-meat")
+
+    view |> element("#fabricate-lineman_graft-button") |> render_click()
+
+    assert has_element?(view, "#install-lineman_graft-button")
+  end
+
+  test "installing a graft grafts it and raises Chrome Load", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    def = Shunt.Implants.fetch!("lineman_graft")
+    Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: %{"lineman_graft" => 1}))
+
+    {:ok, view, _html} = live(conn, ~p"/skills/chrome-meat")
+
+    view |> element("#install-lineman_graft-button") |> render_click()
+
+    assert has_element?(view, "#implant-lineman_graft", "GRAFTED")
+    assert Shunt.Players.get_player!().chrome_load == def.chrome_load
   end
 
   test "street_alchemy does not render the dormant stub, renders the crafting body", %{
