@@ -273,9 +273,38 @@ defmodule Shunt.TerritoryTest do
     end
   end
 
+  describe "signal_tap income scaling (Windlass grid fact)" do
+    # The Signal Tap splices into the district grid, so its rate rises as the grid comes open.
+    # These assertions track the authored rates %{clamped: 4, contested: 8, open: 16}, cap_hours 12.
+    test "clamped grid (default) yields the base rate" do
+      player = %Player{modules: ["signal_tap"]}
+
+      assert Territory.income_rate(player) == 4
+      assert Territory.reservoir_cap(player) == 48
+    end
+
+    test "contested grid raises the rate" do
+      # A cracked Fitworks node flips grid -> :contested (a rule the district def keys on knowledge).
+      player = %Player{modules: ["signal_tap"], knowledge: ["windlass_fitworks_ice_cracked"]}
+
+      assert Territory.income_rate(player) == 8
+    end
+
+    test "open grid maxes the rate and cap" do
+      player = %Player{modules: ["signal_tap"], knowledge: ["windlass_grid_open"]}
+
+      assert Territory.income_rate(player) == 16
+      assert Territory.reservoir_cap(player) == 192
+    end
+  end
+
   describe "tier/1" do
     test "no modules -> Squatter (tier 1, the default)" do
       assert Territory.tier(%Player{modules: []}) == {1, "Squatter"}
+    end
+
+    test "the signal_tap keystone -> Node (tier 5), the deepest rung" do
+      assert Territory.tier(%Player{modules: ["signal_tap"]}) == {5, "Node"}
     end
 
     test "the stash keystone -> Tenant (tier 2)" do
