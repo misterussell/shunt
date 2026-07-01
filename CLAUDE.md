@@ -92,3 +92,7 @@ All content generation must follow:
 - docs/SHUNT_STYLE_GUIDE.md
 - docs/SHUNT_NAMING_PATTERNS.md
 - docs/SHUNT_LEXICON.md
+
+When building a new district or location, start from docs/SHUNT_DISTRICT_AUTHORING.md — the
+playbook for content structure, the requirements/effects DSL, District Evolution facts, Web-v1
+conditional reveals, integrity constraints, and the build/verify workflow.
