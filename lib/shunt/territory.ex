@@ -111,7 +111,10 @@ defmodule Shunt.Territory do
     end)
   end
 
-  defp normalize_income(%{scales_with: %{district: district, fact: fact}, rates: rates} = effect, player) do
+  defp normalize_income(
+         %{scales_with: %{district: district, fact: fact}, rates: rates} = effect,
+         player
+       ) do
     level = District.fact(player, district, fact)
     rate = Map.get(rates, level, rates |> Map.values() |> Enum.min())
     %{rate: rate, cap_hours: effect.cap_hours, trace_per: effect.trace_per}

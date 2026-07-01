@@ -651,3 +651,49 @@ deeper in. Messy, gray-market, watched but not governed.
   Midgrid proper; the readers are the gate.
 * **The Holdover** — the Midgrid Watch post at the line, where the grid sets down
   the hollows it catches.
+
+---
+
+# Recurring Terms — The Windlass
+
+The second district of the Midgrid, deeper in and much larger — a working city
+wound up an old inter-strata screw-lift, climbing turn on turn toward the Spire.
+A vertical class war runs its height: the Latticework Collective in the wires
+below, the Kaspav Authority clamping the grid from above. The last district
+before the final Midgrid district and the Spire.
+
+* **The Windlass** — the district itself, named for the great hauling engine it is
+  built on; a whole city grown on the coil ([Infrastructure] name). Height is
+  status: the higher the turn, the closer to the Spire.
+* **Slagfoot** — the industrial base of the coil; furnaces and freight, where cargo
+  up from the Grayline lands ([Wear] + [Function]).
+* **The Winding Deck** — the superheated engine room at the heart of Slagfoot,
+  where the great screw is driven. You don't work it without survival-chrome.
+* **The Fitworks** — the engineering turn; fabrication and relay-work, and the
+  Latticework Collective's stronghold ([Function] + Works).
+* **The Coldroom** — the Collective's den behind the Fitworks; scrubbed off every
+  reader, a hollow the grid doesn't know is there (Cold = off-grid, hidden).
+* **The Winder's Loft** — a class-3 premises over the Fitworks the Collective sets
+  you up in; the Territory ladder's "Node" tier, wired straight into the grid.
+* **Coil Market** — the great market on the mid-turns, where the whole city trades,
+  all of it watched and all of it owned.
+* **The Ledger** — the Syndicate of Closed Hands' corner of Coil Market, where
+  debts are the real currency and information is the stock.
+* **The Skim** — a service void behind the market where the unread go to ground;
+  first names on the purge list, and the best-informed people in the district.
+* **High Anchor** — the top turn, where the cable anchors and the permitted live;
+  the Authority's grip is tightest here (Anchor = the top mooring, and where the
+  Authority anchors its control).
+* **The Ascent Office** — the Kaspav Authority checkpoint at the summit that decides
+  who leaves the Windlass going up; runs the district's permit registry.
+* **The Anchor Gate** — the lift-shaft out of the Windlass toward the last Midgrid
+  district; the way up, with the Authority's hand on it.
+* **The Coil Stair** — the service spine winding up through every turn; neutral
+  ground, and lined with readers that thicken as you climb.
+* **the grid (control)** — the Windlass world-state fact for who holds the
+  Latticework: `clamped` (Authority lockdown) → `contested` → `open` (Collective
+  cracked it wide). Shifts as relays are freed and Authority ICE is cracked.
+* **the haul** — the Windlass world-state fact for the hauling engine:
+  `stalled` → `running`. Restarting it restores freight to Slagfoot.
+* **Signal Tap** — a hideout income module spliced into the district grid; what it
+  skims scales with how open the grid runs. Keystone of the "Node" ladder tier.
