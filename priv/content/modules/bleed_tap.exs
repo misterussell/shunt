@@ -13,7 +13,6 @@
   cost: %{scrip: 400, cred: 80},
   premises_class_min: 3,
   requirements: [],
-
   effect: %{
     kind: :income,
     scales_with: %{district: "bloom", fact: :draw},

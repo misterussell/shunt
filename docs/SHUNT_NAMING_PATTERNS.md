@@ -124,25 +124,34 @@ Bad:
 
 # NPC Names
 
-NPC names should feel lived in.
+NPC names should feel lived in — like real people in a working future, not labels.
 
-Formats:
+**Default to real given names.** Most NPCs — roughly three in four — carry an ordinary
+first name drawn from the whole world's mix of cultures, sometimes worn or slightly shifted
+so it reads a little future-old. These are people, not functions. Their name should not
+announce their job.
 
-* First Name
-* Nickname
-* Occupational Nickname
+Real-name examples (the majority):
 
-Examples:
+* Mara, Eli, Preeti, Silas, Yara, Aurel, Pia, Renata
+* Nadia, Tomas, Odile, Ravi, Ilse, Juno, Sela, Emet
 
-* Mara
-* Vex
-* Coil
-* Switch
-* Grease
-* Docker
-* Ash
+**Reserve nicknames and occupational handles for the minority** — the few who've genuinely
+earned one on the street or the job (a fixer, a specialist, someone marked by their trade).
+One or two per district, not the whole cast.
 
-Avoid excessive cyberpunk clichés. Don't rely on occupational nicknames, use sparingly.
+Nickname / occupational examples (use sparingly — the minority):
+
+* Vex, Merc, Docker, Ash, Coil, Switch, Bevel, Soot
+
+Smell test: if a district's cast is mostly Ratchet / Cinder / Rusk / Sprat, that's
+over-theming — swap most of them back to plain names and let one or two keep the handle.
+
+Avoid:
+
+* Excessive cyberpunk clichés (Razor, Blade, Neon)
+* A whole cast of occupational nicknames
+* A name that just restates the character's function
 
 ---
 

@@ -698,14 +698,32 @@ before the final Midgrid district and the Spire.
 * **Signal Tap** — a hideout income module spliced into the district grid; what it
   skims scales with how open the grid runs. Keystone of the "Node" ladder tier.
 
-<!-- TODO (The Bloom — register on merge, Constitution #5): write proper Lexicon entries for the
-  new recurring terms coined for the Bloom district, applying the naming test to each:
-    - the Bloom (district; the Spire's exhaust-flower), the Throat (hub), the Uptake (ascent gate),
-      the Rimwalk, the Vent Run, the petals (Burnoff/Afterburn/etc.), the Junction (tier-6 hideout)
-    - the draw / the season / the book (the three District-Evolution facts)
-    - Bleed Tap, Skim Crew (the two Junction income modules)
-    - the gloss (Chrome & Meat status-augment / harvest-shunt), a "listed" name, "ascent"/"the
-      throat" as the harvest euphemism
-    - Whisper Syndicate — promote from the background-factions list to an active faction entry
-  Confirm no term collides with an existing entry before adding. -->
+* **the Bloom** — the last Midgrid district before the Spire, built in the Spire's
+  exhaust bloom: a radial flower of repurposed vent-ducts (the petals) where the
+  Spire's runoff pools and the newly-flush perform a wealth they're still climbing
+  toward. Reached up from the Windlass Anchor Gate.
+* **the Throat** — the Bloom's hub, where every duct meets the Spire's underside and
+  the ascent gate opens; the most prestigious and most watched ground in the Midgrid.
+* **the Uptake** — the ascent gate itself, the flue that carries the Bloom's chosen up
+  into the Spire. "Uptake" both a vent flue and being taken up.
+* **the petals** — the Bloom's four venue-clusters, each a repurposed duct: the Burnoff
+  and Afterburn (nightlife), Gilt Row and the Gloss (spending), the Spread and Reserve
+  (dining), the Slate and Floor (gambling). The Rimwalk is the entry, the Vent Run the
+  sooty back-spine behind them.
+* **the draw / the season / the book** — the Bloom's three District-Evolution facts.
+  *the draw* (`slack → drawing → gorging`): how hard the Spire pulls through the throat
+  — brightness and harvest tempo at once, raised by clearing the Vent Run ducts. *the
+  season* (`gilded → churning → cascade`): the rumor mill's heat, stoked by working the
+  Web. *the book* (`flush → leveraged → called`): the debt the Closed Hands hold on the
+  district; at `called`, venues go dark.
+* **Bleed Tap / Skim Crew** — the two income modules of the Junction hideout (Tier-6
+  "Junction" ladder rung). The Bleed Tap skims the Spire's bleed-power and scales with
+  *the draw*; the Skim Crew works the floors for marks and scales with *the season*.
+* **the gloss** — a cosmetic augment fitted at the Gloss parlor to make a name read as
+  listed; secretly the neural shunt that makes the ascended Latticework-ready. To be
+  *listed* is to be marked for ascent — which, past the throat, is a harvest: the
+  ascended become the ghosts in the Latticework.
+* **Whisper Syndicate** — the reputation market; brokers rumors, vouches, and the price
+  of a name. Runs on secrets the way the Closed Hands run on debt. Active in the Bloom
+  (the Reserve); previously a background faction only.
 
