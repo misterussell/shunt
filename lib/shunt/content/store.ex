@@ -36,12 +36,10 @@ defmodule Shunt.Content.Store do
     # load_source/2 handles both via .id. The modules dir may be empty until content lands
     # (Path.wildcard returns [] and the table is created empty, like :ice_nodes/:programs).
     {:territory, "priv/content/territory"},
-    {:modules, "priv/content/modules"}
-    # TODO: [Chrome & Meat v1 — Milestone 1] Register the implant definition table (add a comma above):
-    #   {:implants, "priv/content/implants"}
-    # Generic load_source/2 handles it via .id (defs are plain maps). Dir already exists with the
-    # lineman_graft stub; empty-dir is safe (Path.wildcard -> [], table created empty, like :modules).
-    # Accessed via Shunt.Implants. See priv/docs/SHUNT_chrome_and_meat_v1.md.
+    {:modules, "priv/content/modules"},
+    # Chrome & Meat implant definitions (plain %{id, ...} maps). Generic load_source/2 handles them
+    # via .id. Accessed via Shunt.Implants. See priv/docs/SHUNT_chrome_and_meat_v1.md.
+    {:implants, "priv/content/implants"}
   ]
 
   def start_link(_opts) do

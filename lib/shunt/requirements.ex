@@ -65,11 +65,9 @@ defmodule Shunt.Requirements do
     Shunt.District.fact_meets?(player, district_id, fact, op, target)
   end
 
-  # TODO: [Chrome & Meat v1 — Milestone 1] Add check/2 clauses:
-  #   {:has_implant, key}         -> Map.has_key?(player.implants, key)  (capability-key gate; how
-  #                                  events/choices/POIs/repair solutions gate on an installed implant)
-  #   {:chrome_load_at_least, n}  -> player.chrome_load >= n
-  #   {:chrome_load_below, n}     -> player.chrome_load < n
-  # The Chrome Load foreshadowing event gates on {:chrome_load_at_least, <low>}; the additive live-bus
-  # repair solution gates on {:has_implant, "lineman_graft"}. See priv/docs/SHUNT_chrome_and_meat_v1.md.
+  defp check(player, {:has_implant, key}), do: Map.has_key?(player.implants, key)
+
+  defp check(player, {:chrome_load_at_least, n}), do: player.chrome_load >= n
+
+  defp check(player, {:chrome_load_below, n}), do: player.chrome_load < n
 end

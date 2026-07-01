@@ -10,14 +10,15 @@ defmodule Shunt.ChromeMeat do
   Full design: priv/docs/SHUNT_chrome_and_meat_v1.md.
   """
 
-  # TODO: [Chrome & Meat v1 — Milestone 1] Chrome Load meter, mirroring Shunt.Heat's shape.
-  #   - @max_load 100, and threshold band constants for the drift bands.
-  #   - clamp/1 pins to 0..@max_load.
-  #   - band_for/1 maps a load value to its band.
-  #   - resolve/2 (old, new): on an upward band crossing, return the Chrome Load threshold event to
-  #     fire (the {:chrome_load, delta} effect clause in Shunt.Effects calls this, exactly like the
-  #     {:heat, delta} clause calls Heat.resolve/2). In Shunt 9 v1 only the lowest threshold is used
-  #     and fires the foreshadowing event (see Milestone 4 content TODOs below).
+  @max_load 100
+
+  @doc "Pins a Chrome Load value to 0..#{@max_load}. Distinct meter from Authority Heat."
+  def clamp(load), do: load |> max(0) |> min(@max_load)
+
+  # Note: unlike Shunt.Heat, Chrome Load does NOT fire events mid-effect. The Shunt 9 v1
+  # foreshadowing beat is a narrative conditional event gated on {:chrome_load_at_least, n}
+  # (see Milestone 4 content TODOs), which is more idiomatic than a Heat-style resolve. A
+  # band_for/1 (for UI styling) is added in Milestone 3 when the meter is rendered.
 
   # TODO: [Chrome & Meat v1 — Milestone 2] fabricate(player, implant_key):
   #   Reads the implant def's `fabrication` block from Shunt.Implants.fetch!/1. Returns {:error, ...}

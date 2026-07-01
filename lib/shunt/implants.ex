@@ -8,10 +8,9 @@ defmodule Shunt.Implants do
   priv/docs/SHUNT_chrome_and_meat_v1.md.
   """
 
-  # TODO: [Chrome & Meat v1 — Milestone 1] Implement accessors over Shunt.Content.all(:implants) /
-  # Shunt.Content.fetch!(:implants, id):
-  #   - items/0 -> all implant defs
-  #   - fetch!/1 -> one def by id (raise on miss, like the other catalogs)
-  # Requires the {:implants, "priv/content/implants"} source to be registered in
-  # Shunt.Content.Store @sources (see the TODO there).
+  alias Shunt.Content
+
+  def items, do: Content.all(:implants)
+
+  def fetch!(key), do: Content.fetch!(:implants, key)
 end

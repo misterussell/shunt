@@ -1,6 +1,7 @@
 defmodule Shunt.Effects do
   @moduledoc false
 
+  alias Shunt.ChromeMeat
   alias Shunt.Heat
   alias Shunt.Npcs.Loyalty
 
@@ -108,16 +109,20 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, field, value), meta)
   end
 
-  # TODO: [Chrome & Meat v1 — Milestone 1] Add three do_apply/4 clauses:
-  #   {:chrome_load, delta}   — clamp via ChromeMeat.clamp and, on an upward band crossing, fire the
-  #                             threshold event by prepending its effects to `rest` and stashing it in
-  #                             meta (mirror the {:heat, delta} clause above, which calls Heat.resolve).
-  #   {:install_implant, key} — put key => %{"installed_at" => <dispatch time>} into acc's :implants
-  #                             map (read Map.get(acc, :implants, player.implants) first, like the
-  #                             {:infrastructure, ...} clause). Does NOT add chrome_load itself —
-  #                             ChromeMeat.install/2 emits {:chrome_load, n} + {:heat, n} alongside it.
-  #   {:remove_implant, key}  — delete key from the :implants map (inverse of install).
-  # See priv/docs/SHUNT_chrome_and_meat_v1.md (Data model / New engine surface).
+  defp do_apply([{:chrome_load, delta} | rest], player, acc, meta) do
+    new_value = ChromeMeat.clamp(Map.get(acc, :chrome_load, player.chrome_load) + delta)
+    do_apply(rest, player, Map.put(acc, :chrome_load, new_value), meta)
+  end
+
+  defp do_apply([{:install_implant, key} | rest], player, acc, meta) do
+    current = Map.get(acc, :implants, player.implants)
+    do_apply(rest, player, Map.put(acc, :implants, Map.put(current, key, %{})), meta)
+  end
+
+  defp do_apply([{:remove_implant, key} | rest], player, acc, meta) do
+    current = Map.get(acc, :implants, player.implants)
+    do_apply(rest, player, Map.put(acc, :implants, Map.delete(current, key)), meta)
+  end
 
   defp do_apply([{:discover_location, key} | rest], player, acc, meta) do
     append_distinct(rest, player, acc, meta, :discovered_locations, key)

@@ -169,7 +169,7 @@ defmodule ShuntWeb.SkillsLive do
             <span>BENCH CLEAN · no product assembled</span>
           </div>
         <% end %>
-      <%!--
+        <%!--
         TODO: [Chrome & Meat v1 — Milestone 3] Add a `@tree.id == "chrome_meat"` branch before this
         stub `else`, replacing DORMANT MODULE for chrome. Render: the Chrome Load meter (@player.chrome_load,
         Heat-style band styling), owned uninstalled implants + installed implants (@player.implants), a
