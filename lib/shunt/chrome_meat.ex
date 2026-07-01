@@ -10,6 +10,11 @@ defmodule Shunt.ChromeMeat do
   Full design: priv/docs/SHUNT_chrome_and_meat_v1.md.
   """
 
+  alias Shunt.Implants
+  alias Shunt.Players.Player
+  alias Shunt.Requirements
+  alias Shunt.Skills.Catalog, as: SkillsCatalog
+
   @max_load 100
 
   @doc "Pins a Chrome Load value to 0..#{@max_load}. Distinct meter from Authority Heat."
@@ -20,21 +25,61 @@ defmodule Shunt.ChromeMeat do
   # (see Milestone 4 content TODOs), which is more idiomatic than a Heat-style resolve. A
   # band_for/1 (for UI styling) is added in Milestone 3 when the meter is rendered.
 
-  # TODO: [Chrome & Meat v1 — Milestone 2] fabricate(player, implant_key):
-  #   Reads the implant def's `fabrication` block from Shunt.Implants.fetch!/1. Returns {:error, ...}
-  #   unless ALL of: player owns the chrome tool (patchwork_scalpel), player knows the schematic
-  #   ({:knows, fabrication.schematic} via Shunt.Requirements.met?/2), and player holds every input in
-  #   fabrication.inputs. On success returns {:ok, consume-inputs effects ++ [{:inventory, implant_key, +1}]}.
-  #   The schematic-lock lives HERE, not in Shunt.Crafting.assemble — chrome fabrication is
-  #   self-contained and does NOT gate on street_alchemy tier.
+  @doc """
+  Fabricate an (uninstalled) implant from its `fabrication` block. Self-contained under Chrome &
+  Meat: gated on the chrome tool (tier 1) + the learned schematic + the input materials — NOT on
+  street_alchemy tier. Returns {:ok, effects} that consume the inputs and grant the implant item.
+  """
+  def fabricate(%Player{} = player, implant_key) do
+    def = Implants.fetch!(implant_key)
 
-  # TODO: [Chrome & Meat v1 — Milestone 2] install(player, implant_key):
-  #   Deterministic-by-inputs install (no RNG in v1). Requires the player to own the uninstalled
-  #   implant item (inventory) and not already have it installed. Returns effects:
-  #     [{:inventory, implant_key, -1}, {:install_implant, implant_key},
-  #      {:chrome_load, def.chrome_load}, {:heat, def.heat_on_install}]
-  #   Outcome text/quality may vary by inputs (tier, a suppressant raw on hand) but the EFFECTS are
-  #   deterministic. Emergency/RNG surgery is deferred to v2.
+    cond do
+      not Map.has_key?(def, :fabrication) ->
+        {:error, :not_fabricable}
+
+      SkillsCatalog.current_tier(player, SkillsCatalog.fetch!("chrome_meat")) < 1 ->
+        {:error, :insufficient_tier}
+
+      not Requirements.met?(player, [{:knows, def.fabrication.schematic}]) ->
+        {:error, :unknown_schematic}
+
+      not holds_inputs?(player, def.fabrication.inputs) ->
+        {:error, :insufficient_materials}
+
+      true ->
+        consume = for {key, qty} <- def.fabrication.inputs, do: {:inventory, key, -qty}
+        {:ok, consume ++ [{:inventory, implant_key, 1}]}
+    end
+  end
+
+  @doc """
+  Install an owned (uninstalled) implant. Deterministic by inputs — no RNG in v1. Consumes the
+  implant item, marks it installed, and applies its Chrome Load + Authority-Heat cost.
+  """
+  def install(%Player{} = player, implant_key) do
+    def = Implants.fetch!(implant_key)
+
+    cond do
+      Map.get(player.inventory, implant_key, 0) < 1 ->
+        {:error, :not_owned}
+
+      Map.has_key?(player.implants, implant_key) ->
+        {:error, :already_installed}
+
+      true ->
+        {:ok,
+         [
+           {:inventory, implant_key, -1},
+           {:install_implant, implant_key},
+           {:chrome_load, def.chrome_load},
+           {:heat, def.heat_on_install}
+         ]}
+    end
+  end
+
+  defp holds_inputs?(player, inputs) do
+    Enum.all?(inputs, fn {key, qty} -> Map.get(player.inventory, key, 0) >= qty end)
+  end
 
   # TODO: [Chrome & Meat v1 — Milestone 4] Shunt 9 content to author (each its own file):
   #   1. priv/content/implants/lineman_graft.exs — the first implant (stub already staged).
