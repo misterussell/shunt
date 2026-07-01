@@ -18,7 +18,9 @@ alias Shunt.World.Exit
   graph_position: {2860, -1280},
 
   npcs: [
-    "windlass_marrow"
+    "windlass_marrow",
+    # Wick surfaces once word of your digging (the purge-list rumor) reaches the Skim.
+    %{id: "windlass_wick", requirements: [{:has_rumor, "windlass_permit_purge"}]}
   ],
 
   events: [

@@ -25,7 +25,9 @@ alias Shunt.World.Exit
   ],
 
   npcs: [
-    "windlass_hopper"
+    "windlass_hopper",
+    # Crane only works the Landing once freight climbs again.
+    %{id: "windlass_crane", requirements: [{:district, "windlass", :haul, :>=, :running}]}
   ],
 
   events: [

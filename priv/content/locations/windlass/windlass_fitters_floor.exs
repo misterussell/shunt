@@ -44,7 +44,9 @@ alias Shunt.World.Exit
   },
 
   npcs: [
-    "windlass_fuse"
+    "windlass_fuse",
+    # Hex comes into the open once the grid war turns the Collective's way.
+    %{id: "windlass_hex", requirements: [{:district, "windlass", :grid, :>=, :contested}]}
   ],
 
   events: [
