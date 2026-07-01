@@ -2,10 +2,17 @@
 
 ## Status
 
-Design agreed after a full codebase review. This replaces the original aspirational
-"10 pillars" pass-off. The v1 target is an **early, basic introduction to the skill in the
-starting district, Shunt 9** — not the late-game Bloom addition. The Bloom/Spire wiring is
+**Implemented** on `feature/chrome-meat-shunt9-v1` (Milestones 1–4). This replaces the original
+aspirational "10 pillars" pass-off. The v1 target is an **early, basic introduction to the skill in
+the starting district, Shunt 9** — not the late-game Bloom addition. The Bloom/Spire wiring is
 explicitly **v2** (see the Forward-Compatibility Contract).
+
+Two structural additions surfaced during implementation and are now part of v1:
+- **`:chrome_raws` content category** — chrome-fabrication raws live in their own ETS table
+  (isolated from `:raws`, exactly like `:quest_items`), so the random scavenge pool never yields
+  them; they drop only from salvage events.
+- **`catalog/1` state `:needs_materials`** — distinguishes "has the schematic + tool but lacks
+  parts" from "no schematic," so the UI points the player at salvage instead of lying "NO SCHEMATIC."
 
 The guiding constraint: **build a clean, forward-compatible foundation** and a small, on-theme
 first loop that reuses Shunt 9's existing fabric. Favor reuse over new systems; favor data-driven
