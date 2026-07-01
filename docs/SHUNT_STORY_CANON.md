@@ -31,7 +31,8 @@ question of the whole game is *what is at the top, and what does getting there c
 | **Grayline** | Midgrid | The intake margin where **hollows** (people with no echo) pool; the **Echo Court** forges echoes — Latticework identities that let you pass as a citizen. | — |
 | **Windlass** | Midgrid | A working city wound up a giant screw-lift; a vertical class war, **Authority vs the Latticework Collective**. The stall was sabotage — a purge laundered as mechanical failure. Player climbs out the Anchor Gate. | `grid`, `haul` |
 | **The Bloom** | Midgrid (top) | The last district before the Spire; performed wealth clawing for ascent. **Ascent is a harvest.** (See below — this is the load-bearing reveal.) | `draw`, `season`, `book` |
-| **The Spire** | top | **Not built.** The seat of the Authority and the destination of everyone who ascends. Attaches at the Bloom's Uptake. |
+| **The Winnow** | the Spire (base) | The Spire's first district — the Receiving Floor at the top of the throat, where the harvest is sorted (Keep/Cull) and inducted. A servant caste of kept-whole ascended staffs it under the Authority's wardens; the quota comes from **above the Authority**. (See below — this opens the Spire's spine.) | `quota`, `waking` |
+| **The Spire** | top | **Base district built (the Winnow).** The seat of the Authority and the destination of everyone who ascends — but the Winnow reveals the Authority is only a *hand*; something above it writes the quota and eats what the throat sends up. Attaches at the Bloom's Uptake; the Winnow's Head-End dangles the next up-seam. |
 
 ---
 
@@ -49,7 +50,11 @@ question of the whole game is *what is at the top, and what does getting there c
   Shunt 9 has brushed against harvested people. How literal and total this is, is left for the Spire.
 - **The Authority.** The one power present at every strata; controls the grid and ascent; tightest
   and richest at the top. The Spire is its seat. The other powers are regional (Closed Hands = debt,
-  Collective = the wires, Echo Court = identity, Whisper Syndicate = reputation).
+  Collective = the wires, Echo Court = identity, Whisper Syndicate = reputation). **The Winnow adds
+  the crack in this:** the Authority is not the top. In the Spire's first district its own wardens
+  take the quota from a sealed channel above them and are afraid of it. The Authority is a *hand* —
+  something above it writes the number, decides how choosy the wire gets, and eats what the throat
+  sends up. Who/what that is remains unrevealed (see the next-district hooks below).
 
 ---
 
@@ -87,15 +92,47 @@ The Spire is the next area. Whatever it becomes, it **must** honor these, or it 
    throughline power, keep the salvaged-future voice (Constitution + Style Guide still win), and don't
    soften or reverse the harvest.
 
-### Open questions the Spire gets to answer
+The Winnow (the Spire's first district) honors all five of the above. It reads both Bloom entry
+states, cracks the echo-cover further (ascended → substrate → *still awake* substrate), and completes
+the shunt at its Vestibule per hook #4.
+
+## Hooks into the next Spire district (what the Winnow set)
+
+The Winnow is now built, and it establishes things the *next* Spire district must not contradict:
+
+1. **The Authority answers to something above it.** Confirmed, not just implied: the Winnow's wardens
+   receive the quota from a sealed channel above them. What that tier *is* is deliberately unrevealed —
+   the next district's biggest design space. Don't retcon it back to "the Authority is the top."
+
+2. **The Winnow's Head-End dangles the next up-seam.** `winnow_head_end` carries a deliberately
+   dangling up-seam (no traversable exit yet), mirroring `bloom_uptake`. The next district wires in
+   there. The player reaches it via `winnow_shunt_complete` (the Vestibule ICE).
+
+3. **`winnow_ascended` is the forward flag.** The Winnow finale (`winnow_ascension_glimpse`) grants it:
+   the player has seen the Spire for what it is (a gut, not a summit) and looked the tier-above in the
+   eye without being swallowed. There is **no ascend/expose-style fork** here — the Winnow is an opener,
+   not a stratum finale; every path converges on this glimpse. The next district reads `winnow_ascended`.
+
+4. **The servant caste + the twin facts.** Kept-whole ascended staff the machine as a labor caste
+   (`quota` = the Authority's demand, Bloom-fed; `waking` = how lucid the caste is, player-fed). The
+   Bloom's ending drives the opening state: **Expose** (`bloom_throat_starved`) → `quota` starts at
+   `culling`; **Ascend** (`bloom_ascended`) → `pressing`. `winnow_caste_lucid` marks the caste turned.
+   If the next district revisits the Winnow or its people, honor these.
+
+5. **Something survives the wire, and it's awake.** Via Tithe (half-culled, lucid): an ascended mind
+   isn't gone, it's *used*, and a remainder of it still knows and wants out. This partially answers the
+   old open question and constrains what "substrate" means — it is not inert storage.
+
+### Open questions the next district gets to answer
 
 Left deliberately open — design space, not contradictions:
+- **What is the tier above the Authority?** (The Winnow proved it exists; it has no face yet.)
+- What does it *want* the substrate for — computation, control, something else?
 - Are *all* ghosts in the Latticework ascended people, or only some? Is Ghostwork itself implicated?
-- What does the Authority *want* the substrate for — computation, control, something else?
-- Is there anything left of an ascended mind to reach, free, or become?
-- Does the Spire have its own powers/factions above the Authority, or is the Authority the top?
+- Can the awake remainder of an ascended mind (Tithe, and the ones above) be reached, freed, or become
+  something? How much is left, and for how long?
 
 ---
 
-*Last updated when the Bloom shipped. Extend this doc whenever an area reveals something the next one
-must not contradict.*
+*Last updated when the Winnow shipped (the Spire's first district). Extend this doc whenever an area
+reveals something the next one must not contradict.*

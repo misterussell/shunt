@@ -20,6 +20,24 @@ alias Shunt.World.Exit
   npcs: [],
   events: ["bloom_ascend", "bloom_expose"],
   exits: [
-    %Exit{id: "uptake_to_throat", to: "bloom_throat"}
+    %Exit{id: "uptake_to_throat", to: "bloom_throat"},
+    # The up-seam into the Spire, wired to the Winnow (its first district). One-way — a point of no
+    # return up out of the harvested Bloom. Two gated exits give OR semantics: whichever Bloom ending
+    # resolved, the player climbs the throat to the Winnow's Maw. Spoiled (bloom_ascended: the wire
+    # rejected a defective intake) or exposed (bloom_throat_starved: broke in through the jam).
+    %Exit{
+      id: "uptake_to_winnow_ascended",
+      to: "winnow_maw",
+      requirements: [{:knows, "bloom_ascended"}],
+      travel_text:
+        "The throat takes you and, this once, gives you back — spat out the top, spoiled, onto a cold floor at the bottom of the Spire."
+    },
+    %Exit{
+      id: "uptake_to_winnow_exposed",
+      to: "winnow_maw",
+      requirements: [{:knows, "bloom_throat_starved"}],
+      travel_text:
+        "You climb the jammed throat you broke, up past where the harvest stopped, into the Spire through the door you shut."
+    }
   ]
 }

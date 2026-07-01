@@ -106,6 +106,9 @@ Hollow
 Route
 Splice
 Anchor
+Substrate
+Winnow
+Spoiled
 
 ---
 
@@ -341,6 +344,7 @@ Hex
 Drift
 Glitch
 Shadow
+Tithe
 
 ---
 
@@ -476,6 +480,8 @@ Spoofed Route
 Missing Echo
 Static Bloom
 The Hollow Thread
+Spoiled Intake
+The Cull
 
 ---
 
