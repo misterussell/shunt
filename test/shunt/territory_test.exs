@@ -267,7 +267,8 @@ defmodule Shunt.TerritoryTest do
     end
 
     test "offers nothing once at the top available class" do
-      player = %Player{premises_id: "shunt9_cold_store", scrip: 1000, cred: 1000}
+      # The Winder's Loft (class 3) is the deepest premises; nothing outranks it.
+      player = %Player{premises_id: "windlass_winders_loft", scrip: 1000, cred: 1000}
 
       assert Territory.available_relocations(player) == []
     end
