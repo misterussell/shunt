@@ -12,6 +12,7 @@ defmodule Shunt.Territory do
   """
 
   alias Shunt.Content
+  alias Shunt.District
   alias Shunt.Players.Player
   alias Shunt.Requirements
 
@@ -97,14 +98,30 @@ defmodule Shunt.Territory do
     end
   end
 
-  # The :income effect maps of the player's installed modules (gate/unauthored modules contribute none).
-  defp income_effects(%Player{modules: modules}) do
-    modules
+  # The income effects of the player's installed modules, each normalized to a concrete
+  # %{rate, cap_hours, trace_per} (gate/unauthored modules contribute none). A module may declare
+  # a static `rate` or a `scales_with` district fact whose current level picks the rate — the
+  # normalization resolves the latter against the player so every downstream reader sees a plain rate.
+  defp income_effects(%Player{} = player) do
+    player.modules
     |> Enum.map(&Content.fetch(:modules, &1))
     |> Enum.flat_map(fn
-      {:ok, %{effect: %{kind: :income} = effect}} -> [effect]
+      {:ok, %{effect: %{kind: :income} = effect}} -> [normalize_income(effect, player)]
       _ -> []
     end)
+  end
+
+  defp normalize_income(
+         %{scales_with: %{district: district, fact: fact}, rates: rates} = effect,
+         player
+       ) do
+    level = District.fact(player, district, fact)
+    rate = Map.get(rates, level, rates |> Map.values() |> Enum.min())
+    %{rate: rate, cap_hours: effect.cap_hours, trace_per: effect.trace_per}
+  end
+
+  defp normalize_income(%{rate: rate} = effect, _player) do
+    %{rate: rate, cap_hours: effect.cap_hours, trace_per: effect.trace_per}
   end
 
   defp elapsed_hours(nil, _now), do: 0.0
