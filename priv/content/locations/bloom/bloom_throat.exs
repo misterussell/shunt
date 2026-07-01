@@ -9,6 +9,23 @@ alias Shunt.World.Exit
     "The throat of the flower, where all four petals open onto the Spire's underside and the ascent gate. The most prestigious ground in the Midgrid, and the most watched: the Authority keeps the throat, because the throat keeps the way up.",
   tags: [:midgrid, :social, :transit],
   graph_position: {3000, -2100},
+  atmosphere: [
+    %{
+      requirements: [],
+      text:
+        "The throat runs cold and half-lit, the great vents above breathing slow. Even the Authority's readers seem to be conserving what little the Spire's giving down."
+    },
+    %{
+      requirements: [{:district, "bloom", :draw, :>=, :drawing}],
+      text:
+        "The throat's come up warm and bright, the vents pulling steady, the concourse loud with people performing that they were always meant to stand this close to the top."
+    },
+    %{
+      requirements: [{:district, "bloom", :draw, :>=, :gorging}],
+      text:
+        "The throat roars. The Spire pours down through it in a flood of heat and light, the whole concourse blazing — and the ascent gate above swallows another name, and another, faster than anyone down here lets themselves count."
+    }
+  ],
 
   # TODO: Authority presence here (the ascent officer NPC who decides who's "listed"); atmosphere
   # tiers on :draw (the throat brightens/roars as the Spire pulls harder); this is the watched

@@ -9,6 +9,23 @@ alias Shunt.World.Exit
     "Behind the drapery of every petal runs the vent spine: soot-black ducts, groaning when the Spire dumps heat, threaded with the maintenance runs nobody's supposed to use. It's the one place in the Bloom that doesn't pretend, and the one route the Authority doesn't watch.",
   tags: [:midgrid, :infrastructure, :latticework],
   graph_position: {3040, -1850},
+  atmosphere: [
+    %{
+      requirements: [],
+      text:
+        "The spine sits cold and choked, the ducts furred with dead soot, the dampers seized. Behind the petals' drapery the Bloom is just cold iron and old smoke."
+    },
+    %{
+      requirements: [{:district, "bloom", :draw, :>=, :drawing}],
+      text:
+        "The ducts tick and pull now, heat moving through them uneven, the spine working again. It's warmer back here than it's been in a long time, and a good deal louder."
+    },
+    %{
+      requirements: [{:district, "bloom", :draw, :>=, :gorging}],
+      text:
+        "The spine sings — every duct wide open and pouring, the manifold breathing even, heat rolling off the iron in waves. The Bloom runs on this, all of it, and back here you can hear exactly how hard."
+    }
+  ],
 
   # Street Alchemy engine: the bloom_intake_duct + bloom_flare_manifold repairables live here
   # (surfaced automatically by location_id) and drive the district :draw fact — DONE.

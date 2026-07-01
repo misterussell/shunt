@@ -8,6 +8,23 @@ alias Shunt.World.Exit
     "The back of Gilt Row, where the gilt comes to die: consignment racks of last season's names, and the desk where the Closed Hands take back what the Bloom couldn't keep paying for. When the book is called, this is where the district goes dark first.",
   tags: [:midgrid, :market],
   graph_position: {3240, -2320},
+  atmosphere: [
+    %{
+      requirements: [],
+      text:
+        "The consignment racks turn over slow — last season's names pawning this season's shine, the desk patient, the Closed Hands never in a hurry."
+    },
+    %{
+      requirements: [{:district, "bloom", :book, :>=, :leveraged}],
+      text:
+        "The racks are packed and the desk is busy. The book's coming due across the Bloom, and this is where it lands first — shine sold back for a fraction, names closing out quiet."
+    },
+    %{
+      requirements: [{:district, "bloom", :book, :>=, :called}],
+      text:
+        "The Reclaim is stripped to the walls, the racks bare, the desk dark. When the book's fully called there's nothing left to reclaim — just the notices, and the cold where a market used to be."
+    }
+  ],
 
   # TODO: the :book reveal location — author it to go dark when book hits :called (a repairable
   # "bloom_reclaim_floor" whose "broken" state feeds the district :called rule, or location-level
