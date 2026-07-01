@@ -99,9 +99,10 @@ wiring + Winnow `winnow_shunt_complete` payoff.
 The only genuinely new persistent state (one additive migration in `priv/repo/migrations/` +
 fields on `Shunt.Players.Player`):
 
-- **`chrome_load :integer, default: 0`** — the capped 0–100 meter. Uses the `Shunt.Heat`
-  *pattern* (`clamp/1`, `band_for/1`, `resolve/2` firing a threshold event on an upward crossing).
-  Distinct from `heat`.
+- **`chrome_load :integer, default: 0`** — the capped 0–100 meter, distinct from `heat`.
+  `Shunt.ChromeMeat.clamp/1` enforces the cap. Unlike `Shunt.Heat`, Chrome Load does **not** fire
+  events mid-effect; the foreshadowing beat is a narrative conditional event gated on
+  `{:chrome_load_at_least, n}`. `band_for/1` (UI styling only) arrives with the Milestone 3 UI.
 - **`implants :map, default: %{}`** — **def-keyed** like `player.infrastructure`:
   `%{implant_key => %{"installed_at" => datetime, ...}}`. Def-keyed (not instanced) because per-copy
   provenance (authentication) and tuning are deferred; instancing becomes a v2 migration when
@@ -134,7 +135,7 @@ fields on `Shunt.Players.Player`):
 ## New engine surface (small, localized)
 
 - **Effects** (`lib/shunt/effects.ex`, one `do_apply/4` clause each):
-  - `{:chrome_load, delta}` — clamp + optional threshold event on crossing (mirrors `{:heat, …}`).
+  - `{:chrome_load, delta}` — clamps via `ChromeMeat.clamp/1` (no mid-effect event; see above).
   - `{:install_implant, key}` — writes the `implants` map; emits the implant's `chrome_load` and
     `heat_on_install` as follow-on effects.
   - `{:remove_implant, key}` — inverse (for completeness; UI use is minimal in v1).
