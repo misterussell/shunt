@@ -21,7 +21,10 @@ alias Shunt.World.Exit
         "The benches have gone quiet in a different way — the caste working slower, setting things aside, a few of them lately unable to strip a face without knowing the name that went with it. It's harder to do this work awake."
     }
   ],
-  npcs: ["winnow_tithe"],
+  npcs: [
+    "winnow_tithe",
+    %{id: "winnow_leda", requirements: [{:district, "winnow", :waking, :>=, :stirring}]}
+  ],
   events: [],
   exits: [
     %Exit{id: "reclaim_to_cull", to: "winnow_cull_line"},

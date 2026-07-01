@@ -21,7 +21,10 @@ alias Shunt.World.Exit
         "The belt is loaded and it isn't all spoiled goods anymore. When the number can't be met from below, it gets met from the line — winnowers who came up this same throat, sorted onto their own belt to make a quota that was written somewhere they'll never see. The wire doesn't ask which is which."
     }
   ],
-  npcs: ["winnow_mira"],
+  npcs: [
+    "winnow_mira",
+    %{id: "winnow_bram", requirements: [{:district, "winnow", :quota, :>=, :culling}]}
+  ],
   events: [],
   exits: [
     %Exit{id: "cull_to_maw", to: "winnow_maw"},

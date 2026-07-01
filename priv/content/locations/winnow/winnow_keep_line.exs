@@ -16,7 +16,7 @@ alias Shunt.World.Exit
         "The belt hums bright and orderly, arrivals riding up in their good clothes, the induction gate above swallowing them one after another without a hitch."
     },
     %{
-      requirements: [{:district, "winnow", :quota, :>=, :easing}],
+      requirements: [{:district, "winnow", :quota, :<, :pressing}],
       text:
         "The Keep runs full and unhurried — enough good load coming up the throat that the winnow can afford to be honest, and the belt carries the kept up gently, the way the story always promised it would."
     }
