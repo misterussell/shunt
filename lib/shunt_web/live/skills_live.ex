@@ -254,6 +254,8 @@ defmodule ShuntWeb.SkillsLive do
                   >
                     [ FABRICATE ]
                   </Chrome.btn>
+                <% entry.state == :needs_materials -> %>
+                  <span class="implant-status implant-status--needs">◇ NEED PARTS</span>
                 <% true -> %>
                   <span class="implant-status implant-status--locked">🔒 NO SCHEMATIC</span>
               <% end %>

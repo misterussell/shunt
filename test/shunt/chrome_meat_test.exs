@@ -46,9 +46,21 @@ defmodule Shunt.ChromeMeatTest do
       assert entry.state == :fabricable
     end
 
-    test "marks an implant :locked when the player cannot build it" do
+    test "marks an implant :locked when the player lacks the tool or schematic" do
       entry = Enum.find(ChromeMeat.catalog(%Player{}), &(&1.def.id == "lineman_graft"))
       assert entry.state == :locked
+    end
+
+    test "marks :needs_materials when the schematic and tool are held but inputs are missing" do
+      def = Implants.fetch!("lineman_graft")
+      # tool + schematic, but no fabrication inputs.
+      player = %Player{
+        inventory: %{"patchwork_scalpel" => 1},
+        knowledge: [def.fabrication.schematic]
+      }
+
+      entry = Enum.find(ChromeMeat.catalog(player), &(&1.def.id == "lineman_graft"))
+      assert entry.state == :needs_materials
     end
 
     test "marks an owned but uninstalled implant :owned" do

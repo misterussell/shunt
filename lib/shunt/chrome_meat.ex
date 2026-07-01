@@ -48,10 +48,16 @@ defmodule Shunt.ChromeMeat do
     cond do
       Map.has_key?(player.implants, def.id) -> :installed
       Map.get(player.inventory, def.id, 0) >= 1 -> :owned
-      match?({:ok, _}, fabricate(player, def.id)) -> :fabricable
-      true -> :locked
+      true -> fabrication_state(fabricate(player, def.id))
     end
   end
+
+  # :fabricable when it can be built now; :needs_materials when only the inputs are missing (tool +
+  # schematic held) so the UI can point the player at salvage; :locked when the tool or schematic is
+  # missing (or the implant is NPC-only).
+  defp fabrication_state({:ok, _}), do: :fabricable
+  defp fabrication_state({:error, :insufficient_materials}), do: :needs_materials
+  defp fabrication_state({:error, _}), do: :locked
 
   @doc """
   Fabricate an (uninstalled) implant from its `fabrication` block. Self-contained under Chrome &
@@ -108,20 +114,4 @@ defmodule Shunt.ChromeMeat do
   defp holds_inputs?(player, inputs) do
     Enum.all?(inputs, fn {key, qty} -> Map.get(player.inventory, key, 0) >= qty end)
   end
-
-  # TODO: [Chrome & Meat v1 — Milestone 4] Shunt 9 content to author (each its own file):
-  #   1. priv/content/implants/lineman_graft.exs — the first implant (stub already staged).
-  #   2. A new back-alley grafter world_npc under priv/content/world_npcs/shunt9/ (Maintenance Tunnel
-  #      OR Burned Platform — both one hop from spawn). Surfaced only when Shunt 9 `power >= :partial`,
-  #      mirroring how Volt appears at power :online (copy shunt9_bazaar_volt's gating mechanism).
-  #      Offers: teach the lineman_graft schematic (grant {:knowledge, "schematic_lineman_graft"}),
-  #      and perform the install. Seed the Fleshless supply thread (subdermal wiring) for v2.
-  #   3. The fitter's intro + install events under priv/content/events/shunt9/... referenced by the
-  #      NPC's story_arcs (keep NPC↔event ids consistent so World.Npcs.current_event/2 resolves).
-  #   4. A salvage/"recover" event that grants the chrome raws (e.g. salvaged_servo) — the ONLY source
-  #      of chrome raws; do NOT add them to priv/content/raws consumed by global scavenge.
-  #   5. The Chrome Load foreshadowing event: gated {:chrome_load_at_least, <low threshold>}, mild and
-  #      ominous (the seam itches; a reader's eye lingers). No harvest reveal.
-  #   6. Register new recurring terms in docs/SHUNT_LEXICON.md (the fitter, "Chrome Load", the graft,
-  #      chrome raw names) per Content Constitution Rule 5.
 end

@@ -13,10 +13,8 @@
     inputs: %{"salvaged_servo" => 1, "subdermal_wiring_bundle" => 1}
   },
 
-  # TODO: [Chrome & Meat v1 — Milestone 4] Add install_text / flavor prose (crude survival-chrome
-  # voice, Style Guide + Constitution). Author the surrounding Shunt 9 content that makes fabrication
-  # reachable: the "salvaged_servo" chrome raw (salvage-event drop only, NOT global scavenge) and a
-  # source that grants {:knowledge, "schematic_lineman_graft"} (the fitter). See the Milestone 4
-  # content checklist in lib/shunt/chrome_meat.ex.
-  install_text: "The graft goes in crude but seats clean. Your hands feel like someone else's — steadier."
+  flavor:
+    "Insulated weave laid into the palms and a scavenged servo for grip. Underbelly work — crude, honest, and it means you can hold live current without it holding you.",
+  install_text:
+    "The graft goes in crude but seats clean. Your hands feel like someone else's — steadier."
 }

@@ -20,14 +20,11 @@
       The wiring inside is scorched, but the housing still holds the
       manufacturer's mark — bootleg chrome & meat work, through and through. If you can get your hand on a patchwork scalpel and some solder you might be able to start modding your flesh and get a new port installed. It won't be pretty, but it will work.
       """,
-      # TODO: [Chrome & Meat v1 — Milestone 4] Reconcile this intro with the v1 first implant:
-      #   1. `:augmentations` is an ATOM but player.knowledge is {:array, :string} and {:knows, key}
-      #      compares against strings — decide the canonical knowledge key ("augmentations") and make
-      #      the grant and any downstream {:knows, ...} gate agree. (Check whether existing content
-      #      relies on the atom before changing it.)
-      #   2. Light-touch the "get a new port installed" wording so it seeds the skill without
-      #      over-promising a neural port — the v1 first install is the lineman_graft, not a port.
-      #      (The port stays a natural later/Ghostwork-facing implant.)
+      # This is the Chrome & Meat concept-seed, parallel to the deck (:ghostwork) and chits
+      # (:authority_networks) starter events. The atom key is intentional and consistent with those
+      # siblings; it is only a "you've discovered this skill" marker and is never used as a gate (the
+      # v1 chrome loop gates on the patchwork_scalpel tool + the schematic Mira teaches). The first
+      # real implant is the lineman_graft, not a port — the port stays a later/Ghostwork-facing mod.
       rewards: [
         {:knowledge, :augmentations}
       ],

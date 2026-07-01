@@ -1025,6 +1025,10 @@
   text-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 35%, transparent);
 }
 
+.implant-status--needs {
+  color: var(--amber);
+}
+
 .implant-status--locked {
   color: var(--muted);
 }

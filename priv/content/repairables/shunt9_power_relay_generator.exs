@@ -29,20 +29,20 @@
   ],
 
   solutions: [
-    # TODO: [Chrome & Meat v1 — Milestone 4] Add an ADDITIVE solution gated on the first implant, so
-    # chrome opens a better path on the generator's full repair without ever blocking the base ones:
-    #   %{
-    #     id: "live_bus_graft",
-    #     label: "Work the Live Bus Barehanded",
-    #     from: ["broken", "patched"],
-    #     requirements: [{:has_implant, "lineman_graft"}],   # NO soldering iron needed — the graft is the tool
-    #     consumes: %{"improvised_relay" => 1},              # cheaper than the standard/military paths
-    #     result_state: "repaired",
-    #     effects: [{:npc_loyalty, "shunt9_power_relay_coil", 4}],
-    #     outcome_text: "..."  # you grip the hot bus with grafted hands and seat the relay live
-    #   }
-    # CRITICAL: this is a bonus shortcut only. The existing improvised/standard/military solutions must
-    # remain fully usable by a chrome-less player — the power arc cannot depend on Chrome & Meat.
+    # ADDITIVE chrome path: a Lineman's Graft lets you seat a relay on the live bus, no soldering iron
+    # and only an improvised relay. A bonus shortcut, never a gate — the improvised/standard/military
+    # solutions below remain fully usable without any chrome, so the power arc never depends on it.
+    %{
+      id: "live_bus_graft",
+      label: "Work the Live Bus (Lineman's Graft)",
+      from: ["broken", "patched"],
+      requirements: [{:has_implant, "lineman_graft"}],
+      consumes: %{"improvised_relay" => 1},
+      result_state: "repaired",
+      effects: [{:npc_loyalty, "shunt9_power_relay_coil", 4}],
+      outcome_text:
+        "You don't cut the power. You reach into it — grafted hands closing on the live bus, the weave eating the current, the servo holding your grip dead steady while you seat the relay hot. The generator winds up hard and holds. Coil stares. \"You're insane,\" he says, almost admiring. \"But it's done.\""
+    },
     %{
       id: "improvised",
       label: "Fit an Improvised Relay",

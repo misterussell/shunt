@@ -39,7 +39,11 @@ defmodule Shunt.Content.Store do
     {:modules, "priv/content/modules"},
     # Chrome & Meat implant definitions (plain %{id, ...} maps). Generic load_source/2 handles them
     # via .id. Accessed via Shunt.Implants. See priv/docs/SHUNT_chrome_and_meat_v1.md.
-    {:implants, "priv/content/implants"}
+    {:implants, "priv/content/implants"},
+    # Chrome-fabrication raws, deliberately isolated from :raws (like :quest_items) so the random
+    # scavenge pool never yields them — they drop only from salvage events. See the doc's Acquisition
+    # section.
+    {:chrome_raws, "priv/content/chrome_raws"}
   ]
 
   def start_link(_opts) do
