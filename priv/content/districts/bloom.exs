@@ -14,11 +14,17 @@
       default: :slack,
       rules: [
         {:slack, [{:knows, "bloom_throat_starved"}]},
-        {:gorging, [{:knows, "bloom_vents_open"}]}
-        # TODO: add the :drawing rules once the Vent Run duct repairables exist — one rule per
-        # duct, e.g. {:drawing, [{:infra_state, "bloom_intake_duct", "repaired"}]} and a
-        # {:drawing, [..., "patched"]} twin (OR semantics via multiple rules, mirroring windlass
-        # :haul). Finalize the exact repairable ids to match priv/content/repairables/bloom_*.exs.
+        # Both Vent Run ducts fully repaired = the flower burns at the top of its lungs.
+        {:gorging,
+         [
+           {:infra_state, "bloom_intake_duct", "repaired"},
+           {:infra_state, "bloom_flare_manifold", "repaired"}
+         ]},
+        # Any duct brought back at all (patched or repaired) gets the bleed flowing = drawing.
+        {:drawing, [{:infra_state, "bloom_intake_duct", "repaired"}]},
+        {:drawing, [{:infra_state, "bloom_intake_duct", "patched"}]},
+        {:drawing, [{:infra_state, "bloom_flare_manifold", "repaired"}]},
+        {:drawing, [{:infra_state, "bloom_flare_manifold", "patched"}]}
       ]
     },
     # The rumor mill's heat (Whisper Syndicate). Gilded = polite, nobody talks; cascade = a

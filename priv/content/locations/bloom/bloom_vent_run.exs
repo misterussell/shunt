@@ -10,13 +10,10 @@ alias Shunt.World.Exit
   tags: [:midgrid, :infrastructure, :latticework],
   graph_position: {3040, -1850},
 
-  # TODO — Street Alchemy engine + the back-route hub:
-  #   - exhaust-duct repairables (repairables/bloom_*.exs, e.g. "bloom_intake_duct") whose
-  #     "patched"/"repaired" states drive the district :draw fact (wire the ids back into
-  #     districts/bloom.exs :draw rules). This is the wealth loop's engine.
-  #   - the unwatched back-route linking the petal-backs (already wired: afterburn, reclaim,
-  #     galley, cage) and the Junction.
-  #   - pocket-of-C atmosphere; optional Street Alchemy fixer NPC.
+  # Street Alchemy engine: the bloom_intake_duct + bloom_flare_manifold repairables live here
+  # (surfaced automatically by location_id) and drive the district :draw fact — DONE.
+  # TODO: atmosphere tiers on :draw (the spine ticks louder / the ducts sing with heat as the
+  # Spire pulls harder); optional Street Alchemy fixer NPC who trades in duct-work.
   npcs: [],
   events: [],
   exits: [
