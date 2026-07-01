@@ -13,7 +13,7 @@
       text: """
       Ratchet doesn't stop working while he talks, and what he's working on is
       nothing — a cold furnace, a rag, thirty years of habit. "You're the one
-      Cinder sent up. Good. Somebody should hear it who isn't on the Authority's
+      Hopper sent up. Good. Somebody should hear it who isn't on the Authority's
       payroll." He finally looks at you. "That engine didn't wear out. I've had
       my hands in it since before you were born. It was killed."
       """,

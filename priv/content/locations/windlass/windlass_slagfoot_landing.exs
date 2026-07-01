@@ -25,7 +25,7 @@ alias Shunt.World.Exit
   ],
 
   npcs: [
-    "windlass_cinder"
+    "windlass_hopper"
   ],
 
   events: [

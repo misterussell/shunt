@@ -11,7 +11,7 @@
     %{
       id: "landing",
       text: """
-      Cinder watches you step off the transit line and reads you the way
+      Hopper watches you step off the transit line and reads you the way
       dockhands read cargo. "Grayline," she says, not a question. "They all come
       up through here eventually. Welcome to the Windlass." She tips her head at
       the great coil climbing out of sight overhead. "City wound up a hauling
@@ -26,7 +26,7 @@
     %{
       id: "stall",
       text: """
-      "Engine stalled. Weeks back." Cinder's jaw sets. "No freight climbing means
+      "Engine stalled. Weeks back." Hopper's jaw sets. "No freight climbing means
       no work down here and no parts up there, and the Authority stood up on their
       readers and called it wear-and-tear." She spits. "Thirty-year engine doesn't
       just quit. But nobody asked me. Talk to Ratchet in the Slagworks if you want
