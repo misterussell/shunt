@@ -92,7 +92,11 @@ All content generation must follow:
 - docs/SHUNT_STYLE_GUIDE.md
 - docs/SHUNT_NAMING_PATTERNS.md
 - docs/SHUNT_LEXICON.md
+- docs/SHUNT_STORY_CANON.md
 
 When building a new district or location, start from docs/SHUNT_DISTRICT_AUTHORING.md — the
 playbook for content structure, the requirements/effects DSL, District Evolution facts, Web-v1
-conditional reveals, integrity constraints, and the build/verify workflow.
+conditional reveals, integrity constraints, and the build/verify workflow. Before building a new
+*area*, read docs/SHUNT_STORY_CANON.md — the cross-district story bible and the forward hooks
+(e.g. the Spire's continuity contract) that new content must not contradict; update it when your
+area reveals something the next one must know.
