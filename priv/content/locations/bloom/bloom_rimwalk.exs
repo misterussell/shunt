@@ -9,10 +9,8 @@ alias Shunt.World.Exit
   tags: [:midgrid, :transit, :social],
   graph_position: {3000, -1620},
 
-  # TODO: author atmosphere tiers keyed to :draw (dim/cold at :slack -> blazing at :gorging), an
-  # Authority reader NPC who gives the player their first read at the rim, an intro event that
-  # establishes the Bloom + the ascent premise (everyone's clawing toward the throat), and seed
-  # the believed-cover rumor (ascent = echo-harvest, "they buy your name and retire you").
+  # bloom_arrival (the POI event) establishes the Bloom + the ascent premise at entry.
+  # TODO (optional flavor): atmosphere tiers on :draw; an Authority reader NPC for the first read.
   npcs: [],
   events: ["bloom_arrival"],
   exits: [

@@ -9,9 +9,8 @@ alias Shunt.World.Exit
   tags: [:midgrid, :dining, :social],
   graph_position: {2560, -1970},
 
-  # TODO: gated Web deal-space (via bloom_reserve_invited). A Whisper Syndicate contact who
-  # brokers reputation here; a required investigation rumor sourced in the booths; the
-  # RumorConnection's partial resolution may surface here. Cred/favor changes hands.
+  # Gated Web deal-space (via bloom_reserve_invited); Yara brokers reputation here and sources the
+  # bloom_bought_name rumor.
   npcs: ["bloom_yara"],
   events: [],
   exits: [

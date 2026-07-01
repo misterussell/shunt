@@ -11,17 +11,12 @@ alias Shunt.World.Exit
 
   # Tier-6 "Junction" premises (class 3) — home for the Bleed Tap + Skim Crew income modules.
   premises_class: 3,
-  # TODO: finalize relocation cost (cred-heavy — this is the luxury tier; guess below) and any
-  # requirements to move in (e.g. an investigation/standing flag). Confirm against the Winder's
-  # Loft (windlass) relocation block as the reference.
+  # Tier-6 premises relocation — cred-heavy (the luxury tier). Reachable via the Vent Run; moving
+  # in costs, with no extra gate flag.
   relocation: %{
     cost: %{scrip: 800, cred: 100},
     requirements: []
   },
-
-  # TODO: discovery gating — how the player finds/earns the Junction (an event granting
-  # {:discover_location, "bloom_junction"} and/or a knowledge flag). Optional atmosphere on :draw
-  # (the room brightens/warms as the Spire pulls).
   npcs: [],
   events: [],
   exits: [

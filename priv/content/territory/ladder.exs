@@ -6,10 +6,9 @@
   # module; the class floor for a keystone (e.g. the bleed needs class >= 2) is enforced when the
   # module is installed, so the ladder rule only needs the {:has_module, key} keystone.
   tiers: [
-    # TODO: confirm "Junction" as the tier-6 name against the Content Constitution naming pass
-    # (§9) before merge. Keystone is the Bleed Tap (the physical income module) installed in the
-    # Bloom's class-3 duct-junction hideout; the Skim Crew is a second income module, not the rung
-    # keystone.
+    # Tier-6 "Junction" (name registered in the Lexicon). Keystone is the Bleed Tap (the physical
+    # income module) in the Bloom's class-3 duct-junction hideout; the Skim Crew is a second income
+    # module, not the rung keystone.
     %{tier: 6, name: "Junction", requirements: [{:has_module, "bleed_tap"}]},
     %{tier: 5, name: "Node", requirements: [{:has_module, "signal_tap"}]},
     %{tier: 4, name: "Fixture", requirements: [{:has_module, "drop_point"}]},

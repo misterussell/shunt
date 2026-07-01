@@ -28,9 +28,7 @@ alias Shunt.World.Exit
 
   # Ghostwork target: the scan layer finds the way into the betting machine's back office;
   # cracking bloom_slate_ice there rewards the ICE-locked rumor (bloom_ascension_ledger) the
-  # finale RumorConnection requires — DONE.
-  # TODO: :season drives the odds/atmosphere (calm at :gilded, chaos at :cascade); seed additional
-  # rumors here via events (the ticker is a rumor firehose); an NPC working the floor.
+  # finale RumorConnection requires. :season drives the odds atmosphere.
   lattice: %{
     leads: [
       %{

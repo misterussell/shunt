@@ -9,10 +9,9 @@ alias Shunt.World.Exit
   tags: [:midgrid, :nightlife, :social],
   graph_position: {2790, -2170},
 
-  # TODO: bartender NPC who trades in what people say when they drink; Web rumor-source events
-  # (this is a primary place to pick up leads); atmosphere on :draw (the burn roars brighter as
-  # the Spire pulls); seed at least one rumor here; the "bloom_den_vouched" flag that opens the
-  # Afterburn is earned somewhere in the party petal (here or via the bartender).
+  # Cass (here) is the bartender lead-source, seeds the first rumor, and vouches you into the
+  # Afterburn (bloom_den_vouched).
+  # TODO (optional flavor): atmosphere tiers on :draw (the burn roars brighter as the Spire pulls).
   npcs: ["bloom_cass"],
   events: [],
   exits: [

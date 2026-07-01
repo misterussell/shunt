@@ -16,12 +16,10 @@
   effect: %{
     kind: :income,
     scales_with: %{district: "bloom", fact: :season},
-    # TODO: tune the per-level rates — season-scaled, scrip-flavored. Should feel volatile vs the
-    # steadier Bleed Tap. Starting guess below.
+    # season-scaled, scrip-flavored — volatile vs the steadier Bleed Tap.
     rates: %{gilded: 3, churning: 14, cascade: 26},
     cap_hours: 10,
-    # TODO: confirm the hotter heat bite reads right in play (lower trace_per = more Heat per scrip
-    # collected than the Bleed Tap's 25).
+    # Hotter heat bite than the Bleed Tap (lower trace_per = more Heat per scrip collected).
     trace_per: 16
   }
 }

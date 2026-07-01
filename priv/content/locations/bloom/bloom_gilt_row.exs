@@ -26,10 +26,6 @@ alias Shunt.World.Exit
         "Half the frontages are dark, shuttered overnight, the Closed Hands' notices on the glass. The gilt that's left burns brighter to cover the gaps, and fools no one."
     }
   ],
-
-  # TODO: Closed Hands NPC (the one who extends the credit); a vendor/fencing hook for performed
-  # -wealth goods; atmosphere on :book (the row's confidence curdles as debt is called); seed a
-  # rumor about who's over-leveraged. This is the shop petal's front and a debt on-ramp.
   npcs: ["bloom_silas"],
   events: [],
   exits: [

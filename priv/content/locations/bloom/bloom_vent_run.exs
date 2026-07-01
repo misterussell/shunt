@@ -29,8 +29,6 @@ alias Shunt.World.Exit
 
   # Street Alchemy engine: the bloom_intake_duct + bloom_flare_manifold repairables live here
   # (surfaced automatically by location_id) and drive the district :draw fact — DONE.
-  # TODO: atmosphere tiers on :draw (the spine ticks louder / the ducts sing with heat as the
-  # Spire pulls harder); optional Street Alchemy fixer NPC who trades in duct-work.
   npcs: ["bloom_soot"],
   events: [],
   exits: [

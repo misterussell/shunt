@@ -26,18 +26,13 @@ alias Shunt.World.Exit
         "The throat roars. The Spire pours down through it in a flood of heat and light, the whole concourse blazing — and the ascent gate above swallows another name, and another, faster than anyone down here lets themselves count."
     }
   ],
-
-  # TODO: Authority presence here (the ascent officer NPC who decides who's "listed"); atmosphere
-  # tiers on :draw (the throat brightens/roars as the Spire pulls harder); this is the watched
-  # front-route hub radiating to all four petals. The ascent-clearance framing lives here.
   npcs: ["bloom_aurel"],
   events: [],
   exits: [
     %Exit{id: "throat_to_rimwalk", to: "bloom_rimwalk"},
     # The way up. Gated on the finale: the player only reaches the Uptake once the case is cracked
     # and they hold ascent clearance.
-    # TODO: confirm "bloom_ascent_clearance" is the flag granted by the RumorConnection success
-    # event (see bloom_uptake TODO).
+    # Opens once the case cracks: bloom_ascent_success grants bloom_ascent_clearance.
     %Exit{
       id: "throat_to_uptake",
       to: "bloom_uptake",

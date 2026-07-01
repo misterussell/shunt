@@ -9,9 +9,8 @@ alias Shunt.World.Exit
   tags: [:midgrid, :dining, :infrastructure],
   graph_position: {2700, -1830},
 
-  # TODO: pocket-of-C grooming imagery (the believed meat-cover flavour — the crop being fattened
-  # and finished); the back-route hinge from the eat petal into the Vent Run; optional
-  # kitchen-worker NPC who's seen too much and can be turned into a lead.
+  # Pocket-of-C grooming imagery + the eat-petal back-route hinge into the Vent Run. Pia (here) is
+  # the kitchen worker who's seen too much, turned into a lead.
   npcs: ["bloom_pia"],
   events: [],
   exits: [

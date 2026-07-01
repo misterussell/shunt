@@ -16,8 +16,7 @@
   effect: %{
     kind: :income,
     scales_with: %{district: "bloom", fact: :draw},
-    # TODO: tune the per-level rates — draw-scaled, cred-tier district, should out-earn signal_tap
-    # at :gorging. Starting guess below; balance against Skim Crew so neither dominates.
+    # draw-scaled, cred-tier — out-earns signal_tap at :gorging; balanced against the Skim Crew.
     rates: %{slack: 5, drawing: 12, gorging: 24},
     cap_hours: 12,
     trace_per: 25

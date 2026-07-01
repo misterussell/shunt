@@ -9,9 +9,8 @@ alias Shunt.World.Exit
   tags: [:midgrid, :dining, :social],
   graph_position: {2790, -1960},
 
-  # TODO: primary Web rumor hub — NPC(s) trading gossip over dinner; several rumor-source events;
-  # atmosphere on :season (the room's talk warms from polite to vicious). Seed multiple rumors
-  # here. The "bloom_reserve_invited" flag that opens the private booths is earned here.
+  # bloom_the_table (POI event) earns the Reserve invite (bloom_reserve_invited).
+  # TODO (optional flavor): atmosphere on :season; a gossip NPC; extra rumor-source events.
   npcs: [],
   events: ["bloom_the_table"],
   exits: [

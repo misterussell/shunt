@@ -26,10 +26,8 @@ alias Shunt.World.Exit
     }
   ],
 
-  # TODO: the :book reveal location — author it to go dark when book hits :called (a repairable
-  # "bloom_reclaim_floor" whose "broken" state feeds the district :called rule, or location-level
-  # gating). Closed Hands foreclosure event; grants toward "bloom_book_leveraged"/"bloom_book_called".
-  # Connects to the Vent Run (shop-side back-route).
+  # The :book reveal location — its atmosphere goes dark as book -> :called (driven by Silas's
+  # foreclosure chain). Connects to the Vent Run (shop-side back-route).
   npcs: [],
   events: [],
   exits: [

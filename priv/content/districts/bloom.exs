@@ -36,10 +36,8 @@
       default: :gilded,
       rules: [
         {:cascade, [{:knows, "bloom_season_cascade"}]},
+        # :churning is granted by working the Web (bloom_yara_market -> bloom_season_stoked).
         {:churning, [{:knows, "bloom_season_stoked"}]}
-        # TODO: decide whether :churning should derive from a knowledge flag granted by a
-        # mid-investigation event (current stub) or directly from {:has_rumor, key} once enough
-        # Bloom rumors are held. Finalize when the rumors + Slate events are authored.
       ]
     },
     # The debt weighing on the district (Closed Hands). Flush -> leveraged -> called; at :called,
@@ -51,10 +49,9 @@
       default: :flush,
       rules: [
         {:called, [{:knows, "bloom_book_called"}]},
+        # :leveraged/:called are granted by Silas's foreclosure chain
+        # (bloom_silas_foreclosure -> bloom_silas_called); Reclaim/Gilt Row atmosphere reflects it.
         {:leveraged, [{:knows, "bloom_book_leveraged"}]}
-        # TODO: tie :called to the infra_state of the shuttered venues so a foreclosed room reads
-        # as dark on the map, e.g. {:called, [{:infra_state, "bloom_reclaim_floor", "broken"}]}.
-        # Finalize once the Reclaim / Gilt Row repairables (or dark-location gating) are authored.
       ]
     }
   }
