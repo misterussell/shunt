@@ -9,13 +9,40 @@ alias Shunt.World.Exit
   tags: [:midgrid, :gambling, :latticework, :social],
   graph_position: {3210, -1960},
 
-  # TODO — Ghostwork target + Web engine:
-  #   - lattice block whose leads find the way into the betting system; the ICE node
-  #     "bloom_slate_ice" (ice_nodes/bloom/) whose reward grants the ICE-LOCKED rumor the finale
-  #     RumorConnection requires (this is what forces a full Ghostwork crack).
-  #   - the market as a hackable system (rig/read the odds, skim the pool) — Ghostwork rewards.
-  #   - :season drives the odds/atmosphere (calm at :gilded, chaos at :cascade).
-  #   - seed multiple rumors here (the ticker is a rumor firehose).
+  # Ghostwork target: the scan layer finds the way into the betting machine's back office;
+  # cracking bloom_slate_ice there rewards the ICE-locked rumor (bloom_ascension_ledger) the
+  # finale RumorConnection requires — DONE.
+  # TODO: :season drives the odds/atmosphere (calm at :gilded, chaos at :cascade); seed additional
+  # rumors here via events (the ticker is a rumor firehose); an NPC working the floor.
+  lattice: %{
+    leads: [
+      %{
+        id: "slate_back_office",
+        requirements: [],
+        text:
+          "The odds board is a puppet — the numbers come from somewhere behind it. There's a seam into the back office, where the house keeps whatever it prices the wagers off.",
+        on_intercept: [{:knowledge, "bloom_slate_ice_found"}]
+      }
+    ],
+    filler: [
+      %{
+        weight: 3,
+        text: "Wager traffic, thick and frantic — bets laid on names you half-recognize.",
+        on_intercept: []
+      },
+      %{
+        weight: 2,
+        text:
+          "An odds-feed handshake, repricing by the second on rumor you can't see the source of.",
+        on_intercept: []
+      },
+      %{
+        weight: 1,
+        text: "A settled-bet manifest. You skim a loose payout.",
+        on_intercept: [{:scrip, 4}]
+      }
+    ]
+  },
   npcs: [],
   events: [],
   exits: [
