@@ -10,6 +10,7 @@ defmodule Shunt.ChromeMeat do
   Full design: priv/docs/SHUNT_chrome_and_meat_v1.md.
   """
 
+  alias Shunt.Content
   alias Shunt.Implants
   alias Shunt.Players.Player
   alias Shunt.Requirements
@@ -30,9 +31,11 @@ defmodule Shunt.ChromeMeat do
   def band_for(_load), do: :none
 
   @doc """
-  Decorates every implant def with the player's relationship to it, so the LiveView renders state
-  without recomputing domain rules. State is one of :installed, :owned (built, uninstalled),
-  :fabricable (can build now), or :locked (missing tool/schematic/materials). Sorted by name.
+  Decorates every implant def with the player's relationship to it (and its fabrication bill of
+  materials), so the LiveView renders state without recomputing domain rules. State is one of
+  :installed, :owned (built, uninstalled), :fabricable (can build now), :needs_materials (has the
+  tool + schematic but lacks parts), or :locked (missing tool/schematic, or NPC-only). Each entry
+  also carries `inputs` (name + owned/needed per material). Sorted by name.
 
   Note: unlike Shunt.Heat, Chrome Load does NOT fire events mid-effect. The Shunt 9 v1 foreshadowing
   beat is a narrative conditional event gated on {:chrome_load_at_least, n} — more idiomatic than a
@@ -41,7 +44,37 @@ defmodule Shunt.ChromeMeat do
   def catalog(%Player{} = player) do
     Implants.items()
     |> Enum.sort_by(& &1.name)
-    |> Enum.map(fn def -> %{def: def, state: state_for(player, def)} end)
+    |> Enum.map(fn def ->
+      %{def: def, state: state_for(player, def), inputs: inputs_for(player, def)}
+    end)
+  end
+
+  # The fabrication bill of materials, resolved for display: each input's name (from :raws or
+  # :chrome_raws) and how many the player holds vs needs. Empty for NPC-only (non-fabricable) implants.
+  defp inputs_for(player, def) do
+    case Map.get(def, :fabrication) do
+      %{inputs: inputs} ->
+        for {key, needed} <- inputs do
+          %{
+            key: key,
+            name: input_name(key),
+            needed: needed,
+            owned: Map.get(player.inventory, key, 0)
+          }
+        end
+
+      _ ->
+        []
+    end
+  end
+
+  defp input_name(key) do
+    with :error <- Content.fetch(:raws, key),
+         :error <- Content.fetch(:chrome_raws, key) do
+      key
+    else
+      {:ok, item} -> item.name
+    end
   end
 
   defp state_for(player, def) do

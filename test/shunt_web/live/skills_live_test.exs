@@ -26,6 +26,23 @@ defmodule ShuntWeb.SkillsLiveTest do
     refute has_element?(view, "#install-lineman_graft-button")
   end
 
+  test "an augment short on parts shows what it needs by name and count", %{conn: conn} do
+    player = Shunt.Players.get_player!()
+    fab = Shunt.Implants.fetch!("lineman_graft").fabrication
+    # Tool + schematic learned, but no fabrication materials -> :needs_materials.
+    Shunt.Repo.update!(
+      Ecto.Changeset.change(player,
+        inventory: %{"patchwork_scalpel" => 1},
+        knowledge: [fab.schematic]
+      )
+    )
+
+    {:ok, view, _html} = live(conn, ~p"/skills/chrome-meat")
+
+    assert has_element?(view, "#implant-lineman_graft .implant-req", "Salvaged Servo")
+    assert has_element?(view, "#implant-lineman_graft .implant-req", "Subdermal Wiring Bundle")
+  end
+
   test "fabricating a graft turns it into an installable augment", %{conn: conn} do
     player = Shunt.Players.get_player!()
     fab = Shunt.Implants.fetch!("lineman_graft").fabrication

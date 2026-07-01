@@ -76,6 +76,22 @@ defmodule Shunt.ChromeMeatTest do
       entry = Enum.find(ChromeMeat.catalog(player), &(&1.def.id == "lineman_graft"))
       assert entry.state == :installed
     end
+
+    test "exposes each fabrication input with a resolved name and owned/needed counts" do
+      # One servo on hand (a :chrome_raws item), no wiring (a :raws item).
+      player = %Player{inventory: %{"salvaged_servo" => 1}}
+
+      entry = Enum.find(ChromeMeat.catalog(player), &(&1.def.id == "lineman_graft"))
+
+      servo = Enum.find(entry.inputs, &(&1.key == "salvaged_servo"))
+      assert servo.name == "Salvaged Servo"
+      assert servo.needed == 1
+      assert servo.owned == 1
+
+      wiring = Enum.find(entry.inputs, &(&1.key == "subdermal_wiring_bundle"))
+      assert wiring.name == "Subdermal Wiring Bundle"
+      assert wiring.owned == 0
+    end
   end
 
   describe "fabricate/2" do

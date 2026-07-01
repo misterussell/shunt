@@ -232,6 +232,18 @@ defmodule ShuntWeb.SkillsLive do
               <div class="implant-info">
                 <div class="implant-name">{entry.def.name}</div>
                 <div class="implant-load">◇ +{entry.def.chrome_load} load</div>
+                <div :if={entry.state in [:fabricable, :needs_materials]} class="implant-req">
+                  <span class="implant-req-label">FAB:</span>
+                  <span
+                    :for={inp <- entry.inputs}
+                    class={[
+                      "implant-req-item",
+                      inp.owned < inp.needed && "implant-req-item--short"
+                    ]}
+                  >
+                    ◇ {inp.name} {inp.owned}/{inp.needed}
+                  </span>
+                </div>
               </div>
               <%= cond do %>
                 <% entry.state == :installed -> %>
