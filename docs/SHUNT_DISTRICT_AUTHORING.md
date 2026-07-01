@@ -272,3 +272,8 @@ District fact derives across its levels (call `Shunt.District.fact/2` with sampl
 salvaged future? 4. Would it still make sense in twenty years? See `SHUNT_NAMING_PATTERNS.md`.
 Check new NPC display names against existing ones (`grep -rh "name:" priv/content/world_npcs/`)
 — repeated names read as the same person unless they actually are.
+
+**NPCs specifically:** default to plain real given names (Mara, Eli, Silas, Yara…); reserve
+nicknames/occupational handles (Coil, Bevel, Soot…) for the one or two per district who've
+genuinely earned one. A cast that's all Ratchet/Cinder/Rusk is over-themed — see
+`SHUNT_NAMING_PATTERNS.md` § NPC Names.
