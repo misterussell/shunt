@@ -25,6 +25,14 @@ alias Shunt.World.Exit
     %Exit{
       id: "anchor_gate_to_high_anchor",
       to: "windlass_high_anchor"
+    },
+    # Up into the Bloom — the last district before the Spire. Opens once the player has taken the
+    # Windlass ascent (windlass_ascent grants windlass_ascended). Return exit is on bloom_rimwalk.
+    %Exit{
+      id: "anchor_gate_to_bloom",
+      to: "bloom_rimwalk",
+      requirements: [{:knows, "windlass_ascended"}],
+      travel_text: "The lift climbs out of the coil and into the light of the Bloom."
     }
   ]
 }

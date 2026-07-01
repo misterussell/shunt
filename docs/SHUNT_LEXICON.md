@@ -697,3 +697,15 @@ before the final Midgrid district and the Spire.
   `stalled` → `running`. Restarting it restores freight to Slagfoot.
 * **Signal Tap** — a hideout income module spliced into the district grid; what it
   skims scales with how open the grid runs. Keystone of the "Node" ladder tier.
+
+<!-- TODO (The Bloom — register on merge, Constitution #5): write proper Lexicon entries for the
+  new recurring terms coined for the Bloom district, applying the naming test to each:
+    - the Bloom (district; the Spire's exhaust-flower), the Throat (hub), the Uptake (ascent gate),
+      the Rimwalk, the Vent Run, the petals (Burnoff/Afterburn/etc.), the Junction (tier-6 hideout)
+    - the draw / the season / the book (the three District-Evolution facts)
+    - Bleed Tap, Skim Crew (the two Junction income modules)
+    - the gloss (Chrome & Meat status-augment / harvest-shunt), a "listed" name, "ascent"/"the
+      throat" as the harvest euphemism
+    - Whisper Syndicate — promote from the background-factions list to an active faction entry
+  Confirm no term collides with an existing entry before adding. -->
+
