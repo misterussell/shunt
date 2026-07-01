@@ -91,14 +91,14 @@ defmodule Shunt.ChromeMeat do
     cond do
       Map.has_key?(player.implants, def.id) -> :installed
       Map.get(player.inventory, def.id, 0) >= 1 -> :owned
-      true -> fabrication_state(fabricate(player, def.id))
+      true -> fabrication_state(fabrication_gate(player, def))
     end
   end
 
   # :fabricable when it can be built now; :needs_materials when only the inputs are missing (tool +
   # schematic held) so the UI can point the player at salvage; :locked when the tool or schematic is
   # missing (or the implant is NPC-only).
-  defp fabrication_state({:ok, _}), do: :fabricable
+  defp fabrication_state(:ok), do: :fabricable
   defp fabrication_state({:error, :insufficient_materials}), do: :needs_materials
   defp fabrication_state({:error, _}), do: :locked
 
@@ -110,6 +110,20 @@ defmodule Shunt.ChromeMeat do
   def fabricate(%Player{} = player, implant_key) do
     def = Implants.fetch!(implant_key)
 
+    case fabrication_gate(player, def) do
+      :ok ->
+        consume = for {key, qty} <- def.fabrication.inputs, do: {:inventory, key, -qty}
+        {:ok, consume ++ [{:inventory, implant_key, 1}]}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  # The fabrication eligibility gate: :ok when the implant can be built now, else {:error, reason}.
+  # Shared by fabricate/2 (to emit effects) and state_for/2 (to classify catalog state), so the
+  # gating rules live in one place and classification no longer builds a throwaway effect list.
+  defp fabrication_gate(player, def) do
     cond do
       not Map.has_key?(def, :fabrication) ->
         {:error, :not_fabricable}
@@ -124,8 +138,7 @@ defmodule Shunt.ChromeMeat do
         {:error, :insufficient_materials}
 
       true ->
-        consume = for {key, qty} <- def.fabrication.inputs, do: {:inventory, key, -qty}
-        {:ok, consume ++ [{:inventory, implant_key, 1}]}
+        :ok
     end
   end
 
