@@ -169,6 +169,16 @@ defmodule ShuntWeb.SkillsLive do
             <span>BENCH CLEAN · no product assembled</span>
           </div>
         <% end %>
+      <%!--
+        TODO: [Chrome & Meat v1 — Milestone 3] Add a `@tree.id == "chrome_meat"` branch before this
+        stub `else`, replacing DORMANT MODULE for chrome. Render: the Chrome Load meter (@player.chrome_load,
+        Heat-style band styling), owned uninstalled implants + installed implants (@player.implants), a
+        FABRICATE action (dispatch ChromeMeat.fabricate/2), and an INSTALL action (dispatch
+        ChromeMeat.install/2). Add matching handle_event/3 clauses ("fabricate", "install") in the module
+        body, following the "assemble"/"sell_assembled" pattern above. Give elements stable DOM ids
+        (e.g. #chrome-load, #fabricate-<key>-button, #install-<key>-button) for LiveView tests.
+        The stub below stays as the fallback for the remaining undesigned trees (ghostwork, web).
+      --%>
       <% else %>
         <div id="skill-tree-stub">
           <Chrome.panel class="hatch stub-panel">

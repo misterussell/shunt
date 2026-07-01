@@ -29,6 +29,20 @@
   ],
 
   solutions: [
+    # TODO: [Chrome & Meat v1 — Milestone 4] Add an ADDITIVE solution gated on the first implant, so
+    # chrome opens a better path on the generator's full repair without ever blocking the base ones:
+    #   %{
+    #     id: "live_bus_graft",
+    #     label: "Work the Live Bus Barehanded",
+    #     from: ["broken", "patched"],
+    #     requirements: [{:has_implant, "lineman_graft"}],   # NO soldering iron needed — the graft is the tool
+    #     consumes: %{"improvised_relay" => 1},              # cheaper than the standard/military paths
+    #     result_state: "repaired",
+    #     effects: [{:npc_loyalty, "shunt9_power_relay_coil", 4}],
+    #     outcome_text: "..."  # you grip the hot bus with grafted hands and seat the relay live
+    #   }
+    # CRITICAL: this is a bonus shortcut only. The existing improvised/standard/military solutions must
+    # remain fully usable by a chrome-less player — the power arc cannot depend on Chrome & Meat.
     %{
       id: "improvised",
       label: "Fit an Improvised Relay",
