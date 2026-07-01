@@ -40,6 +40,13 @@ alias Shunt.World.Exit
     %Exit{
       id: "landing_to_coil_stair",
       to: "windlass_coil_stair"
+    },
+    # Back down the freight line to the Grayline — the way in is also the way out.
+    %Exit{
+      id: "landing_to_grayline_glassline",
+      to: "grayline_glassline",
+      travel_text:
+        "You ride the freight line back down out of the Windlass, work-lamps thinning into the clean concourse until the Glassline's turnstiles come up ahead — the Grayline again, and past it the way down you came."
     }
   ]
 }
