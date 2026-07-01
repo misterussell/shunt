@@ -46,3 +46,5 @@ docker-compose.yml
 
 # Claude Code tool settings (local per-developer config)
 /.claude/
+# Superpowers brainstorming companion (local mockups)
+.superpowers/
