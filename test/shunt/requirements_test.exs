@@ -1,5 +1,7 @@
 defmodule Shunt.RequirementsTest do
-  use ExUnit.Case, async: true
+  # async: false — the {:has_program} test inserts/deletes in the global :programs ETS table; must
+  # not run concurrently with tests that read it (e.g. programs_content_test).
+  use ExUnit.Case, async: false
 
   alias Shunt.Players.Player
   alias Shunt.Requirements
@@ -264,6 +266,38 @@ defmodule Shunt.RequirementsTest do
       player = %Player{knowledge: ["rook"], reputation: %{"juno" => %{trust: 5}}}
 
       refute Requirements.met?(player, [{:knows, "rook"}, {:rep_at_least, "juno", :trust, 20}])
+    end
+  end
+
+  describe "met?/2 with {:has_implant, key}" do
+    test "met when the implant is installed (present in player.implants)" do
+      player = %Player{implants: %{"lineman_graft" => %{}}}
+
+      assert Requirements.met?(player, [{:has_implant, "lineman_graft"}])
+    end
+
+    test "unmet when the implant is not installed" do
+      refute Requirements.met?(%Player{implants: %{}}, [{:has_implant, "lineman_graft"}])
+    end
+  end
+
+  describe "met?/2 with {:chrome_load_at_least, n}" do
+    test "met when chrome_load is at or above the threshold" do
+      assert Requirements.met?(%Player{chrome_load: 30}, [{:chrome_load_at_least, 30}])
+    end
+
+    test "unmet when chrome_load is below the threshold" do
+      refute Requirements.met?(%Player{chrome_load: 29}, [{:chrome_load_at_least, 30}])
+    end
+  end
+
+  describe "met?/2 with {:chrome_load_below, n}" do
+    test "met when chrome_load is under the threshold" do
+      assert Requirements.met?(%Player{chrome_load: 29}, [{:chrome_load_below, 30}])
+    end
+
+    test "unmet when chrome_load is at or above the threshold" do
+      refute Requirements.met?(%Player{chrome_load: 30}, [{:chrome_load_below, 30}])
     end
   end
 end

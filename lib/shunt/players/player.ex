@@ -29,6 +29,13 @@ defmodule Shunt.Players.Player do
 
     field :ghostwork_state, :map, default: %{}
 
+    # Chrome & Meat (see priv/docs/SHUNT_chrome_and_meat_v1.md). :chrome_load is a capped 0–100
+    # meter, distinct from :heat. :implants is a def-keyed state map (key => %{}) mirroring
+    # :infrastructure; presence of a key means the implant is installed. The value map reserves
+    # "condition"/"last_serviced" sub-keys for v2 maintenance.
+    field :chrome_load, :integer, default: 0
+    field :implants, :map, default: %{}
+
     # repairable_id => "broken" | "patched" | "repaired". Absence of a key means the
     # repairable's initial_state (resolved by Shunt.Repair.state/2).
     field :infrastructure, :map, default: %{}

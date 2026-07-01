@@ -141,6 +141,28 @@ Shard Reader
 Signal Knife
 Echo Anchor
 
+## Chrome & Meat
+
+* **chrome / meat** — slang for cyberware and the flesh it goes into; "chrome & meat work" is
+  back-alley body modification. The skill of sourcing, fabricating, installing, and maintaining
+  illegal augments.
+* **Chrome Load** — the player meter tracking how much chrome the body carries (0–100). A separate
+  axis from Authority Heat. Higher load means more power and more risk — and, unstated this low in
+  the world, more legible to the wire: the body-side of the harvest. Heavy or dirty chrome also
+  raises Authority Heat (a reader sees a chromed body the way it reads a forged name).
+* **graft** — an installed augment, and the act of installing one ("to graft"). A **grafter** is a
+  back-alley fitter; the Winnow-tier professional is a **Graftsman**.
+* **Lineman's Graft** — crude Underbelly survival-chrome: insulated dermal weave and a servo in the
+  hands, so you can work a live bus without it killing you.
+* **salvaged servo** — a stripped motor-assist unit pulled from wrecked machines; the *chrome*-side
+  fabrication part for the Lineman's Graft, salvaged at the Scrap Yard.
+* **nerve sheath** — insulating neural sheath stripped off fire-killed chrome; the *meat*-side
+  fabrication part, salvaged on the Burned Platform. Both graft parts are recovered by digging
+  through the district's chrome and meat, never scavenged via Street Alchemy.
+* **the Fleshless** — a body-mod faction that holds flesh is a rough draft to be replaced; they move
+  surgical stock (subdermal wiring) up from below. A background presence in the Underbelly; their
+  ideology grows louder the higher you climb.
+
 ---
 
 # Common Slang

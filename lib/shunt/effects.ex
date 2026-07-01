@@ -1,6 +1,7 @@
 defmodule Shunt.Effects do
   @moduledoc false
 
+  alias Shunt.ChromeMeat
   alias Shunt.Heat
   alias Shunt.Npcs.Loyalty
 
@@ -106,6 +107,21 @@ defmodule Shunt.Effects do
 
   defp do_apply([{:set, field, value} | rest], player, acc, meta) do
     do_apply(rest, player, Map.put(acc, field, value), meta)
+  end
+
+  defp do_apply([{:chrome_load, delta} | rest], player, acc, meta) do
+    new_value = ChromeMeat.clamp(Map.get(acc, :chrome_load, player.chrome_load) + delta)
+    do_apply(rest, player, Map.put(acc, :chrome_load, new_value), meta)
+  end
+
+  defp do_apply([{:install_implant, key} | rest], player, acc, meta) do
+    current = Map.get(acc, :implants, player.implants)
+    do_apply(rest, player, Map.put(acc, :implants, Map.put(current, key, %{})), meta)
+  end
+
+  defp do_apply([{:remove_implant, key} | rest], player, acc, meta) do
+    current = Map.get(acc, :implants, player.implants)
+    do_apply(rest, player, Map.put(acc, :implants, Map.delete(current, key)), meta)
   end
 
   defp do_apply([{:discover_location, key} | rest], player, acc, meta) do
