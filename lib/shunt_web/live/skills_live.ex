@@ -241,7 +241,10 @@ defmodule ShuntWeb.SkillsLive do
                       inp.owned < inp.needed && "implant-req-item--short"
                     ]}
                   >
-                    ◇ {inp.name} {inp.owned}/{inp.needed}
+                    ◇ {inp.name} {inp.owned}/{inp.needed}<span
+                      :if={inp.owned < inp.needed and inp.source}
+                      class="implant-req-source"
+                    >· {inp.source}</span>
                   </span>
                 </div>
               </div>

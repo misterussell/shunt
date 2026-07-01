@@ -23,21 +23,35 @@ defmodule Shunt.Content.ChromeWiringTest do
     assert {:knowledge, "schematic_lineman_graft"} in intro.on_complete
   end
 
-  test "the servo salvage event is gated behind the schematic and grants the chrome raw" do
-    event = Content.fetch!(:events, "shunt9_scrap_yard_strip_servo")
-    assert {:knows, "schematic_lineman_graft"} in event.requirements
-    assert {:inventory, "salvaged_servo", 1} in event.on_complete
-    assert event.repeatable
+  test "each salvage event is gated behind the schematic and grants its chrome raw" do
+    servo = Content.fetch!(:events, "shunt9_scrap_yard_strip_servo")
+    assert {:knows, "schematic_lineman_graft"} in servo.requirements
+    assert {:inventory, "salvaged_servo", 1} in servo.on_complete
+    assert servo.repeatable
 
-    # The chrome raw exists in its own isolated category, never in the scavenge :raws pool.
-    assert Content.fetch!(:chrome_raws, "salvaged_servo").name == "Salvaged Servo"
-    refute Enum.any?(Content.all(:raws), &(&1.id == "salvaged_servo"))
+    sheath = Content.fetch!(:events, "shunt9_burned_platform_strip_sheath")
+    assert {:knows, "schematic_lineman_graft"} in sheath.requirements
+    assert {:inventory, "nerve_sheath", 1} in sheath.on_complete
+    assert sheath.repeatable
   end
 
-  test "the lineman_graft fabricates from a salvaged servo and subdermal wiring" do
+  test "chrome raws live in their own isolated category, never in the scavenge :raws pool" do
+    for key <- ["salvaged_servo", "nerve_sheath"] do
+      assert {:ok, raw} = Content.fetch(:chrome_raws, key)
+      assert raw.source != nil
+      refute Enum.any?(Content.all(:raws), &(&1.id == key))
+    end
+  end
+
+  test "the lineman_graft fabricates only from salvage-recovered chrome raws (not Street Alchemy)" do
     def = Content.fetch!(:implants, "lineman_graft")
     assert def.fabrication.schematic == "schematic_lineman_graft"
-    assert Map.has_key?(def.fabrication.inputs, "salvaged_servo")
+    assert Map.keys(def.fabrication.inputs) |> Enum.sort() == ["nerve_sheath", "salvaged_servo"]
+    # Every input is a chrome_raw (salvage-only), so nothing routes through Street Alchemy forage.
+    assert Enum.all?(Map.keys(def.fabrication.inputs), fn key ->
+             match?({:ok, _}, Content.fetch(:chrome_raws, key))
+           end)
+
     assert def.chrome_load > 0
   end
 

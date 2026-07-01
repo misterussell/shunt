@@ -40,7 +40,10 @@ defmodule ShuntWeb.SkillsLiveTest do
     {:ok, view, _html} = live(conn, ~p"/skills/chrome-meat")
 
     assert has_element?(view, "#implant-lineman_graft .implant-req", "Salvaged Servo")
-    assert has_element?(view, "#implant-lineman_graft .implant-req", "Subdermal Wiring Bundle")
+    assert has_element?(view, "#implant-lineman_graft .implant-req", "Nerve Sheath")
+    # Source hints tell the player where to dig for the parts they're short on.
+    assert has_element?(view, "#implant-lineman_graft .implant-req-source", "Scrap Yard")
+    assert has_element?(view, "#implant-lineman_graft .implant-req-source", "Burned Platform")
   end
 
   test "fabricating a graft turns it into an installable augment", %{conn: conn} do

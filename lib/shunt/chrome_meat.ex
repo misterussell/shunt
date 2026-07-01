@@ -58,6 +58,7 @@ defmodule Shunt.ChromeMeat do
           %{
             key: key,
             name: input_name(key),
+            source: input_source(key),
             needed: needed,
             owned: Map.get(player.inventory, key, 0)
           }
@@ -74,6 +75,15 @@ defmodule Shunt.ChromeMeat do
       key
     else
       {:ok, item} -> item.name
+    end
+  end
+
+  # The "where to dig for it" hint for a salvage part (chrome_raws carry a :source). nil for a shared
+  # raw with no dedicated source (e.g. a scavengeable :raws item).
+  defp input_source(key) do
+    case Content.fetch(:chrome_raws, key) do
+      {:ok, item} -> Map.get(item, :source)
+      :error -> nil
     end
   end
 

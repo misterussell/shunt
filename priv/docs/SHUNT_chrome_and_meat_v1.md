@@ -127,7 +127,7 @@ fields on `Shunt.Players.Player`):
     grants: ["lineman_graft"],     # capability key(s) for {:has_implant, ...}
     fabrication: %{                # optional; absent for NPC-only implants
       schematic: "schematic_lineman_graft",   # {:knows, ...} gate
-      inputs: %{"subdermal_wiring_bundle" => 1, "salvaged_servo" => 1}
+      inputs: %{"salvaged_servo" => 1, "nerve_sheath" => 1}  # both :chrome_raws (salvage-only)
     },
     install_text: "...", flavor: "..."
   }
@@ -179,9 +179,17 @@ Two ways to own an (uninstalled) implant; installation is a separate step (see b
 
 **Supply chain:**
 
-- **Chrome raws** (salvaged servos, neural fiber, harvested tissue, …) are new raw types that drop
-  **only from dedicated salvage/"recover" events** — the reframed harvesting fantasy — kept **out of
-  the global random-scavenge pool** so Street Alchemy scavenging isn't diluted.
+- **Chrome raws** live in their own `:chrome_raws` category and drop **only from dedicated
+  salvage/"recover" events** at world locations — never from the global scavenge pool, and never
+  from Street Alchemy. This is deliberate: fabricating an augment should feel like *digging through
+  chrome and meat*, not crafting at the alchemy bench. Fabrication inputs are chrome raws only (no
+  shared `:raws`), so nothing chrome-side routes through Street Alchemy forage. In Shunt 9 the
+  Lineman's Graft needs a **Salvaged Servo** (the chrome side, Scrap Yard) and a **Nerve Sheath**
+  (the meat side, Burned Platform). Each chrome raw carries a `source` hint that the Chrome & Meat
+  page shows next to any part the player is short on — the game has no log, so the "where to dig"
+  pointer must live in the UI.
+  - (The chrome *tool*, `patchwork_scalpel`, remains a Street Alchemy recipe — a one-time improvised
+    tool, deliberately left coupled; only the repeatable chrome *parts* are salvage-native.)
 - **Schematics** are `{:knows, "schematic_x"}` flags, learnable in v1 from any of four channels
   (author at least one in Shunt 9): **NPC teaching, Ghostwork ICE-node cracks, Web rumor resolutions,
   salvage/cache finds.**

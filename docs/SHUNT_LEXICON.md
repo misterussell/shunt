@@ -154,8 +154,11 @@ Echo Anchor
   back-alley fitter; the Winnow-tier professional is a **Graftsman**.
 * **Lineman's Graft** — crude Underbelly survival-chrome: insulated dermal weave and a servo in the
   hands, so you can work a live bus without it killing you.
-* **salvaged servo** — a stripped motor-assist unit pulled from wrecked machines; chrome-fabrication
-  stock, recovered from salvage rather than scavenged.
+* **salvaged servo** — a stripped motor-assist unit pulled from wrecked machines; the *chrome*-side
+  fabrication part for the Lineman's Graft, salvaged at the Scrap Yard.
+* **nerve sheath** — insulating neural sheath stripped off fire-killed chrome; the *meat*-side
+  fabrication part, salvaged on the Burned Platform. Both graft parts are recovered by digging
+  through the district's chrome and meat, never scavenged via Street Alchemy.
 * **the Fleshless** — a body-mod faction that holds flesh is a rough draft to be replaced; they move
   surgical stock (subdermal wiring) up from below. A background presence in the Underbelly; their
   ideology grows louder the higher you climb.

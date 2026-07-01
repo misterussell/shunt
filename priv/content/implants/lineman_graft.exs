@@ -8,9 +8,11 @@
   chrome_load: 15,
   heat_on_install: 2,
   grants: ["lineman_graft"],
+  # Both inputs are salvage-recovered chrome_raws — nothing routes through Street Alchemy forage.
+  # The chrome side (a servo, Scrap Yard) and the meat side (a nerve sheath, Burned Platform).
   fabrication: %{
     schematic: "schematic_lineman_graft",
-    inputs: %{"salvaged_servo" => 1, "subdermal_wiring_bundle" => 1}
+    inputs: %{"salvaged_servo" => 1, "nerve_sheath" => 1}
   },
 
   flavor:

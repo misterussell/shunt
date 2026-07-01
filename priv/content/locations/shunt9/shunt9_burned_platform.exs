@@ -54,7 +54,8 @@ alias Shunt.World.Exit
   events: [
     "shunt9_burned_platform_melted_door",
     "shunt9_burned_platform_scorched_records",
-    "shunt9_burned_platform_transit_door"
+    "shunt9_burned_platform_transit_door",
+    "shunt9_burned_platform_strip_sheath"
   ],
 
   exits: [
