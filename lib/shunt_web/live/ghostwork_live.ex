@@ -131,14 +131,24 @@ defmodule ShuntWeb.GhostworkLive do
     {:noreply, socket |> assign(:encounter, nil) |> assign(:selected_subroutine, nil)}
   end
 
-  # TODO (vault mechanic, model ii): add a "descend" handle_event. When the current layer is
-  # "cleared but open" (safe reward banked, a vault still alive), this is the player choosing to
-  # skip the vault and go deeper. Call Shunt.Ghostwork.descend/1 on socket.assigns.encounter,
-  # assign the returned encounter, and refresh the target via Ghostwork.resolve_target(updated,
-  # nil). descend/1 dispatches no effects (safe reward already banked), so no Players.dispatch is
-  # needed — mirror the "retreat" handler, not the "act" handler. The IceTerminal renders the
-  # DESCEND button only while a vault is open (see ice_terminal.ex TODO). A :locked_out end state
-  # reuses the existing "close_encounter" button — no new handler needed there.
+  def handle_event("descend", _params, socket) do
+    case socket.assigns.encounter do
+      nil ->
+        {:noreply, socket}
+
+      encounter ->
+        case Ghostwork.descend(encounter) do
+          {:ok, updated, _effects} ->
+            {:noreply,
+             socket
+             |> assign(:encounter, updated)
+             |> assign(:selected_subroutine, Ghostwork.resolve_target(updated, nil))}
+
+          {:error, _reason} ->
+            {:noreply, socket}
+        end
+    end
+  end
 
   defp dispatch_loadout(socket, compute_ids) do
     resolver = fn player -> {:ok, [{:ghostwork_loadout, compute_ids.(player)}], %{}} end

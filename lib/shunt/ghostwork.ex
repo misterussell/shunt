@@ -483,6 +483,14 @@ defmodule Shunt.Ghostwork do
 
   def descend(%Encounter{}), do: {:error, :not_banked}
 
+  @doc "Whether the UI should offer DESCEND — the current layer is cleared-but-open on a live vault."
+  def descend_available?(%Encounter{status: :active, layer_banked: true} = encounter) do
+    layer = Enum.at(encounter.node.layers, encounter.layer_index)
+    alive_vault?(layer, encounter.subroutine_progress)
+  end
+
+  def descend_available?(%Encounter{}), do: false
+
   @doc "The innate Probe action's base profile, for the encounter UI readout."
   def probe_profile, do: %{progress: @probe_progress, trace: @probe_trace}
 

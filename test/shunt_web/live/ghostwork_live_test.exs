@@ -305,6 +305,102 @@ defmodule ShuntWeb.GhostworkLiveTest do
     end
   end
 
+  describe "breaking a node with a vault" do
+    setup %{player_id: player_id} do
+      node = %IceNode{
+        id: "gw_vault_node",
+        name: "Vault Relay",
+        family: "ice_maintenance",
+        location_id: "gw_test_loc",
+        requirements: [{:knows, "gw_node_found"}],
+        cool_threshold: 60,
+        layers: [
+          %{
+            id: "vl",
+            name: "Vaulted",
+            trace_multiplier: 1.0,
+            reward: [{:knowledge, "gw_vault_safe"}],
+            subroutines: [
+              %{id: "req", key: nil, threat: :barrier, progress_required: 3},
+              %{
+                id: "vault",
+                key: :decrypt,
+                threat: :vault,
+                progress_required: 6,
+                reward: [{:knowledge, "gw_vault_loot"}]
+              }
+            ]
+          }
+        ]
+      }
+
+      :ets.insert(:ice_nodes, {node.id, node})
+      on_exit(fn -> :ets.delete(:ice_nodes, "gw_vault_node") end)
+
+      # A matching :decrypt program (real content) to drill the vault, plus the reveal knowledge.
+      Players.dispatch(player_id, fn _player ->
+        {:ok,
+         [
+           {:inventory, "tracebreaker", 1},
+           {:ghostwork_loadout, ["tracebreaker"]},
+           {:knowledge, "gw_node_found"}
+         ], %{}}
+      end)
+
+      %{player_id: player_id}
+    end
+
+    test "the vault subroutine renders sealed with a lockout warning", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+      view |> element("#break-gw_vault_node") |> render_click()
+
+      assert has_element?(view, "#ice-modal")
+      assert has_element?(view, "#ice-sub-vault.ice-subroutine--vault")
+      assert has_element?(view, "#ice-sub-vault", "VAULT")
+      assert has_element?(view, "#ice-sub-vault", "LOCKOUT")
+    end
+
+    test "probing a vault trips the lockout end-state", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+      view |> element("#break-gw_vault_node") |> render_click()
+
+      view |> element("#ice-sub-vault") |> render_click()
+      view |> element("#ice-probe") |> render_click()
+
+      assert has_element?(view, "#ice-modal", "LOCKED OUT")
+      assert has_element?(view, "#ice-close")
+    end
+
+    test "clearing the required set reveals DESCEND; descending finishes the node", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+      view |> element("#break-gw_vault_node") |> render_click()
+
+      refute has_element?(view, "#ice-descend")
+
+      # Auto-target skips the vault and hits the required barrier; one probe (3) downs it.
+      view |> element("#ice-probe") |> render_click()
+
+      assert has_element?(view, "#ice-descend")
+
+      view |> element("#ice-descend") |> render_click()
+      assert has_element?(view, "#ice-modal", "CRACKED")
+      refute "gw_vault_loot" in Players.get_player!().knowledge
+    end
+
+    test "drilling the vault with its matching key loots it and cracks the node", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+      view |> element("#break-gw_vault_node") |> render_click()
+
+      view |> element("#ice-probe") |> render_click()
+
+      view |> element("#ice-sub-vault") |> render_click()
+      view |> element("#ice-program-tracebreaker") |> render_click()
+
+      assert has_element?(view, "#ice-modal", "CRACKED")
+      assert "gw_vault_loot" in Players.get_player!().knowledge
+    end
+  end
+
   describe "loadout management on the rail" do
     setup %{player_id: player_id} do
       Players.dispatch(player_id, fn _player ->

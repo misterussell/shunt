@@ -2319,6 +2319,24 @@
 .ice-subroutine-threat--trap {
   color: var(--red);
 }
+.ice-subroutine-threat--vault {
+  color: var(--amber);
+  font-weight: 600;
+}
+.ice-subroutine--vault {
+  border-left-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 7%, var(--sunk));
+}
+.ice-subroutine--vault:hover {
+  border-color: var(--amber);
+}
+.ice-subroutine-warn {
+  grid-column: 1 / -1;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--red);
+}
 .ice-subroutine-key {
   grid-area: key;
   font-size: 0.72rem;
@@ -2422,6 +2440,13 @@
   outline-offset: 1px;
 }
 .ice-action--retreat:hover {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 8%, var(--sunk));
+}
+.ice-action--descend {
+  border-color: color-mix(in srgb, var(--amber) 40%, var(--border-c));
+}
+.ice-action--descend:hover {
   border-color: var(--amber);
   background: color-mix(in srgb, var(--amber) 8%, var(--sunk));
 }
