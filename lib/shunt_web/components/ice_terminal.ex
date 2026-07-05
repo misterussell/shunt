@@ -79,11 +79,6 @@ defmodule ShuntWeb.Components.IceTerminal do
             </div>
           </div>
 
-          <%!-- TODO (legibility #2): on each ALIVE non-vault subroutine, when its key is known,
-                show whether an equipped program counters it (a "✓ counter equipped" tick) using the
-                same action tag/icon as the matching program button below — draw the program↔key
-                line literally on the one screen where it matters. Pass the equipped @programs'
-                actions in and compare to sub.key. --%>
           <div id="ice-subroutines" class="ice-subroutines">
             <div
               :for={sub <- @layer.subroutines}
@@ -102,7 +97,11 @@ defmodule ShuntWeb.Components.IceTerminal do
               </span>
               <span class="ice-subroutine-key">
                 <%= if @weakness_known? do %>
-                  {key_text(sub.key)}
+                  {key_text(sub.key)}<span
+                    :if={countered?(@programs, sub)}
+                    class="ice-subroutine-counter"
+                    title="counter equipped"
+                  >✓</span>
                 <% else %>
                   <span class="ice-redact">▓▓▓</span>
                 <% end %>
@@ -253,4 +252,7 @@ defmodule ShuntWeb.Components.IceTerminal do
 
   defp key_text(nil), do: "—"
   defp key_text(key), do: to_string(key)
+
+  # Does the equipped loadout carry a program whose action counters this subroutine's key?
+  defp countered?(programs, sub), do: Enum.any?(programs, &(&1.action == sub.key))
 end

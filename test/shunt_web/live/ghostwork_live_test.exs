@@ -401,6 +401,95 @@ defmodule ShuntWeb.GhostworkLiveTest do
     end
   end
 
+  describe "the codex read meter" do
+    setup %{player_id: player_id} do
+      node = %IceNode{
+        id: "codex_cov_node",
+        name: "Cov",
+        family: "ice_testfam",
+        location_id: "nowhere",
+        requirements: [],
+        cool_threshold: 60,
+        layers: [
+          %{
+            id: "l",
+            name: "l",
+            trace_multiplier: 1.0,
+            reward: [],
+            subroutines: [%{id: "a", key: :spoof, threat: :barrier, progress_required: 5}]
+          }
+        ]
+      }
+
+      :ets.insert(:ice_nodes, {node.id, node})
+      on_exit(fn -> :ets.delete(:ice_nodes, "codex_cov_node") end)
+
+      Players.dispatch(player_id, fn _player ->
+        {:ok, [{:inventory, "maskchip", 1}, {:ghostwork_mastery, "ice_testfam", 3}], %{}}
+      end)
+
+      %{player_id: player_id}
+    end
+
+    test "renders the read meter's KEYS label and actionable coverage", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+
+      assert has_element?(view, "#mastery-ice_testfam .ghostwork-read-label", "KEYS")
+      assert has_element?(view, "#mastery-ice_testfam .ghostwork-coverage", "spoof")
+    end
+  end
+
+  describe "encounter key coverage ticks" do
+    setup %{player_id: player_id} do
+      node = %IceNode{
+        id: "gw_cover_node",
+        name: "Cover Node",
+        family: "ice_corp",
+        location_id: "gw_test_loc",
+        requirements: [],
+        cool_threshold: 60,
+        layers: [
+          %{
+            id: "l",
+            name: "l",
+            trace_multiplier: 1.0,
+            reward: [{:knowledge, "gw_cover_cracked"}],
+            subroutines: [
+              %{id: "sp", key: :spoof, threat: :barrier, progress_required: 10},
+              %{id: "de", key: :decrypt, threat: :barrier, progress_required: 10}
+            ]
+          }
+        ]
+      }
+
+      :ets.insert(:ice_nodes, {node.id, node})
+      on_exit(fn -> :ets.delete(:ice_nodes, "gw_cover_node") end)
+
+      # Keys read (mastery 3) + a spoof program equipped, so ice wants become legible and one
+      # subroutine has a counter in the loadout while the other does not.
+      Players.dispatch(player_id, fn _player ->
+        {:ok,
+         [
+           {:inventory, "maskchip", 1},
+           {:ghostwork_loadout, ["maskchip"]},
+           {:ghostwork_mastery, "ice_corp", 3}
+         ], %{}}
+      end)
+
+      %{player_id: player_id}
+    end
+
+    test "a subroutine the loadout counters shows a tick; an uncountered one does not", %{
+      conn: conn
+    } do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+      view |> element("#break-gw_cover_node") |> render_click()
+
+      assert has_element?(view, "#ice-sub-sp .ice-subroutine-counter")
+      refute has_element?(view, "#ice-sub-de .ice-subroutine-counter")
+    end
+  end
+
   describe "loadout management on the rail" do
     setup %{player_id: player_id} do
       Players.dispatch(player_id, fn _player ->

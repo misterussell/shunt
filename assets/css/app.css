@@ -2009,6 +2009,16 @@
   padding: 8px 0;
   border-bottom: 1px solid var(--border-c);
 }
+.ghostwork-mastery-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.ghostwork-mastery-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .ghostwork-node-info {
   display: flex;
   flex-direction: column;
@@ -2142,11 +2152,50 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
-.ghostwork-mastery-fog {
+.ghostwork-read-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ghostwork-read-pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.ghostwork-read-pip {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--border-c);
+  background: transparent;
+}
+.ghostwork-read-pip--lit {
+  border-color: var(--cyan);
+  background: var(--cyan);
+}
+.ghostwork-read-label {
   color: var(--cyan);
   font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+.ghostwork-read-hint {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+}
+.ghostwork-coverage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.ghostwork-coverage-key {
+  color: var(--red);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ghostwork-coverage-key--owned {
+  color: var(--green);
 }
 .ghostwork-codex-label {
   color: var(--muted);
@@ -2343,6 +2392,11 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--cyan);
+}
+.ice-subroutine-counter {
+  margin-left: 3px;
+  color: var(--green);
+  font-weight: 600;
 }
 
 /* Signature: Trace as a segmented detection heartbeat. */

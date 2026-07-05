@@ -836,20 +836,106 @@ defmodule Shunt.GhostworkTest do
     end
   end
 
+  describe "read_meter/1" do
+    test "SEEN below the first crack" do
+      assert Ghostwork.read_meter(0) == %{stage: :seen, filled: 1, label: "SEEN", to_keys: 3}
+    end
+
+    test "COSTS from the first crack, counting down to KEYS" do
+      assert Ghostwork.read_meter(1) == %{stage: :costs, filled: 2, label: "COSTS", to_keys: 2}
+      assert Ghostwork.read_meter(2) == %{stage: :costs, filled: 2, label: "COSTS", to_keys: 1}
+    end
+
+    test "KEYS once the weakness threshold is reached, fully read" do
+      assert Ghostwork.read_meter(3) == %{stage: :keys, filled: 3, label: "KEYS", to_keys: 0}
+      assert Ghostwork.read_meter(9) == %{stage: :keys, filled: 3, label: "KEYS", to_keys: 0}
+    end
+  end
+
   describe "mastery_summary/1" do
-    test "summarizes each family sorted by name with its fog stage" do
+    test "summarizes each family sorted by name with its read meter" do
       player = %Player{
         ghostwork_state: %{"mastery" => %{"ice_maintenance" => 2, "ice_corp" => 4}}
       }
 
       assert Ghostwork.mastery_summary(player) == [
-               %{family: "ice_corp", cracks: 4, fog_stage: :weakness},
-               %{family: "ice_maintenance", cracks: 2, fog_stage: :numbers}
+               %{family: "ice_corp", cracks: 4, read: Ghostwork.read_meter(4)},
+               %{family: "ice_maintenance", cracks: 2, read: Ghostwork.read_meter(2)}
              ]
     end
 
     test "is empty when the player has no mastery" do
       assert Ghostwork.mastery_summary(%Player{}) == []
+    end
+  end
+
+  describe "family_coverage/2 and codex/1" do
+    setup do
+      node = %IceNode{
+        id: "cov_node",
+        name: "Cov",
+        family: "ice_testfam",
+        location_id: "cov_loc",
+        cool_threshold: 60,
+        layers: [
+          %{
+            id: "l",
+            name: "l",
+            trace_multiplier: 1.0,
+            reward: [],
+            subroutines: [
+              %{id: "a", key: :spoof, threat: :barrier, progress_required: 5},
+              %{id: "b", key: :decrypt, threat: :sentry, progress_required: 5},
+              %{id: "v", key: :backdoor, threat: :vault, progress_required: 5, reward: []}
+            ]
+          }
+        ]
+      }
+
+      prog = %{
+        id: "cov_spoof",
+        name: "Cov Spoof",
+        action: :spoof,
+        progress: 4,
+        trace: 3,
+        on_weakness: %{progress: 8, trace: 1},
+        text: "x"
+      }
+
+      :ets.insert(:ice_nodes, {node.id, node})
+      :ets.insert(:programs, {prog.id, prog})
+
+      on_exit(fn ->
+        :ets.delete(:ice_nodes, "cov_node")
+        :ets.delete(:programs, "cov_spoof")
+      end)
+
+      %{player: %Player{inventory: %{"cov_spoof" => 1}}}
+    end
+
+    test "family_coverage lists the distinct subroutine keys (incl vault), sorted, with owned matches",
+         %{player: player} do
+      assert Ghostwork.family_coverage(player, "ice_testfam") == [
+               %{key: :backdoor, program: nil},
+               %{key: :decrypt, program: nil},
+               %{key: :spoof, program: "Cov Spoof"}
+             ]
+    end
+
+    test "codex attaches key coverage once a family is read to KEYS", %{player: player} do
+      keys_player = %{player | ghostwork_state: %{"mastery" => %{"ice_testfam" => 3}}}
+
+      assert [entry] = Ghostwork.codex(keys_player)
+      assert entry.read.stage == :keys
+      assert entry.coverage == Ghostwork.family_coverage(keys_player, "ice_testfam")
+    end
+
+    test "codex leaves coverage nil below KEYS read-level", %{player: player} do
+      costs_player = %{player | ghostwork_state: %{"mastery" => %{"ice_testfam" => 2}}}
+
+      assert [entry] = Ghostwork.codex(costs_player)
+      assert entry.read.stage == :costs
+      assert entry.coverage == nil
     end
   end
 

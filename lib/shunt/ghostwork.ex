@@ -88,13 +88,61 @@ defmodule Shunt.Ghostwork do
   def fog_stage(count) when count >= @mastery_numbers, do: :numbers
   def fog_stage(_count), do: :dark
 
+  @doc """
+  How well the player reads a family, as a 3-rung ladder the codex renders directly:
+  SEEN → COSTS → KEYS. `filled` is how many rungs are lit (1..3); `to_keys` is how many more
+  cracks until the top rung (0 once there). Replaces the old opaque "P/T mapped" / "weakness" fog
+  tags with one legible climb driven by the same @mastery_numbers/@mastery_weakness thresholds.
+  """
+  def read_meter(cracks) when cracks >= @mastery_weakness,
+    do: %{stage: :keys, filled: 3, label: "KEYS", to_keys: 0}
+
+  def read_meter(cracks) when cracks >= @mastery_numbers,
+    do: %{stage: :costs, filled: 2, label: "COSTS", to_keys: @mastery_weakness - cracks}
+
+  def read_meter(cracks),
+    do: %{stage: :seen, filled: 1, label: "SEEN", to_keys: @mastery_weakness - cracks}
+
   def mastery_summary(player) do
     player.ghostwork_state
     |> Map.get("mastery", %{})
     |> Enum.sort_by(fn {family, _} -> family end)
     |> Enum.map(fn {family, cracks} ->
-      %{family: family, cracks: cracks, fog_stage: fog_stage(cracks)}
+      %{family: family, cracks: cracks, read: read_meter(cracks)}
     end)
+  end
+
+  @doc """
+  The codex: `mastery_summary/1` plus, for each family the player has read to KEYS, a `coverage`
+  list of which action keys that family's ICE demands and which of the player's owned programs
+  answer them. `coverage` is nil below KEYS (you haven't learned the keys yet, so nothing to show).
+  """
+  def codex(player) do
+    Enum.map(mastery_summary(player), fn entry ->
+      coverage =
+        if entry.read.stage == :keys, do: family_coverage(player, entry.family), else: nil
+
+      Map.put(entry, :coverage, coverage)
+    end)
+  end
+
+  @doc """
+  The distinct action keys demanded by a family's ICE (across every subroutine of every node in
+  the family, vaults included), sorted, each paired with the name of an owned program that
+  counters it (or nil). The actionable half of the codex: "this family wants ▷decrypt — do you
+  carry one?"
+  """
+  def family_coverage(player, family) do
+    owned = Map.new(Shunt.Ghostwork.Programs.owned(player), &{&1.action, &1.name})
+
+    Shunt.Ghostwork.IceNode.all()
+    |> Enum.filter(&(&1.family == family))
+    |> Enum.flat_map(fn node -> Enum.flat_map(node.layers, & &1.subroutines) end)
+    |> Enum.map(& &1.key)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.map(&%{key: &1, program: Map.get(owned, &1)})
   end
 
   def titles(player) do

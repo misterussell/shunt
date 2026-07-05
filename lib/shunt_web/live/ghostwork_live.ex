@@ -331,28 +331,41 @@ defmodule ShuntWeb.GhostworkLive do
             </div>
           </Chrome.panel>
 
-          <%!-- TODO (legibility, ICE Dossier): rebuild this CODEX panel around a single READ meter
-                whose rungs are self-describing — SEEN → COSTS → KEYS — lit up to the family's
-                current read-level, replacing the opaque "fog: P/T mapped" / "fog: weakness" tags
-                (the confusion that kicked off this iteration). Keep the three-stage gradient (it now
-                also gates vault-looting): fog_stage :dark→SEEN(none lit), :numbers→COSTS, :weakness
-                →KEYS. Show cracked-count as progress to the next rung (e.g. "2 more cracks to read
-                keys"), driven by the @mastery_numbers/@mastery_weakness thresholds — expose a
-                Ghostwork.read_level/cracks-to-next helper rather than hardcoding thresholds here.
-                Then make the dossier ACTIONABLE: once a family is at KEYS, list which action keys
-                its subroutines want and which of the player's OWNED programs counter them (✓/✗) —
-                e.g. "wants ▷decrypt ✓ Tracebreaker · ▷backdoor ✗ none". This is ask #2 (tie loadout
-                programs to ICE weaknesses) surfaced in the codex. Add a Ghostwork.family_counters
-                /2-style helper (family → wanted keys → owned matching programs) so the view stays a
-                pure renderer. --%>
           <Chrome.section_header>CODEX</Chrome.section_header>
           <Chrome.panel id="codex-panel">
             <div class="ghostwork-codex-mastery">
               <p :if={@mastery == []} class="ghostwork-empty">NO ICE READ YET</p>
               <div :for={m <- @mastery} id={"mastery-#{m.family}"} class="ghostwork-mastery-row">
-                <span class="ghostwork-mastery-family">{m.family}</span>
-                <span class="ghostwork-mastery-cracks">cracked ×{m.cracks}</span>
-                <span class="ghostwork-mastery-fog">fog: {fog_label(m.fog_stage)}</span>
+                <div class="ghostwork-mastery-head">
+                  <span class="ghostwork-mastery-family">{m.family}</span>
+                  <span class="ghostwork-mastery-cracks">cracked ×{m.cracks}</span>
+                </div>
+                <div class="ghostwork-read-meter" aria-label={"read level: #{m.read.label}"}>
+                  <span class="ghostwork-read-pips" aria-hidden="true">
+                    <span
+                      :for={i <- 1..3}
+                      class={[
+                        "ghostwork-read-pip",
+                        i <= m.read.filled && "ghostwork-read-pip--lit"
+                      ]}
+                    />
+                  </span>
+                  <span class="ghostwork-read-label">{m.read.label}</span>
+                  <span :if={m.read.to_keys > 0} class="ghostwork-read-hint">
+                    {m.read.to_keys} more {cracks_word(m.read.to_keys)} to read keys
+                  </span>
+                </div>
+                <div :if={m.coverage} class="ghostwork-coverage">
+                  <span
+                    :for={c <- m.coverage}
+                    class={[
+                      "ghostwork-coverage-key",
+                      c.program && "ghostwork-coverage-key--owned"
+                    ]}
+                  >
+                    ▷{c.key} {if(c.program, do: "✓ #{c.program}", else: "✗ none")}
+                  </span>
+                </div>
               </div>
             </div>
           </Chrome.panel>
@@ -370,9 +383,14 @@ defmodule ShuntWeb.GhostworkLive do
   defp node_count_label([_]), do: "1 node exposed"
   defp node_count_label(nodes), do: "#{length(nodes)} nodes exposed"
 
-  defp fog_label(:dark), do: "dark"
-  defp fog_label(:numbers), do: "P/T mapped"
-  defp fog_label(:weakness), do: "weakness"
+  # The compact per-node read hint on the NODES list, in the same vocabulary as the codex READ
+  # meter (SEEN → COSTS → KEYS): unread → costs → keys.
+  defp fog_label(:dark), do: "unread"
+  defp fog_label(:numbers), do: "costs"
+  defp fog_label(:weakness), do: "keys"
+
+  defp cracks_word(1), do: "crack"
+  defp cracks_word(_n), do: "cracks"
 
   defp signal_entry(meta) do
     %{id: System.unique_integer([:monotonic, :positive]), text: meta.text, kind: meta.kind}
@@ -389,7 +407,7 @@ defmodule ShuntWeb.GhostworkLive do
     |> assign(:equipped_programs, Ghostwork.Programs.loadout(player))
     |> assign(:active_deck, Ghostwork.active_deck(player))
     |> assign(:deck_slots, Ghostwork.deck_slots(player))
-    |> assign(:mastery, Ghostwork.mastery_summary(player))
+    |> assign(:mastery, Ghostwork.codex(player))
   end
 
   defp flash_heat_event(socket, nil), do: socket
