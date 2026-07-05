@@ -518,6 +518,274 @@ defmodule Shunt.GhostworkTest do
     end
   end
 
+  describe "act/4 vault mechanic" do
+    setup do
+      # A :decrypt program, to match (or, against a :spoof vault, mismatch) a vault key.
+      prog = %{
+        id: "test_vault_key",
+        name: "Ghostkey",
+        action: :decrypt,
+        progress: 5,
+        trace: 2,
+        on_weakness: %{progress: 6, trace: 2},
+        text: "x"
+      }
+
+      :ets.insert(:programs, {prog.id, prog})
+      on_exit(fn -> :ets.delete(:programs, prog.id) end)
+      %{player: %Player{inventory: %{prog.id => 1}}}
+    end
+
+    defp vault(id, key, req, reward),
+      do: %{id: id, key: key, threat: :vault, progress_required: req, reward: reward}
+
+    test "a mismatched program hit on a vault trips the lockout: terminal, hardens, denies loot",
+         %{player: player} do
+      # program action :decrypt vs vault key :spoof -> mismatch
+      node = board_node([vault("v", :spoof, 6, [{:scrip, 40}])])
+      enc = on_board(node, %{mastery: 5})
+
+      {:ok, enc2, effects} = Ghostwork.act(enc, player, {:program, "test_vault_key"}, "v")
+
+      assert enc2.status == :locked_out
+      assert enc2.subroutine_progress["v"] == 0
+      assert {:ghostwork_node, "board", :harden} in effects
+      assert Enum.any?(effects, &match?({:heat, _}, &1))
+      refute {:scrip, 40} in effects
+    end
+
+    test "a probe on a vault trips the lockout (only the matching key is safe)" do
+      node = board_node([vault("v", :decrypt, 6, [{:scrip, 40}])])
+      enc = on_board(node, %{mastery: 5})
+
+      {:ok, enc2, effects} = Ghostwork.act(enc, %Player{}, :probe, "v")
+
+      assert enc2.status == :locked_out
+      assert {:ghostwork_node, "board", :harden} in effects
+    end
+
+    test "lockout heat exceeds a comparable trace-bust and scales by layer depth" do
+      layer = fn id ->
+        %{
+          id: id,
+          name: id,
+          trace_multiplier: 1.0,
+          reward: [],
+          subroutines: [vault("v", :spoof, 6, [])]
+        }
+      end
+
+      deep = %IceNode{
+        id: "deep",
+        name: "Deep",
+        family: "ice_corp",
+        location_id: "loc",
+        cool_threshold: 60,
+        layers: [layer.("l0"), layer.("l1")]
+      }
+
+      {:ok, e0, fx0} = Ghostwork.act(on_board(deep, %{mastery: 5}), %Player{}, :probe, "v")
+
+      {:ok, e1, fx1} =
+        Ghostwork.act(on_board(deep, %{layer_index: 1, mastery: 5}), %Player{}, :probe, "v")
+
+      [heat0] = for {:heat, h} <- fx0, do: h
+      [heat1] = for {:heat, h} <- fx1, do: h
+
+      assert e0.status == :locked_out and e1.status == :locked_out
+      # deeper than the layer-0 trace-bust heat (8), and deeper layers hurt more
+      assert heat0 > 8
+      assert heat1 > heat0
+    end
+
+    test "a matching-key hit advances a vault instead of tripping it", %{player: player} do
+      node = board_node([vault("v", :decrypt, 12, [{:scrip, 40}])])
+      enc = on_board(node, %{mastery: 5})
+
+      {:ok, enc2, effects} = Ghostwork.act(enc, player, {:program, "test_vault_key"}, "v")
+
+      assert enc2.status == :active
+      assert enc2.subroutine_progress["v"] == 6
+      refute {:scrip, 40} in effects
+    end
+
+    test "cracking a vault dispatches its reward without banking the layer", %{player: player} do
+      # required barrier stays up (99 req) so the layer does not bank/advance
+      node = board_node([barrier("a", :spoof, 99), vault("v", :decrypt, 6, [{:scrip, 40}])])
+      enc = on_board(node, %{mastery: 5})
+
+      {:ok, enc2, effects} = Ghostwork.act(enc, player, {:program, "test_vault_key"}, "v")
+
+      assert enc2.status == :active
+      assert enc2.subroutine_progress["v"] == 6
+      assert {:scrip, 40} in effects
+      refute {:scrip, 5} in effects
+    end
+
+    test "clearing the required set banks the safe reward but holds the layer open for the vault" do
+      node = board_node([barrier("a", :spoof, 3), vault("v", :decrypt, 12, [{:scrip, 40}])])
+      enc = on_board(node, %{mastery: 5})
+
+      {:ok, enc2, effects} = Ghostwork.act(enc, %Player{}, :probe, "a")
+
+      assert enc2.status == :active
+      assert enc2.layer_banked == true
+      assert enc2.layer_index == 0
+      assert {:scrip, 5} in effects
+      assert {:ghostwork_mastery, "ice_corp", 1} in effects
+      assert {:ghostwork_node, "board", {:bank_layer, 0}} in effects
+    end
+
+    test "drilling the vault after the safe reward banked does not re-dispatch it", %{
+      player: player
+    } do
+      node = board_node([barrier("a", :spoof, 3), vault("v", :decrypt, 12, [{:scrip, 40}])])
+
+      enc =
+        on_board(node, %{
+          mastery: 5,
+          subroutine_progress: %{"a" => 3, "v" => 0},
+          layer_banked: true
+        })
+
+      {:ok, enc2, effects} = Ghostwork.act(enc, player, {:program, "test_vault_key"}, "v")
+
+      assert enc2.subroutine_progress["v"] == 6
+      refute {:scrip, 5} in effects
+      refute {:ghostwork_mastery, "ice_corp", 1} in effects
+    end
+
+    test "cracking the vault on a banked-open final layer finishes the node, loot only", %{
+      player: player
+    } do
+      node = board_node([barrier("a", :spoof, 3), vault("v", :decrypt, 6, [{:scrip, 40}])])
+
+      enc =
+        on_board(node, %{
+          mastery: 5,
+          subroutine_progress: %{"a" => 3, "v" => 0},
+          layer_banked: true
+        })
+
+      {:ok, enc2, effects} = Ghostwork.act(enc, player, {:program, "test_vault_key"}, "v")
+
+      assert enc2.status == :cracked
+      assert {:scrip, 40} in effects
+      refute {:scrip, 5} in effects
+    end
+
+    test "auto-target never picks a vault" do
+      node = board_node([barrier("a", :spoof, 10), vault("v", :decrypt, 10, [])])
+      enc = on_board(node, %{mastery: 5})
+
+      {:ok, enc2, _} = Ghostwork.act(enc, %Player{}, :probe)
+
+      assert enc2.subroutine_progress["a"] == 3
+      assert enc2.subroutine_progress["v"] == 0
+    end
+
+    test "auto-target errors when only a vault remains alive" do
+      node = board_node([barrier("a", :spoof, 3), vault("v", :decrypt, 10, [])])
+
+      enc =
+        on_board(node, %{
+          mastery: 5,
+          subroutine_progress: %{"a" => 3, "v" => 0},
+          layer_banked: true
+        })
+
+      assert {:error, :invalid_target} = Ghostwork.act(enc, %Player{}, :probe)
+    end
+  end
+
+  describe "descend/1" do
+    test "advances to the next layer, re-zeroing the board and carrying trace, with no effects" do
+      two = %IceNode{
+        id: "two",
+        name: "Two",
+        family: "ice_corp",
+        location_id: "loc",
+        cool_threshold: 60,
+        layers: [
+          %{
+            id: "l0",
+            name: "L0",
+            trace_multiplier: 1.0,
+            reward: [{:scrip, 5}],
+            subroutines: [
+              barrier("a", :spoof, 3),
+              vault("v", :decrypt, 10, [{:scrip, 40}])
+            ]
+          },
+          %{
+            id: "l1",
+            name: "L1",
+            trace_multiplier: 1.0,
+            reward: [{:scrip, 9}],
+            subroutines: [barrier("b", :decrypt, 5)]
+          }
+        ]
+      }
+
+      enc =
+        on_board(two, %{
+          layer_index: 0,
+          mastery: 5,
+          subroutine_progress: %{"a" => 3, "v" => 0},
+          layer_banked: true,
+          trace: 12
+        })
+
+      {:ok, enc2, effects} = Ghostwork.descend(enc)
+
+      assert enc2.status == :active
+      assert enc2.layer_index == 1
+      assert enc2.subroutine_progress == %{"b" => 0}
+      assert enc2.layer_banked == false
+      assert enc2.trace == 12
+      assert effects == []
+    end
+
+    test "on the final layer, skipping the vault finishes the node with no further effects" do
+      node = board_node([barrier("a", :spoof, 3), vault("v", :decrypt, 10, [{:scrip, 40}])])
+
+      enc =
+        on_board(node, %{
+          mastery: 5,
+          subroutine_progress: %{"a" => 3, "v" => 0},
+          layer_banked: true
+        })
+
+      {:ok, enc2, effects} = Ghostwork.descend(enc)
+
+      assert enc2.status == :cracked
+      assert effects == []
+    end
+
+    test "errors when the required set is not yet cleared (nothing banked to descend from)" do
+      node = board_node([barrier("a", :spoof, 10), vault("v", :decrypt, 10, [])])
+      enc = on_board(node, %{mastery: 5})
+
+      assert {:error, :not_banked} = Ghostwork.descend(enc)
+    end
+  end
+
+  describe "resolve_target/2 with vaults" do
+    test "keeps an explicitly-selected alive vault highlighted" do
+      node = board_node([barrier("a", :spoof, 10), vault("v", :decrypt, 10, [])])
+      enc = on_board(node, %{mastery: 5})
+
+      assert Ghostwork.resolve_target(enc, "v") == "v"
+    end
+
+    test "never falls back to a vault when the preferred target is gone" do
+      node = board_node([barrier("a", :spoof, 3), vault("v", :decrypt, 10, [])])
+      enc = on_board(node, %{mastery: 5, subroutine_progress: %{"a" => 3, "v" => 0}})
+
+      assert Ghostwork.resolve_target(enc, "a") == nil
+    end
+  end
+
   describe "fog-of-war helpers" do
     test "numbers are hidden at mastery 0 and known from mastery 1" do
       refute Ghostwork.numbers_known?(%Encounter{node: ice_node(), layer_index: 0, mastery: 0})

@@ -22,11 +22,10 @@ defmodule Shunt.Ghostwork.IceNode do
   alive) | `:trap` (amplifies a mismatched non-Probe hit's Trace). See
   priv/docs/SHUNT_ghostwork_v1.md ("The ICE Encounter").
 
-  TODO (vault mechanic): document + support a fourth threat, `:vault`. A vault subroutine is
-  OPTIONAL — it does not count toward clearing the layer (the safe reward banks without it) — and
-  carries its own rich payload via a per-subroutine `reward: [...]` list. It is cracked ONLY by a
-  hit with its matching `key`; probe or any mismatched program trips a lockout (see
-  Shunt.Ghostwork act/4). Shape:
+  A fourth threat, `:vault`, is OPTIONAL — it does not count toward clearing the layer (the safe
+  reward banks without it) — and carries its own rich payload via a per-subroutine `reward: [...]`
+  list. It is cracked ONLY by a hit with its matching `key`; probe or any mismatched program trips
+  a lockout (see `Shunt.Ghostwork.act/4`). Shape:
 
       %{id: "ledger_vault", key: :backdoor, threat: :vault, progress_required: 14,
         reward: [{:scrip, 40}, {:knowledge, "..."}]}
