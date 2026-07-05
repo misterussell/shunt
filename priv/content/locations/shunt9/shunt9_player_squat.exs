@@ -24,7 +24,8 @@ alias Shunt.World.Exit
   events: [
     "shunt9_player_squat_deck",
     "shunt9_player_squat_neural_port",
-    "shunt9_player_squat_knowledge_chits"
+    "shunt9_player_squat_knowledge_chits",
+    "shunt9_player_squat_chrome_settling"
   ],
 
   exits: [

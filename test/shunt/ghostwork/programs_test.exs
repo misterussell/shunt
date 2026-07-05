@@ -1,5 +1,7 @@
 defmodule Shunt.Ghostwork.ProgramsTest do
-  use ExUnit.Case, async: true
+  # async: false — inserts/deletes in the global :programs ETS table; must not run concurrently
+  # with tests that read it (e.g. programs_content_test), or reads race with the temp rows.
+  use ExUnit.Case, async: false
 
   alias Shunt.Ghostwork.Programs
   alias Shunt.Players.Player

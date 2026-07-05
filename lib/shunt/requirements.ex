@@ -64,4 +64,10 @@ defmodule Shunt.Requirements do
   defp check(player, {:district, district_id, fact, op, target}) do
     Shunt.District.fact_meets?(player, district_id, fact, op, target)
   end
+
+  defp check(player, {:has_implant, key}), do: Map.has_key?(player.implants, key)
+
+  defp check(player, {:chrome_load_at_least, n}), do: player.chrome_load >= n
+
+  defp check(player, {:chrome_load_below, n}), do: player.chrome_load < n
 end

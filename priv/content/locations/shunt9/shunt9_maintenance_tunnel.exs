@@ -42,7 +42,13 @@ alias Shunt.World.Exit
   },
 
   npcs: [
-    "shunt9_maintenance_tunnel_junkie"
+    "shunt9_maintenance_tunnel_junkie",
+    # Mira the back-alley grafter only sets up once there's power for her bench — appears at partial
+    # grid, mirroring how Volt appears at online. This is the Chrome & Meat entry point in Shunt 9.
+    %{
+      id: "shunt9_maintenance_tunnel_grafter",
+      requirements: [{:district, "shunt9", :power, :>=, :partial}]
+    }
   ],
 
   events: [

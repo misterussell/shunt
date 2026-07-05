@@ -526,4 +526,66 @@ defmodule Shunt.EffectsTest do
       assert changes.rumors == ["juno_supplier"]
     end
   end
+
+  describe "apply/2 - :chrome_load" do
+    test "adds a positive delta to the player's chrome_load" do
+      player = %Player{chrome_load: 20}
+
+      {changes, _meta} = Effects.apply(player, [{:chrome_load, 15}])
+
+      assert changes.chrome_load == 35
+    end
+
+    test "floors chrome_load at 0" do
+      player = %Player{chrome_load: 10}
+
+      {changes, _meta} = Effects.apply(player, [{:chrome_load, -25}])
+
+      assert changes.chrome_load == 0
+    end
+
+    test "caps chrome_load at 100" do
+      player = %Player{chrome_load: 90}
+
+      {changes, _meta} = Effects.apply(player, [{:chrome_load, 40}])
+
+      assert changes.chrome_load == 100
+    end
+  end
+
+  describe "apply/2 - :install_implant" do
+    test "marks an implant installed on an empty implants map" do
+      player = %Player{implants: %{}}
+
+      {changes, _meta} = Effects.apply(player, [{:install_implant, "lineman_graft"}])
+
+      assert changes.implants == %{"lineman_graft" => %{}}
+    end
+
+    test "preserves other installed implants" do
+      player = %Player{implants: %{"reflex_spur" => %{}}}
+
+      {changes, _meta} = Effects.apply(player, [{:install_implant, "lineman_graft"}])
+
+      assert changes.implants == %{"reflex_spur" => %{}, "lineman_graft" => %{}}
+    end
+  end
+
+  describe "apply/2 - :remove_implant" do
+    test "removes an installed implant" do
+      player = %Player{implants: %{"lineman_graft" => %{}, "reflex_spur" => %{}}}
+
+      {changes, _meta} = Effects.apply(player, [{:remove_implant, "lineman_graft"}])
+
+      assert changes.implants == %{"reflex_spur" => %{}}
+    end
+
+    test "removing an implant that is not installed is a no-op" do
+      player = %Player{implants: %{"reflex_spur" => %{}}}
+
+      {changes, _meta} = Effects.apply(player, [{:remove_implant, "lineman_graft"}])
+
+      assert changes.implants == %{"reflex_spur" => %{}}
+    end
+  end
 end
