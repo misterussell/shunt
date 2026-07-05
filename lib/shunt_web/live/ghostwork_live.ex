@@ -276,15 +276,13 @@ defmodule ShuntWeb.GhostworkLive do
             LOADOUT
           </Chrome.section_header>
           <Chrome.panel id="loadout-panel">
-            <%!-- TODO (deck as gear): render a deck header here showing the active deck and its
-                  slot budget, e.g. `DECK: Jury-Rigged Terminal ▸ 3 slots · 2 used`. Source it from
-                  a new @active_deck assign (Ghostwork.active_deck/1, set in assign_deck/2) and
-                  Ghostwork.deck_slots/1. This is the "show the actual deck they're running programs
-                  on" ask — the deck must be visible, not just a gate. Then replace the hardcoded
-                  "3" in #loadout-count below AND `disabled={length(@loadout) >= 3}` on the equip
-                  button with Ghostwork.deck_slots(@player). --%>
+            <p :if={@active_deck} id="loadout-deck" class="ghostwork-loadout-deck">
+              <span class="ghostwork-loadout-deck-label">DECK</span>
+              <span class="ghostwork-loadout-deck-name">{@active_deck.name}</span>
+              <span class="ghostwork-loadout-deck-slots">{@deck_slots} slots</span>
+            </p>
             <p id="loadout-count" class="ghostwork-loadout-count">
-              {length(@loadout)}/3 equipped
+              {length(@loadout)}/{@deck_slots} equipped
             </p>
             <p :if={@programs == []} id="loadout-empty" class="ghostwork-empty">
               NO PROGRAMS OWNED
@@ -315,7 +313,7 @@ defmodule ShuntWeb.GhostworkLive do
                   class="ghostwork-loadout-toggle"
                   phx-click="equip"
                   phx-value-program={prog.id}
-                  disabled={length(@loadout) >= 3}
+                  disabled={length(@loadout) >= @deck_slots}
                 >
                   EQUIP
                 </button>
@@ -379,8 +377,8 @@ defmodule ShuntWeb.GhostworkLive do
     |> assign(:programs, Ghostwork.Programs.owned(player))
     |> assign(:loadout, Ghostwork.loadout(player))
     |> assign(:equipped_programs, Ghostwork.Programs.loadout(player))
-    # TODO (deck as gear): assign :active_deck (Ghostwork.active_deck(player)) so the loadout
-    # deck header can render the deck name + slot budget. See the loadout-panel TODO.
+    |> assign(:active_deck, Ghostwork.active_deck(player))
+    |> assign(:deck_slots, Ghostwork.deck_slots(player))
     |> assign(:mastery, Ghostwork.mastery_summary(player))
   end
 

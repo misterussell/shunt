@@ -2068,6 +2068,32 @@
   padding-left: 8px;
   margin-left: -10px;
 }
+.ghostwork-loadout-deck {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border-c);
+}
+.ghostwork-loadout-deck-label {
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.ghostwork-loadout-deck-name {
+  flex: 1;
+  color: var(--cyan);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+.ghostwork-loadout-deck-slots {
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 .ghostwork-loadout-count {
   color: var(--muted);
   font-size: 0.7rem;

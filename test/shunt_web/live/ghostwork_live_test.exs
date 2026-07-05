@@ -71,6 +71,13 @@ defmodule ShuntWeb.GhostworkLiveTest do
     assert has_element?(view, ".ladder-segment--current")
   end
 
+  test "the loadout panel names the active deck and its slot budget", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+
+    assert has_element?(view, "#loadout-deck", "Jury-Rigged Terminal")
+    assert has_element?(view, "#loadout-deck", "3 slots")
+  end
+
   test "the deck tether names the jacked-in location", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
 

@@ -16,13 +16,13 @@ defmodule Shunt.Ghostwork.Decks do
   (deck + programs). Better decks grant more slots.
   """
 
-  # TODO: `alias Shunt.Content` and implement `all/0` and `fetch!/1` delegating to
-  # Content.all(:decks) / Content.fetch!(:decks, id), exactly like Shunt.Ghostwork.Programs.
-  #
-  # TODO: implement `owned(player)` -> the decks whose id is in player.inventory (>= 1),
-  # mirroring Programs.owned/1.
-  #
-  # TODO: seed priv/content/decks/jury_rigged_terminal.exs as %{id: "jury_rigged_terminal",
-  # name: "Jury-Rigged Terminal", slots: 3, text: ...}. slots: 3 preserves today's hardcoded
-  # @loadout_slots so behavior is unchanged until better decks drop.
+  alias Shunt.Content
+
+  def all, do: Content.all(:decks)
+
+  def fetch!(id), do: Content.fetch!(:decks, id)
+
+  def owned(player) do
+    Enum.filter(all(), fn deck -> Map.get(player.inventory, deck.id, 0) >= 1 end)
+  end
 end

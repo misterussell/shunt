@@ -38,13 +38,10 @@ defmodule Shunt.Ghostwork do
   # Multiplies a turn's Trace when a non-Probe action MISMATCHES a :trap subroutine.
   @trap_trace_multiplier 2
 
-  # Equipped-program slots: only these are runnable in an encounter (the prep decision).
-  # TODO: the slot count is no longer a constant — it comes from the player's active deck.
-  # Add `active_deck(player)` -> the highest-`slots` deck the player owns (via
-  # Shunt.Ghostwork.Decks.owned/1), or nil if none. Add `deck_slots(player)` -> that deck's
-  # :slots, falling back to 3 if nil (can't reach an encounter without a deck anyway). Replace
-  # every use of @loadout_slots below with deck_slots(player). Keep @loadout_slots removed.
-  @loadout_slots 3
+  # Equipped-program slots come from the player's active deck (see deck_slots/1). This is the
+  # fallback when no deck is owned — unreachable in an encounter (you can't jack in without a
+  # deck), but keeps equip/2 total.
+  @default_slots 3
 
   # Lockout: tripping a vault's defender is harsher than a Trace-bust. Base + per-layer, like
   # bust heat but larger (deeper vaults hurt more). Tuning only.
@@ -450,19 +447,38 @@ defmodule Shunt.Ghostwork do
   """
   def weakness_known?(encounter), do: encounter.mastery >= @mastery_weakness
 
-  @doc "The player's equipped program ids (the 3-slot encounter loadout)."
+  @doc """
+  The player's active deck — the highest-`slots` deck they own — or nil if they own none.
+  Decks are gear (`Shunt.Ghostwork.Decks`); a better deck grants more loadout slots.
+  """
+  def active_deck(player) do
+    case Shunt.Ghostwork.Decks.owned(player) do
+      [] -> nil
+      decks -> Enum.max_by(decks, & &1.slots)
+    end
+  end
+
+  @doc "The player's program loadout size — the active deck's slots, or #{@default_slots} if deckless."
+  def deck_slots(player) do
+    case active_deck(player) do
+      nil -> @default_slots
+      deck -> deck.slots
+    end
+  end
+
+  @doc "The player's equipped program ids (the encounter loadout, sized by the active deck)."
   def loadout(player), do: Map.get(player.ghostwork_state, "loadout", [])
 
   @doc """
   The new loadout list with `program_id` equipped — for the caller to dispatch via the
   `{:ghostwork_loadout, ids}` effect. A no-op if the program isn't owned, is already
-  equipped, or all #{@loadout_slots} slots are full. Does not mutate the player.
+  equipped, or every deck slot (see deck_slots/1) is full. Does not mutate the player.
   """
   def equip(player, program_id) do
     current = loadout(player)
     owned? = Map.get(player.inventory, program_id, 0) >= 1
 
-    if owned? and program_id not in current and length(current) < @loadout_slots,
+    if owned? and program_id not in current and length(current) < deck_slots(player),
       do: current ++ [program_id],
       else: current
   end

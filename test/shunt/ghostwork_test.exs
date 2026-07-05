@@ -331,6 +331,62 @@ defmodule Shunt.GhostworkTest do
     end
   end
 
+  describe "active_deck/1, deck_slots/1 (deck as gear)" do
+    setup do
+      small = %{id: "test_small_deck", name: "Small Deck", slots: 3, text: "."}
+      big = %{id: "test_big_deck", name: "Big Deck", slots: 5, text: "."}
+      :ets.insert(:decks, {small.id, small})
+      :ets.insert(:decks, {big.id, big})
+
+      on_exit(fn ->
+        :ets.delete(:decks, small.id)
+        :ets.delete(:decks, big.id)
+      end)
+
+      %{small: small, big: big}
+    end
+
+    test "active_deck/1 returns nil when the player owns no deck" do
+      assert Ghostwork.active_deck(%Player{}) == nil
+    end
+
+    test "active_deck/1 returns the owned deck", %{small: small} do
+      player = %Player{inventory: %{"test_small_deck" => 1}}
+      assert Ghostwork.active_deck(player) == small
+    end
+
+    test "active_deck/1 picks the highest-slots deck when several are owned", %{big: big} do
+      player = %Player{inventory: %{"test_small_deck" => 1, "test_big_deck" => 1}}
+      assert Ghostwork.active_deck(player) == big
+    end
+
+    test "deck_slots/1 falls back to 3 when the player owns no deck" do
+      assert Ghostwork.deck_slots(%Player{}) == 3
+    end
+
+    test "deck_slots/1 reads the active deck's slots", %{big: _big} do
+      player = %Player{inventory: %{"test_big_deck" => 1}}
+      assert Ghostwork.deck_slots(player) == 5
+    end
+
+    test "equip/2 fills up to the active deck's slot count, not a hardcoded 3", %{big: _big} do
+      player = %Player{
+        inventory: %{
+          "test_big_deck" => 1,
+          "maskchip" => 1,
+          "shard_reader" => 1,
+          "ghostkey" => 1,
+          "signal_knife" => 1
+        },
+        ghostwork_state: %{"loadout" => ["maskchip", "shard_reader", "ghostkey"]}
+      }
+
+      # A 5-slot deck must accept a 4th program where the old constant-3 cap refused it.
+      assert Ghostwork.equip(player, "signal_knife") ==
+               ["maskchip", "shard_reader", "ghostkey", "signal_knife"]
+    end
+  end
+
   describe "resolve_target/2" do
     test "keeps the preferred subroutine while it is still alive" do
       node = board_node([barrier("a", :spoof, 10), barrier("b", :decrypt, 10)])
