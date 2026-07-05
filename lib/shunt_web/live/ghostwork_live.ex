@@ -131,6 +131,15 @@ defmodule ShuntWeb.GhostworkLive do
     {:noreply, socket |> assign(:encounter, nil) |> assign(:selected_subroutine, nil)}
   end
 
+  # TODO (vault mechanic, model ii): add a "descend" handle_event. When the current layer is
+  # "cleared but open" (safe reward banked, a vault still alive), this is the player choosing to
+  # skip the vault and go deeper. Call Shunt.Ghostwork.descend/1 on socket.assigns.encounter,
+  # assign the returned encounter, and refresh the target via Ghostwork.resolve_target(updated,
+  # nil). descend/1 dispatches no effects (safe reward already banked), so no Players.dispatch is
+  # needed — mirror the "retreat" handler, not the "act" handler. The IceTerminal renders the
+  # DESCEND button only while a vault is open (see ice_terminal.ex TODO). A :locked_out end state
+  # reuses the existing "close_encounter" button — no new handler needed there.
+
   defp dispatch_loadout(socket, compute_ids) do
     resolver = fn player -> {:ok, [{:ghostwork_loadout, compute_ids.(player)}], %{}} end
 
@@ -267,6 +276,13 @@ defmodule ShuntWeb.GhostworkLive do
             LOADOUT
           </Chrome.section_header>
           <Chrome.panel id="loadout-panel">
+            <%!-- TODO (deck as gear): render a deck header here showing the active deck and its
+                  slot budget, e.g. `DECK: Jury-Rigged Terminal ▸ 3 slots · 2 used`. Source it from
+                  a new @active_deck assign (Ghostwork.active_deck/1, set in assign_deck/2) and
+                  Ghostwork.deck_slots/1. This is the "show the actual deck they're running programs
+                  on" ask — the deck must be visible, not just a gate. Then replace the hardcoded
+                  "3" in #loadout-count below AND `disabled={length(@loadout) >= 3}` on the equip
+                  button with Ghostwork.deck_slots(@player). --%>
             <p id="loadout-count" class="ghostwork-loadout-count">
               {length(@loadout)}/3 equipped
             </p>
@@ -307,6 +323,20 @@ defmodule ShuntWeb.GhostworkLive do
             </div>
           </Chrome.panel>
 
+          <%!-- TODO (legibility, ICE Dossier): rebuild this CODEX panel around a single READ meter
+                whose rungs are self-describing — SEEN → COSTS → KEYS — lit up to the family's
+                current read-level, replacing the opaque "fog: P/T mapped" / "fog: weakness" tags
+                (the confusion that kicked off this iteration). Keep the three-stage gradient (it now
+                also gates vault-looting): fog_stage :dark→SEEN(none lit), :numbers→COSTS, :weakness
+                →KEYS. Show cracked-count as progress to the next rung (e.g. "2 more cracks to read
+                keys"), driven by the @mastery_numbers/@mastery_weakness thresholds — expose a
+                Ghostwork.read_level/cracks-to-next helper rather than hardcoding thresholds here.
+                Then make the dossier ACTIONABLE: once a family is at KEYS, list which action keys
+                its subroutines want and which of the player's OWNED programs counter them (✓/✗) —
+                e.g. "wants ▷decrypt ✓ Tracebreaker · ▷backdoor ✗ none". This is ask #2 (tie loadout
+                programs to ICE weaknesses) surfaced in the codex. Add a Ghostwork.family_counters
+                /2-style helper (family → wanted keys → owned matching programs) so the view stays a
+                pure renderer. --%>
           <Chrome.section_header>CODEX</Chrome.section_header>
           <Chrome.panel id="codex-panel">
             <div class="ghostwork-codex-mastery">
@@ -349,6 +379,8 @@ defmodule ShuntWeb.GhostworkLive do
     |> assign(:programs, Ghostwork.Programs.owned(player))
     |> assign(:loadout, Ghostwork.loadout(player))
     |> assign(:equipped_programs, Ghostwork.Programs.loadout(player))
+    # TODO (deck as gear): assign :active_deck (Ghostwork.active_deck(player)) so the loadout
+    # deck header can render the deck name + slot budget. See the loadout-panel TODO.
     |> assign(:mastery, Ghostwork.mastery_summary(player))
   end
 

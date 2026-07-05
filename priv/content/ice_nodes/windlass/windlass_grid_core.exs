@@ -42,6 +42,14 @@
         {:scrip, 30},
         {:npc_loyalty, "windlass_drift", 6}
       ],
+      # TODO (vault mechanic, v1 slice): add a THIRD subroutine to The Core with `threat: :vault`
+      # — the Authority's master key to the whole district grid, the ultimate "go deeper for more"
+      # prize on the meanest ICE in the game. Give it a key that differs from BOTH required subs'
+      # keys (so any wrong hit is a genuine lockout gamble), a high progress_required, and a reward
+      # bigger than the safe Core reward (extra scrip + a distinct knowledge key, e.g. a deeper
+      # grid exploit, and/or more windlass_drift loyalty). With trace_multiplier already 3.0 here,
+      # even a clean drill burns Trace hard — the classic "I have the key, but do I have the
+      # headroom?" beat. Required core_trap/core_lock stay as-is and still bank the safe reward.
       subroutines: [
         %{id: "core_trap", key: :spoof, threat: :trap, progress_required: 11},
         %{id: "core_lock", key: :backdoor, threat: :barrier, progress_required: 15}

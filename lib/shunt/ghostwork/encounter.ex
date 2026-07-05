@@ -16,7 +16,14 @@ defmodule Shunt.Ghostwork.Encounter do
                             subroutines each time the layer advances.
     * trace               — 0..100, persists across all layers until the encounter ends
     * mastery             — snapshot of the family's mastery count at begin (drives fog-of-war)
-    * status              — :active | :cracked | :busted | :retreated
+    * status              — :active | :cracked | :busted | :retreated | :locked_out
+                            (:locked_out = a vault defender tripped; see Shunt.Ghostwork act/4)
+
+  TODO (vault mechanic, model ii): add a `layer_banked: false` field. It records that the CURRENT
+  layer's required subroutines are down and its safe reward has already been dispatched, so the
+  encounter can stay :active with the layer "cleared but open" — letting the player drill a still-
+  alive vault or call Shunt.Ghostwork.descend/1 — without the resolver re-banking the safe reward.
+  Reset to false each time the layer advances. See the resolve/descend TODOs in ghostwork.ex.
   """
 
   @enforce_keys [:node, :layer_index, :mastery]

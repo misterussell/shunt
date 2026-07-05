@@ -39,7 +39,18 @@ defmodule Shunt.Ghostwork do
   @trap_trace_multiplier 2
 
   # Equipped-program slots: only these are runnable in an encounter (the prep decision).
+  # TODO: the slot count is no longer a constant — it comes from the player's active deck.
+  # Add `active_deck(player)` -> the highest-`slots` deck the player owns (via
+  # Shunt.Ghostwork.Decks.owned/1), or nil if none. Add `deck_slots(player)` -> that deck's
+  # :slots, falling back to 3 if nil (can't reach an encounter without a deck anyway). Replace
+  # every use of @loadout_slots below with deck_slots(player). Keep @loadout_slots removed.
   @loadout_slots 3
+
+  # Lockout: tripping a vault's defender is harsher than a Trace-bust. Base + per-layer, like
+  # bust heat but larger (deeper vaults hurt more). Tuning only.
+  # TODO: add @lockout_heat_base / @lockout_heat_per_layer constants (larger than the bust pair
+  # above) and a `lockout_heat(layer_index)` helper mirroring bust_heat/1, used by the
+  # :locked_out resolver below.
 
   # Earned-title milestones (doc "Progression"): a ghostwork tree tier is earned when the
   # player holds a deck AND total cracks (sum of all family mastery) reaches the threshold.
@@ -225,6 +236,17 @@ defmodule Shunt.Ghostwork do
        for every Sentry still alive AFTER the hit,
     5. resolve into a downed subroutine / banked layer / cracked node / bust.
   """
+  # TODO (vault mechanic): a subroutine may carry `threat: :vault` plus its own `reward: [...]`.
+  # A vault is OPTIONAL (see layer_cleared?/advance predicate) and holds a rich bonus. The one
+  # rule: a vault advances ONLY when hit with its matching key. In act/4, BEFORE applying
+  # progress: if `target.threat == :vault` and the action does NOT match target.key (i.e. probe,
+  # whose action is nil, OR any mismatched program), resolve immediately to a LOCKOUT — return an
+  # encounter with status :locked_out and effects [{:heat, lockout_heat(layer_index)},
+  # {:ghostwork_node, node.id, :harden}]. Deeper unbanked layers are forfeited simply because the
+  # encounter ends. A matched hit on a vault advances it like a weakness hit; when its progress
+  # reaches progress_required the vault is "cracked" and its `reward` effects must be dispatched
+  # (see resolve/advance TODO). Vaults are never auto-targeted (see target_subroutine TODO), so a
+  # lockout can only happen on a deliberate mis-hit.
   def act(%Encounter{} = encounter, player, action, subroutine_id \\ nil) do
     layer = Enum.at(encounter.node.layers, encounter.layer_index)
 
@@ -254,6 +276,11 @@ defmodule Shunt.Ghostwork do
   or layer cleared). Lets the LiveView keep its highlight on a subroutine across turns
   without itself knowing what "alive" means.
   """
+  # TODO (vault mechanic): auto-target must NEVER pick a vault, so a player can't stumble into a
+  # lockout — vaults are hit only by explicit select_target. In resolve_target/2 and in
+  # target_subroutine(encounter, layer, nil) below, filter the "first still-alive" candidate to
+  # NON-vault subroutines (threat != :vault). An explicitly-passed vault id is still allowed in
+  # target_subroutine(encounter, layer, id).
   def resolve_target(%Encounter{status: :active} = encounter, preferred) do
     layer = Enum.at(encounter.node.layers, encounter.layer_index)
     alive = Enum.filter(layer.subroutines, &alive?(&1, encounter.subroutine_progress))
@@ -338,6 +365,22 @@ defmodule Shunt.Ghostwork do
     {%{encounter | status: :busted, trace: @trace_bust}, effects}
   end
 
+  # TODO (vault mechanic, model ii — "cleared but open"): the current resolve/2 auto-advances the
+  # moment the layer clears. Rework so vaults create a discrete "safe now, push for the vault or
+  # descend?" beat, while VAULT-LESS layers behave exactly as today:
+  #
+  #   * layer_cleared? must count only REQUIRED (non-vault) subroutines — a vault never blocks the
+  #     safe reward.
+  #   * When the required set FIRST clears, dispatch the safe bank effects ONCE (layer.reward +
+  #     {:ghostwork_mastery, family, 1} + {:ghostwork_node, id, {:bank_layer, layer_index}}) and
+  #     set Encounter.layer_banked (new field, see encounter.ex) so a later act doesn't re-dispatch.
+  #   * ADVANCE (next layer, or :cracked on the last) only when the required set is clear AND no
+  #     vault is still alive. So: no vault -> advances immediately like today; vault alive -> stays
+  #     active with layer_banked: true, awaiting an explicit descend/1 or continued drilling.
+  #   * When a matched hit CRACKS a vault (its progress reaches required), dispatch that vault's
+  #     `reward` effects immediately; if that leaves no alive vault and the required set is clear,
+  #     advance in the same step.
+  #   * Trace-bust (>= @trace_bust) and vault LOCKOUT (see act/4 TODO) remain terminal at any point.
   defp resolve(%Encounter{} = encounter, layer, new_board, new_trace) do
     if layer_cleared?(layer, new_board) do
       bank_layer(encounter, layer, new_trace)
@@ -380,6 +423,20 @@ defmodule Shunt.Ghostwork do
   defp bust_heat(layer_index), do: @bust_heat_base + @bust_heat_per_layer * layer_index
 
   def retreat(%Encounter{} = encounter), do: {:ok, %{encounter | status: :retreated}, []}
+
+  # TODO (vault mechanic, model ii): add `descend/1` — the player's "skip the vault, go deeper"
+  # action, valid only when the required set is clear (Encounter.layer_banked true) and a vault is
+  # still alive on the current layer. It advances to the next layer (zeroing the board via
+  # zeroed_board/2 and resetting layer_banked to false), carrying Trace, or sets status :cracked
+  # when the current layer was the last. Returns {:ok, updated, []} — the safe reward already
+  # banked when the required set cleared, so descend dispatches no new effects. It mirrors the
+  # advance half of bank_layer/3 without re-banking.
+  #
+  # TODO (vault mechanic): add the :locked_out terminal resolver clause (mirror the :busted clause
+  # in resolve/4) so an :locked_out encounter renders distinctly from a Trace-bust. The lockout
+  # effects [{:heat, lockout_heat(layer_index)}, {:ghostwork_node, node.id, :harden}] are emitted
+  # by act/4 at the moment of the mis-hit (see act/4 TODO); this just fixes the terminal status +
+  # trace snapshot on the returned Encounter.
 
   @doc "The innate Probe action's base profile, for the encounter UI readout."
   def probe_profile, do: %{progress: @probe_progress, trace: @probe_trace}

@@ -78,6 +78,17 @@ defmodule ShuntWeb.Components.IceTerminal do
             </div>
           </div>
 
+          <%!-- TODO (vault mechanic): render a `:vault` subroutine distinctly from barrier/sentry/
+                trap — a SEALED treatment with its reward shown (or a "rich payload" hint), its key
+                (redacted per @weakness_known? like any sub), and a plain inline warning: "matching
+                key only — wrong hit = LOCKOUT". Threat label for :vault = "VAULT". A vault is only
+                targeted by explicit click (never auto-target), so keep its phx-click select but
+                make the lockout risk unmistakable before the player commits.
+                TODO (legibility #2): on each ALIVE non-vault subroutine, when its key is known,
+                show whether an equipped program counters it (a "✓ counter equipped" tick) using the
+                same action tag/icon as the matching program button below — draw the program↔key
+                line literally on the one screen where it matters. Pass the equipped @programs'
+                actions in and compare to sub.key. --%>
           <div id="ice-subroutines" class="ice-subroutines">
             <div
               :for={sub <- @layer.subroutines}
@@ -156,6 +167,13 @@ defmodule ShuntWeb.Components.IceTerminal do
                 <span class="ice-action-name">{prog.name}</span>
                 <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
               </button>
+              <%!-- TODO (vault mechanic, model ii): render a DESCEND button here ONLY when the
+                    layer is "cleared but open" — required subs down (safe reward banked) and a
+                    vault still alive. It fires phx-click="descend" (skip the vault, go deeper).
+                    Needs an assign like @layer_banked?/@vault_open? derived from the encounter
+                    (add a Shunt.Ghostwork predicate rather than computing "alive vault" in the
+                    template). While the layer is open, the action bar still offers the matched
+                    program to drill the vault + RETREAT (bank and walk). --%>
               <button id="ice-retreat" class="ice-action ice-action--retreat" phx-click="retreat">
                 <span class="ice-action-name">RETREAT</span>
                 <span class="ice-action-hint">walk clean</span>
@@ -207,6 +225,10 @@ defmodule ShuntWeb.Components.IceTerminal do
   defp pip_class(index, current) when index == current, do: "ice-layer-pip--current"
   defp pip_class(_index, _current), do: "ice-layer-pip--next"
 
+  # TODO (vault mechanic): add the :locked_out terminal state to these three helpers, distinct
+  # from :busted so the vault story reads clearly. status_label(:locked_out) -> "LOCKED OUT";
+  # status_accent(:locked_out) -> "ice-accent--danger"; end_line(:locked_out) -> something like
+  # "Vault defender tripped — locked out. Node hardened." (deeper unbanked layers were forfeited).
   defp status_label(:active), do: "BREAKING"
   defp status_label(:cracked), do: "CRACKED"
   defp status_label(:busted), do: "BUSTED"
