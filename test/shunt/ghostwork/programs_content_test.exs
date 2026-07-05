@@ -115,6 +115,36 @@ defmodule Shunt.Ghostwork.ProgramsContentTest do
     end
   end
 
+  describe "marquee vault nodes" do
+    for node_id <- ["crossgate_counting_house_ledger", "windlass_grid_core"] do
+      test "#{node_id} carries a vault whose key differs from its layer's required keys" do
+        node = IceNode.fetch!(unquote(node_id))
+
+        vault_layer =
+          Enum.find(node.layers, fn layer ->
+            Enum.any?(layer.subroutines, &(&1.threat == :vault))
+          end)
+
+        assert vault_layer, "expected a vault subroutine in #{unquote(node_id)}"
+
+        vault = Enum.find(vault_layer.subroutines, &(&1.threat == :vault))
+
+        required_keys =
+          vault_layer.subroutines
+          |> Enum.reject(&(&1.threat == :vault))
+          |> Enum.map(& &1.key)
+
+        # The lockout risk only bites if the vault demands a key the required subs don't already
+        # need — otherwise you'd be carrying its counter anyway. A program for it must exist so a
+        # master can actually loot it.
+        refute vault.key in required_keys
+        assert vault.key in Enum.map(Programs.all(), & &1.action)
+        assert vault.reward != []
+        assert is_integer(vault.progress_required) and vault.progress_required > 0
+      end
+    end
+  end
+
   # Greedily clear the board: target the lowest-progress still-alive subroutine (sentries
   # bleed, so finishing fast matters) with a program whose key matches it.
   defp play_to_end(enc, player, turns \\ 0)
