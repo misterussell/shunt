@@ -2,7 +2,7 @@
 # Loot: dropped by windlass_anchor_vault's vault subroutine (crack->loot), not sold. Numbers are the
 # agreed design; tune for feel.
 #
-# TODO: finalize `name` + `text` against docs/SHUNT_LEXICON.md + docs/SHUNT_STYLE_GUIDE.md, then tune.
+# TODO: tune the profile for feel once the Windlass district is playable.
 %{
   id: "arc_driver",
   name: "Arc Driver",

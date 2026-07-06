@@ -2,7 +2,7 @@
 # ~zero Trace). Loot: dropped by windlass_skim_registry's watch_ring layer (crack->loot). Numbers are
 # the agreed design; tune for feel.
 #
-# TODO: finalize `name` + `text` against docs/SHUNT_LEXICON.md + docs/SHUNT_STYLE_GUIDE.md, then tune.
+# TODO: tune the profile for feel once the Windlass district is playable.
 %{
   id: "nullsleeve",
   name: "Nullsleeve",

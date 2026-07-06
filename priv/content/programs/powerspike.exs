@@ -2,8 +2,7 @@
 # cores). Skimmed at the Fitworks (see priv/content/locations/windlass/windlass_fitters_floor.exs).
 # Numbers are the agreed design; tune for feel once the Windlass nodes are playable.
 #
-# TODO: finalize `name` + `text` against docs/SHUNT_LEXICON.md + docs/SHUNT_STYLE_GUIDE.md
-#   (Collective/Fitworks-cut gear voice), then tune the profile for feel.
+# TODO: tune the profile for feel once the Windlass district is playable.
 %{
   id: "powerspike",
   name: "Powerspike",

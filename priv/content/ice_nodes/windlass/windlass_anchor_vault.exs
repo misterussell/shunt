@@ -1,11 +1,9 @@
 %Shunt.Ghostwork.IceNode{
   id: "windlass_anchor_vault",
-  name: "High Anchor Vault",
+  name: "The Anchor Forge",
   family: "ice_authority",
   location_id: "windlass_high_anchor",
 
-  # TODO: finalize per docs/SHUNT_STYLE_GUIDE.md — the Collective's white whale: the deck-forge the
-  # Authority buried at the summit. This is the CAPSTONE (deck-as-vault-loot + the mastery long-tail).
   description:
     "Under the clean lamps of High Anchor, behind the deepest ICE in the Windlass, the Authority keeps the one thing the Collective has never been able to build for itself: a deck-forge. Reading it takes more than tools — it takes knowing Authority ICE the way its own wardens do.",
 
@@ -29,7 +27,7 @@
   layers: [
     %{
       id: "gate",
-      name: "Anchor Gate",
+      name: "Anchor Face",
       trace_multiplier: 1.0,
       reward: [{:scrip, 16}],
       subroutines: [

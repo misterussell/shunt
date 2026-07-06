@@ -18,9 +18,8 @@ alias Shunt.World.Exit
 
   graph_position: {2600, -1360},
 
-  # The vault lead is gated on the same deep read as the node itself — it won't tease before it's
+  # The forge lead is gated on the same deep read as the node itself — it won't tease before it's
   # reachable, and by the time it surfaces you can read the vault's key cold.
-  # TODO: finalize lead/filler flavor text against docs/SHUNT_STYLE_GUIDE.md (provisional below).
   lattice: %{
     leads: [
       %{

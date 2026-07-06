@@ -4,8 +4,6 @@
   family: "ice_authority",
   location_id: "windlass_slagworks",
 
-  # TODO: finalize per docs/SHUNT_STYLE_GUIDE.md — an Authority relay welded shut at the core; the
-  # first ICE your scavenged kit can't simply decrypt open. This is the :overload TEACHER.
   description:
     "An Authority reader-relay bolted into the foundry's oldest wall. Its face reads like any other node — but the trunk behind it is fused solid, the kind of lock that only opens for something with real current behind it.",
 

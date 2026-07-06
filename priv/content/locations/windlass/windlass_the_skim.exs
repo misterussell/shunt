@@ -17,7 +17,6 @@ alias Shunt.World.Exit
 
   graph_position: {2860, -1280},
 
-  # TODO: finalize lead/filler flavor text against docs/SHUNT_STYLE_GUIDE.md (provisional below).
   lattice: %{
     leads: [
       %{

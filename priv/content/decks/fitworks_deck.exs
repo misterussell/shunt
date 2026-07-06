@@ -4,12 +4,10 @@
 # sizes the loadout from it. Four slots relieves the 5-keys-in-3-slots squeeze by one — a felt gain.
 #
 # Vault-ONLY: the only source is windlass_anchor_vault's forge_vault subroutine reward. No vendor.
-#
-# TODO: finalize `name` + `text` against docs/SHUNT_LEXICON.md (Collective/Fitworks-built deck voice).
 %{
   id: "fitworks_deck",
-  name: "Fitworks Deck",
+  name: "Fitworks-Cut Deck",
   slots: 4,
   text:
-    "Collective-cut and clean-socketed — four sockets that actually seat true. The Fitworks only builds one when the grid war has already been won."
+    "Four sockets, all of them clean-cut and seated true. The Fitworks only builds one when the grid war's already been won — Collective gear, for a runner who earned it."
 }

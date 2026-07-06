@@ -39,7 +39,6 @@ alias Shunt.World.Exit
       # cloak starter is theirs to give freely; the :overload brute is EARNED once your cracks have
       # turned the grid war (grid >= :contested is derived from cracking Fitworks ICE — see
       # districts/windlass.exs). Both are swept once their knowledge key is held.
-      # TODO: finalize both leads' flavor text against docs/SHUNT_STYLE_GUIDE.md (provisional below).
       %{
         id: "collective_dampener",
         requirements: [],

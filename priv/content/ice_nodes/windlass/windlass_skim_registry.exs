@@ -4,8 +4,6 @@
   family: "ice_authority",
   location_id: "windlass_the_skim",
 
-  # TODO: finalize per docs/SHUNT_STYLE_GUIDE.md — the Authority's surveillance net over the market's
-  # unread, thick with watchdogs. This is the :cloak SHOWCASE (a multi-sentry bleed race).
   description:
     "The Authority's quiet read on everyone the market won't officially see — the porters and sweepers of the Skim. It isn't fast ICE, but it's all eyes: a ring of watchdogs that bleed you worse the longer you stand in their light.",
 

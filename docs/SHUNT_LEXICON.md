@@ -140,6 +140,11 @@ Spoof Chip
 Shard Reader
 Signal Knife
 Echo Anchor
+Powerspike
+Arc Driver
+Dampener
+Nullsleeve
+Fitworks-Cut Deck
 
 ## Chrome & Meat
 
@@ -725,6 +730,14 @@ before the final Midgrid district and the Spire.
   `stalled` → `running`. Restarting it restores freight to Slagfoot.
 * **Signal Tap** — a hideout income module spliced into the district grid; what it
   skims scales with how open the grid runs. Keystone of the "Node" ladder tier.
+* **Collective break-gear** — the Fitworks arms your Ghostdeck against the harder Kaspav
+  reader-ICE: **overload** programs (Powerspike, Arc Driver) to smash a fused reader-trunk, and
+  **cloak** programs (Dampener, Nullsleeve) to take a watchdog down quiet before it bleeds you.
+  Skimmed at the Fitworks — the cloak-cutter freely, the overload brute once the grid runs
+  `contested`.
+* **the Anchor Forge** — the deck-forge the Authority buried under High Anchor, behind the
+  meanest ICE in the Windlass; cracking its vault yields a **Fitworks-Cut Deck**, the thing the
+  Collective could never build for itself.
 
 * **the Bloom** — the last Midgrid district before the Spire, built in the Spire's
   exhaust bloom: a radial flower of repurposed vent-ducts (the petals) where the
