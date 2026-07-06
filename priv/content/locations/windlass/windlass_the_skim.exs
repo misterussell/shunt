@@ -17,6 +17,12 @@ alias Shunt.World.Exit
 
   graph_position: {2860, -1280},
 
+  # TODO: add a :lattice field with a scan lead revealing windlass_skim_registry (Node 2, the :cloak
+  #   multi-sentry showcase). Shape per windlass_fitters_floor.exs:
+  #     lead %{id: "skim_registry_signal", requirements: [],
+  #       text: "<per STYLE_GUIDE — the Authority's watch-net over the unread, thick with watchdogs>",
+  #       on_intercept: [{:knowledge, "windlass_skim_registry_found"}]}
+  #     + 2-3 filler lines (market-shadow / eavesdrop flavor).
   npcs: [
     "windlass_marrow",
     # Wick surfaces once word of your digging (the purge-list rumor) reaches the Skim.

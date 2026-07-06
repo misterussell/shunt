@@ -27,7 +27,11 @@ defmodule Shunt.Ghostwork.ProgramsContentTest do
       assert is_binary(program.id) and program.id != ""
       assert is_binary(program.name) and program.name != ""
       assert is_binary(program.text) and program.text != ""
-      assert program.action in [:spoof, :decrypt, :backdoor]
+      # Widened for the Windlass gear pilot's new keys (:overload, :cloak). See
+      # test/shunt/ghostwork/windlass_gear_pilot_test.exs.
+      # TODO: when the pilot lands, add ":overload"/":cloak" assertions to the "at least one program
+      #   for each subroutine key" test above so the new keys are guaranteed a program too.
+      assert program.action in [:spoof, :decrypt, :backdoor, :overload, :cloak]
       assert is_integer(program.progress) and program.progress > 0
       assert is_integer(program.trace) and program.trace >= 0
       assert is_integer(program.on_weakness.progress) and is_integer(program.on_weakness.trace)

@@ -18,6 +18,16 @@ alias Shunt.World.Exit
 
   graph_position: {2860, -760},
 
+  # TODO: add a :lattice field with a scan lead revealing windlass_slagfoot_relay (Node 1, the
+  #   :overload teacher). Mirror windlass_fitters_floor.exs's lattice shape:
+  #     lattice: %{
+  #       leads: [
+  #         %{id: "slagfoot_relay_signal", requirements: [],
+  #           text: "<per STYLE_GUIDE — a welded-shut Authority relay humming under the foundry noise>",
+  #           on_intercept: [{:knowledge, "windlass_slagfoot_relay_found"}]}
+  #       ],
+  #       filler: [<2-3 weighted industrial-flavor lines, small scrip>]
+  #     }
   atmosphere: [
     %{requirements: [], text: "Half the furnaces are cold. The crews stand around them anyway, out of habit, because standing near a cold furnace still beats going home."},
     %{requirements: [{:district, "windlass", :haul, :>=, :running}], text: "The furnaces are up and the floor is moving, casting parts the engine needs faster than it can eat them. It's brutal work, and the crews would rather have it than not."}

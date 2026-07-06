@@ -18,6 +18,14 @@ alias Shunt.World.Exit
 
   graph_position: {2600, -1360},
 
+  # TODO: add a :lattice field with a DEEP scan lead revealing windlass_anchor_vault (Node 3, the
+  #   capstone). Gate the lead so it only surfaces once the vault is actually attemptable:
+  #     lead %{id: "anchor_vault_signal",
+  #       requirements: [{:ghostwork_mastery_at_least, "ice_authority", 6}],
+  #       text: "<per STYLE_GUIDE — a buried Collective deck-forge under the summit's clean lamps>",
+  #       on_intercept: [{:knowledge, "windlass_anchor_vault_found"}]}
+  #   (The node ALSO gates on mastery>=6; the lead's gate keeps it from teasing before it's reachable.)
+  #     + 1-2 filler lines (High Anchor residential-surveillance flavor).
   atmosphere: [
     %{requirements: [], text: "The Authority's grip is tightest here, so gentle you could mistake it for order. Everyone is permitted and everyone is watched and nobody says so."},
     %{requirements: [{:district, "windlass", :grid, :>=, :contested}], text: "Even High Anchor feels it now — a reader dark here, a permit-check skipped there. The permitted glance at each other like people who've realized the walls might be listening after all."}

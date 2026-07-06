@@ -35,6 +35,19 @@ alias Shunt.World.Exit
         text: "Under the bench-chatter runs a hard Authority channel — a relay node routing half the floor's readers. There's a seam in it.",
         on_intercept: [{:knowledge, "windlass_fitworks_ice_found"}]
       }
+      # TODO: add two Collective-gear skim leads here — the STARTER programs for the new keys (mirrors
+      #   the shunt9_bazaar skim pattern that hands a deck-holder their first programs). This is the
+      #   acquisition half of the crack->loot->crack loop: the Collective (Fitworks) arms your deck.
+      #     %{id: "collective_dampener", requirements: [],
+      #        text: "<per STYLE_GUIDE — the Collective slips you a quiet cloak-cutter>",
+      #        on_intercept: [{:inventory, "dampener", 1}, {:knowledge, "windlass_dampener_taken"}]}
+      #     %{id: "collective_powerspike", requirements: [{:district, "windlass", :grid, :>=, :contested}],
+      #        text: "<earned once your cracks have turned the grid war — they trust you with a brute>",
+      #        on_intercept: [{:inventory, "powerspike", 1}, {:knowledge, "windlass_powerspike_taken"}]}
+      #   Gate powerspike on grid>=contested (same fact the Hex NPC below uses) so the :overload brute
+      #   is EARNED by cracking Authority ICE (cracks advance the grid fact). Leads are swept once their
+      #   knowledge key is held. (Lead requirements aren't checked by content_integrity_test — only
+      #   event requirements are — so a {:district,...} gate here is safe.)
     ],
     filler: [
       %{weight: 3, text: "Reader handshakes, endless and dull, counting hands on the floor.", on_intercept: []},
