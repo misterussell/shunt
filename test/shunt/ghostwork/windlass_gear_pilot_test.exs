@@ -1,52 +1,162 @@
 defmodule Shunt.Ghostwork.WindlassGearPilotTest do
   @moduledoc """
-  Windlass Ghostwork gear pilot — behavioral spec (STAGED as TODOs).
+  Windlass Ghostwork gear pilot — behavioral spec.
 
   Turns on the loadout choice (5 keys > 3 slots), the tier deck (Axis 1), and the
   crack->loot->crack economy, entirely as ice_authority content — no engine code.
 
-  Implement each TODO below via superpowers:test-driven-development: write the test, watch it
-  fail, then author the node layers / wire the lattice lead that makes it pass. Remove the TODO
-  once its test is green.
+  SLICE 1 (this file, implemented): the gear + the High Anchor vault gate/structure.
+  Remaining TODOs at the bottom cover Nodes 1 & 2 and the lattice wiring (next slice).
   """
   use ExUnit.Case, async: true
 
-  # --- The structural fix: key-space > slots -------------------------------------------------
-  # TODO: "ice_authority now demands 5 distinct keys" — Ghostwork.family_coverage(player,
-  #   "ice_authority") lists :spoof, :decrypt, :backdoor, :overload and :cloak once the three new
-  #   nodes' layers are authored (the new keys ride windlass_slagfoot_relay / _skim_registry /
-  #   _anchor_vault).
-  # TODO: "the loadout choice bites" — for a jury_rigged_terminal holder, Ghostwork.deck_slots is 3,
-  #   which is < the 5 keys ice_authority demands, so NO baseline loadout can cover every key
-  #   (assert the count relationship, not a fixed id-set).
-  # TODO: "family_coverage maps a key to an owned+matching program" — a player owning "dampener"
-  #   (:cloak) sees its name against the :cloak key; nil when unowned.
+  alias Shunt.Ghostwork
+  alias Shunt.Ghostwork.{Decks, IceNode, Programs}
+  alias Shunt.Players.Player
 
   # --- The gear itself -----------------------------------------------------------------------
-  # TODO: "the four new programs load well-formed" — Programs.fetch! for powerspike / arc_driver
-  #   (:overload) and dampener / nullsleeve (:cloak) return progress > 0 and an on_weakness map.
-  # TODO: "the tier deck loads at 4 slots" — Decks.fetch!("fitworks_deck").slots == 4, and for a
-  #   holder Ghostwork.active_deck/deck_slots return 4 (relieving the squeeze by one slot).
-  # TODO: "equip respects the active deck's slots" — with fitworks_deck owned, Ghostwork.equip lets a
-  #   4th program in and rejects a 5th; with only jury_rigged_terminal, the 4th is rejected.
+
+  test "the four new programs load with the new-key action profiles" do
+    for {id, action} <- [
+          {"powerspike", :overload},
+          {"arc_driver", :overload},
+          {"dampener", :cloak},
+          {"nullsleeve", :cloak}
+        ] do
+      program = Programs.fetch!(id)
+      assert program.action == action
+      assert is_integer(program.progress) and program.progress > 0
+      assert is_integer(program.on_weakness.progress) and is_integer(program.on_weakness.trace)
+    end
+  end
+
+  test "the tier deck loads at four slots and sizes a holder's loadout" do
+    assert Decks.fetch!("fitworks_deck").slots == 4
+
+    holder = %Player{inventory: %{"fitworks_deck" => 1}}
+    assert Ghostwork.active_deck(holder).id == "fitworks_deck"
+    assert Ghostwork.deck_slots(holder) == 4
+  end
+
+  test "the tier deck lets a fourth program equip" do
+    player = %Player{
+      inventory: %{
+        "fitworks_deck" => 1,
+        "maskchip" => 1,
+        "shard_reader" => 1,
+        "ghostkey" => 1,
+        "dampener" => 1
+      },
+      ghostwork_state: %{"loadout" => ["maskchip", "shard_reader", "ghostkey"]}
+    }
+
+    assert Ghostwork.equip(player, "dampener") ==
+             ["maskchip", "shard_reader", "ghostkey", "dampener"]
+  end
+
+  test "four slots is the cap even on the tier deck" do
+    loadout = ["maskchip", "shard_reader", "ghostkey", "dampener"]
+
+    player = %Player{
+      inventory: Map.new(["fitworks_deck", "nullsleeve" | loadout], &{&1, 1}),
+      ghostwork_state: %{"loadout" => loadout}
+    }
+
+    assert Ghostwork.equip(player, "nullsleeve") == loadout
+  end
+
+  test "the starter deck still caps the loadout at three" do
+    loadout = ["maskchip", "shard_reader", "ghostkey"]
+
+    player = %Player{
+      inventory: Map.new(["jury_rigged_terminal", "dampener" | loadout], &{&1, 1}),
+      ghostwork_state: %{"loadout" => loadout}
+    }
+
+    assert Ghostwork.equip(player, "dampener") == loadout
+  end
+
+  # --- The structural fix: key-space > slots -------------------------------------------------
+
+  test "ice_authority ICE now demands the two new keys" do
+    keys = Ghostwork.family_coverage(%Player{}, "ice_authority") |> Enum.map(& &1.key)
+
+    assert :overload in keys
+    assert :cloak in keys
+  end
+
+  test "ice_authority demands more keys than a starter loadout can carry" do
+    key_count = Ghostwork.family_coverage(%Player{}, "ice_authority") |> length()
+    starter = %Player{inventory: %{"jury_rigged_terminal" => 1}}
+
+    assert key_count > Ghostwork.deck_slots(starter)
+  end
+
+  test "family coverage names an owned program against its key" do
+    owner = %Player{inventory: %{"dampener" => 1}}
+    cloak = Ghostwork.family_coverage(owner, "ice_authority") |> Enum.find(&(&1.key == :cloak))
+    assert cloak.program == "Dampener"
+
+    unowned =
+      Ghostwork.family_coverage(%Player{}, "ice_authority") |> Enum.find(&(&1.key == :cloak))
+
+    assert unowned.program == nil
+  end
 
   # --- The mastery long-tail (Node 3 gate) ---------------------------------------------------
-  # TODO: "Node 3 hidden below mastery 6" — Ghostwork.nodes_at excludes "windlass_anchor_vault" when
-  #   ghostwork_state mastery["ice_authority"] < 6 (even holding windlass_anchor_vault_found), and
-  #   includes it at >= 6.
 
-  # --- The capstone loot (crack -> loot -> crack) --------------------------------------------
-  # TODO: "the vault drops the tier deck" — in a windlass_anchor_vault encounter, hitting forge_vault
-  #   with its matching key resolves effects containing {:inventory, "fitworks_deck", 1} (and
-  #   arc_driver); a MISMATCHED hit on the vault returns status :locked_out and drops nothing.
-  # TODO: "Node 2 loot" — clearing windlass_skim_registry's watch_ring layer dispatches
-  #   {:inventory, "nullsleeve", 1}, and resolving that reward does NOT raise (guards the item-name
-  #   path: GhostworkLive grants node rewards silently, never through Items.display_name — so
-  #   decks/programs need no @item_tables entry; assert this stays true).
+  test "the High Anchor vault stays hidden until ice_authority is read cold" do
+    base = %Player{
+      knowledge: ["windlass_anchor_vault_found"],
+      location_id: "windlass_high_anchor"
+    }
 
-  # --- The threat showcase -------------------------------------------------------------------
+    below = %{base | ghostwork_state: %{"mastery" => %{"ice_authority" => 5}}}
+    at = %{base | ghostwork_state: %{"mastery" => %{"ice_authority" => 6}}}
+
+    refute vault_visible?(below)
+    assert vault_visible?(at)
+  end
+
+  defp vault_visible?(player) do
+    player
+    |> Ghostwork.nodes_at("windlass_high_anchor")
+    |> Enum.any?(&(&1.node.id == "windlass_anchor_vault"))
+  end
+
+  # --- The capstone (Node 3 structure) -------------------------------------------------------
+
+  test "the High Anchor vault's warden layer forces both new keys on one board" do
+    node = IceNode.fetch!("windlass_anchor_vault")
+
+    both? =
+      Enum.any?(node.layers, fn layer ->
+        keys = Enum.map(layer.subroutines, & &1.key)
+        :cloak in keys and :overload in keys
+      end)
+
+    assert both?
+  end
+
+  test "the High Anchor vault subroutine loots the tier deck" do
+    vault =
+      IceNode.fetch!("windlass_anchor_vault").layers
+      |> Enum.flat_map(& &1.subroutines)
+      |> Enum.find(&(&1.threat == :vault))
+
+    assert vault
+    assert {:inventory, "fitworks_deck", 1} in vault.reward
+  end
+
+  # --- SLICE 2 (next): Nodes 1 & 2 + lattice wiring ------------------------------------------
+  # TODO: "Node 1 teaches :overload without walling" — windlass_slagfoot_relay has a fat :overload
+  #   :barrier core, and the node is still crackable via mismatched base programs (slow + Trace).
   # TODO: "Node 2 is a bleed race" — windlass_skim_registry has a layer with >= 3 live :sentry
-  #   subroutines keyed :cloak, so @sentry_bleed stacks and cloak's near-zero Trace is the answer.
-  # TODO: "Node 3 forces both new keys" — windlass_anchor_vault's wardens layer carries a :cloak
-  #   sentry AND an :overload trap on the same board.
+  #   subroutines keyed :cloak (so @sentry_bleed stacks and cloak's near-zero Trace is the answer).
+  # TODO: "Node 2 loot" — clearing windlass_skim_registry's watch_ring layer dispatches
+  #   {:inventory, "nullsleeve", 1} (crack->loot).
+  # TODO: "the Fitworks skims the starter programs" — scanning windlass_fitters_floor hands a
+  #   deck-holder {:inventory, "dampener", 1}; powerspike only once grid >= :contested.
+  # TODO: "the three new nodes are reachable" — each location's lattice lead grants the {:knows, ...}
+  #   its node requires (reachability, mirroring the shunt9 relay slice).
 end
