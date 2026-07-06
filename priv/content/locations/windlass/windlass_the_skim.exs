@@ -17,12 +17,24 @@ alias Shunt.World.Exit
 
   graph_position: {2860, -1280},
 
-  # TODO: add a :lattice field with a scan lead revealing windlass_skim_registry (Node 2, the :cloak
-  #   multi-sentry showcase). Shape per windlass_fitters_floor.exs:
-  #     lead %{id: "skim_registry_signal", requirements: [],
-  #       text: "<per STYLE_GUIDE — the Authority's watch-net over the unread, thick with watchdogs>",
-  #       on_intercept: [{:knowledge, "windlass_skim_registry_found"}]}
-  #     + 2-3 filler lines (market-shadow / eavesdrop flavor).
+  # TODO: finalize lead/filler flavor text against docs/SHUNT_STYLE_GUIDE.md (provisional below).
+  lattice: %{
+    leads: [
+      %{
+        id: "skim_registry_signal",
+        requirements: [],
+        text:
+          "From the Skim you can hear the Authority's watch-net the way the unread do — a registry node reading everyone it won't officially see, ringed in watchdogs. It logs from here. You could too.",
+        on_intercept: [{:knowledge, "windlass_skim_registry_found"}]
+      }
+    ],
+    filler: [
+      %{weight: 3, text: "Porter and sweeper chatter, careful and quiet, saying little worth logging.", on_intercept: []},
+      %{weight: 2, text: "A market till-feed bleeding through the wall — receipts for deals already done.", on_intercept: []},
+      %{weight: 1, text: "A dropped credit-transfer you catch mid-air before the feed forgets it.", on_intercept: [{:scrip, 3}]}
+    ]
+  },
+
   npcs: [
     "windlass_marrow",
     # Wick surfaces once word of your digging (the purge-list rumor) reaches the Skim.

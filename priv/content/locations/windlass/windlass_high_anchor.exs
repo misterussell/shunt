@@ -18,14 +18,25 @@ alias Shunt.World.Exit
 
   graph_position: {2600, -1360},
 
-  # TODO: add a :lattice field with a DEEP scan lead revealing windlass_anchor_vault (Node 3, the
-  #   capstone). Gate the lead so it only surfaces once the vault is actually attemptable:
-  #     lead %{id: "anchor_vault_signal",
-  #       requirements: [{:ghostwork_mastery_at_least, "ice_authority", 6}],
-  #       text: "<per STYLE_GUIDE — a buried Collective deck-forge under the summit's clean lamps>",
-  #       on_intercept: [{:knowledge, "windlass_anchor_vault_found"}]}
-  #   (The node ALSO gates on mastery>=6; the lead's gate keeps it from teasing before it's reachable.)
-  #     + 1-2 filler lines (High Anchor residential-surveillance flavor).
+  # The vault lead is gated on the same deep read as the node itself — it won't tease before it's
+  # reachable, and by the time it surfaces you can read the vault's key cold.
+  # TODO: finalize lead/filler flavor text against docs/SHUNT_STYLE_GUIDE.md (provisional below).
+  lattice: %{
+    leads: [
+      %{
+        id: "anchor_vault_signal",
+        requirements: [{:ghostwork_mastery_at_least, "ice_authority", 6}],
+        text:
+          "You've read enough Authority ICE now to feel the shape of what's buried under High Anchor's clean lamps: a deck-forge, the thing the Collective has never been able to build for itself. It's down there, behind the meanest ICE in the Windlass.",
+        on_intercept: [{:knowledge, "windlass_anchor_vault_found"}]
+      }
+    ],
+    filler: [
+      %{weight: 3, text: "Permit-check handshakes, clean and constant — everyone here reads green.", on_intercept: []},
+      %{weight: 1, text: "A residence feed, dull with three years of spotless record. Nothing to take.", on_intercept: []}
+    ]
+  },
+
   atmosphere: [
     %{requirements: [], text: "The Authority's grip is tightest here, so gentle you could mistake it for order. Everyone is permitted and everyone is watched and nobody says so."},
     %{requirements: [{:district, "windlass", :grid, :>=, :contested}], text: "Even High Anchor feels it now — a reader dark here, a permit-check skipped there. The permitted glance at each other like people who've realized the walls might be listening after all."}

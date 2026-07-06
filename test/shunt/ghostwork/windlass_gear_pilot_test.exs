@@ -13,6 +13,7 @@ defmodule Shunt.Ghostwork.WindlassGearPilotTest do
   alias Shunt.Ghostwork
   alias Shunt.Ghostwork.{Decks, IceNode, Programs}
   alias Shunt.Players.Player
+  alias Shunt.World
 
   # --- The gear itself -----------------------------------------------------------------------
 
@@ -148,15 +149,92 @@ defmodule Shunt.Ghostwork.WindlassGearPilotTest do
     assert {:inventory, "fitworks_deck", 1} in vault.reward
   end
 
-  # --- SLICE 2 (next): Nodes 1 & 2 + lattice wiring ------------------------------------------
-  # TODO: "Node 1 teaches :overload without walling" — windlass_slagfoot_relay has a fat :overload
-  #   :barrier core, and the node is still crackable via mismatched base programs (slow + Trace).
-  # TODO: "Node 2 is a bleed race" — windlass_skim_registry has a layer with >= 3 live :sentry
-  #   subroutines keyed :cloak (so @sentry_bleed stacks and cloak's near-zero Trace is the answer).
-  # TODO: "Node 2 loot" — clearing windlass_skim_registry's watch_ring layer dispatches
-  #   {:inventory, "nullsleeve", 1} (crack->loot).
-  # TODO: "the Fitworks skims the starter programs" — scanning windlass_fitters_floor hands a
-  #   deck-holder {:inventory, "dampener", 1}; powerspike only once grid >= :contested.
-  # TODO: "the three new nodes are reachable" — each location's lattice lead grants the {:knows, ...}
-  #   its node requires (reachability, mirroring the shunt9 relay slice).
+  # --- Node 1: the :overload teacher ---------------------------------------------------------
+
+  test "the Slagfoot relay teaches :overload with a crackable barrier core" do
+    overload =
+      IceNode.fetch!("windlass_slagfoot_relay").layers
+      |> Enum.flat_map(& &1.subroutines)
+      |> Enum.find(&(&1.key == :overload))
+
+    assert overload
+
+    # A :barrier (crackable slow with base programs), never a :vault — it teaches, it can't lock out.
+    assert overload.threat == :barrier
+  end
+
+  # --- Node 2: the :cloak bleed race ---------------------------------------------------------
+
+  test "the Skim registry stacks a cloak-keyed sentry ring" do
+    assert skim_watch_ring()
+  end
+
+  test "the Skim registry's watch ring loots the cloak upgrade" do
+    assert {:inventory, "nullsleeve", 1} in skim_watch_ring().reward
+  end
+
+  defp skim_watch_ring do
+    IceNode.fetch!("windlass_skim_registry").layers
+    |> Enum.find(fn layer ->
+      Enum.count(layer.subroutines, &(&1.threat == :sentry and &1.key == :cloak)) >= 3
+    end)
+  end
+
+  # --- Lattice wiring: reveals + the Collective skim -----------------------------------------
+
+  test "scanning the new lattice locations reveals their nodes" do
+    deck = %{"jury_rigged_terminal" => 1}
+    read_cold = %{"mastery" => %{"ice_authority" => 6}}
+
+    reveals = [
+      {"windlass_slagworks", %Player{inventory: deck}, "windlass_slagfoot_relay_found"},
+      {"windlass_the_skim", %Player{inventory: deck}, "windlass_skim_registry_found"},
+      {"windlass_high_anchor", %Player{inventory: deck, ghostwork_state: read_cold},
+       "windlass_anchor_vault_found"}
+    ]
+
+    for {loc_id, player, knowledge} <- reveals do
+      {:ok, effects, meta} = Ghostwork.scan(player, World.get_location(loc_id))
+      assert meta.kind == :lead
+      assert {:knowledge, knowledge} in effects
+    end
+  end
+
+  test "the Fitworks skims the cloak starter to a returning runner" do
+    # holding the relay's knowledge sweeps the existing ICE lead, so the next skim surfaces
+    player = %Player{
+      inventory: %{"jury_rigged_terminal" => 1},
+      knowledge: ["windlass_fitworks_ice_found"]
+    }
+
+    {:ok, effects, meta} = Ghostwork.scan(player, World.get_location("windlass_fitters_floor"))
+
+    assert meta.kind == :lead
+    assert {:inventory, "dampener", 1} in effects
+  end
+
+  test "the overload starter is gated behind turning the grid war" do
+    inventory = %{"jury_rigged_terminal" => 1}
+    # relay + dampener leads already swept, so powerspike is the next candidate
+    swept = ["windlass_fitworks_ice_found", "windlass_dampener_taken"]
+
+    clamped = %Player{inventory: inventory, knowledge: swept}
+
+    {:ok, clamped_effects, _} =
+      Ghostwork.scan(clamped, World.get_location("windlass_fitters_floor"))
+
+    refute Enum.any?(clamped_effects, &match?({:inventory, "powerspike", _}, &1))
+
+    # {:knows, windlass_fitworks_ice_cracked} derives grid >= :contested (see districts/windlass.exs)
+    contested = %Player{
+      inventory: inventory,
+      knowledge: ["windlass_fitworks_ice_cracked" | swept]
+    }
+
+    {:ok, contested_effects, meta} =
+      Ghostwork.scan(contested, World.get_location("windlass_fitters_floor"))
+
+    assert meta.kind == :lead
+    assert {:inventory, "powerspike", 1} in contested_effects
+  end
 end

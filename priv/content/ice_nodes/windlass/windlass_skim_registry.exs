@@ -15,22 +15,42 @@
 
   cool_threshold: 70,
 
-  # TODO: author the 3-layer stack (the :cloak SHOWCASE — the "which watchdog do I kill first" race).
-  #   L1 "face": trace_multiplier 1.0, reward [{:scrip, 12}]
-  #        subroutines: [%{id: "face", key: :decrypt, threat: :barrier, progress_required: 10}]
-  #   L2 "watch_ring": trace_multiplier 1.5,
-  #        reward [{:inventory, "nullsleeve", 1}, {:scrip, 14}]   # LOOT: the :cloak upgrade (crack->loot)
-  #        subroutines: [
-  #          %{id: "watch_a", key: :cloak, threat: :sentry, progress_required: 9},
-  #          %{id: "watch_b", key: :cloak, threat: :sentry, progress_required: 9},
-  #          %{id: "watch_c", key: :cloak, threat: :sentry, progress_required: 9}  # 3 live sentries => @sentry_bleed stacks x3/turn
-  #        ]
-  #   L3 "store": trace_multiplier 2.0,
-  #        reward [{:knowledge, "windlass_skim_registry_cracked"}, {:scrip, 20}]
-  #        subroutines: [%{id: "store", key: :backdoor, threat: :barrier, progress_required: 12}]
-  #   DESIGN: without :cloak you fight 3 sentries with mismatched base programs while the bleed stacks
-  #   x3/turn — a genuine Trace-bust threat. With dampener/nullsleeve (near-zero Trace) you take them
-  #   down quiet, one at a time, and the bleed drains as each dies. Tune @sentry_bleed exposure vs
-  #   progress_required so the no-cloak path really threatens to bust. Numbers provisional.
-  layers: []
+  # The :cloak SHOWCASE — a "which watchdog do I kill first" race. watch_ring runs three live :cloak
+  # sentries at once, so @sentry_bleed stacks x3/turn: without :cloak you fight them with mismatched
+  # base programs while the bleed climbs (a genuine Trace-bust threat); with dampener/nullsleeve
+  # (near-zero Trace) you take them down quiet, one at a time, and the bleed drains as each dies.
+  # It loots nullsleeve (the :cloak upgrade) — crack->loot.
+  # TODO: tune @sentry_bleed exposure vs progress_required for feel so the no-cloak path really
+  # threatens to bust.
+  layers: [
+    %{
+      id: "face",
+      name: "Registry Face",
+      trace_multiplier: 1.0,
+      reward: [{:scrip, 12}],
+      subroutines: [
+        %{id: "face", key: :decrypt, threat: :barrier, progress_required: 10}
+      ]
+    },
+    %{
+      id: "watch_ring",
+      name: "Watch Ring",
+      trace_multiplier: 1.5,
+      reward: [{:inventory, "nullsleeve", 1}, {:scrip, 14}],
+      subroutines: [
+        %{id: "watch_a", key: :cloak, threat: :sentry, progress_required: 9},
+        %{id: "watch_b", key: :cloak, threat: :sentry, progress_required: 9},
+        %{id: "watch_c", key: :cloak, threat: :sentry, progress_required: 9}
+      ]
+    },
+    %{
+      id: "store",
+      name: "Correlation Store",
+      trace_multiplier: 2.0,
+      reward: [{:knowledge, "windlass_skim_registry_cracked"}, {:scrip, 20}],
+      subroutines: [
+        %{id: "store", key: :backdoor, threat: :barrier, progress_required: 12}
+      ]
+    }
+  ]
 }
