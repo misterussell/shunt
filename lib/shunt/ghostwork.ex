@@ -118,9 +118,15 @@ defmodule Shunt.Ghostwork do
   answer them. `coverage` is nil below KEYS (you haven't learned the keys yet, so nothing to show).
   """
   def codex(player) do
+    # Materialize the ICE catalog and the player's owned counters once, then reuse them across
+    # every keys-read family — codex/1 runs on every ghostwork interaction, so a per-family
+    # IceNode.all() scan would repeat the full-catalog read N times per render.
+    nodes = Shunt.Ghostwork.IceNode.all()
+    owned = owned_counters(player)
+
     Enum.map(mastery_summary(player), fn entry ->
       coverage =
-        if entry.read.stage == :keys, do: family_coverage(player, entry.family), else: nil
+        if entry.read.stage == :keys, do: coverage_for(nodes, owned, entry.family), else: nil
 
       Map.put(entry, :coverage, coverage)
     end)
@@ -133,9 +139,15 @@ defmodule Shunt.Ghostwork do
   carry one?"
   """
   def family_coverage(player, family) do
-    owned = Map.new(Shunt.Ghostwork.Programs.owned(player), &{&1.action, &1.name})
+    coverage_for(Shunt.Ghostwork.IceNode.all(), owned_counters(player), family)
+  end
 
-    Shunt.Ghostwork.IceNode.all()
+  defp owned_counters(player) do
+    Map.new(Shunt.Ghostwork.Programs.owned(player), &{&1.action, &1.name})
+  end
+
+  defp coverage_for(nodes, owned, family) do
+    nodes
     |> Enum.filter(&(&1.family == family))
     |> Enum.flat_map(fn node -> Enum.flat_map(node.layers, & &1.subroutines) end)
     |> Enum.map(& &1.key)
@@ -605,12 +617,11 @@ defmodule Shunt.Ghostwork do
   end
 
   @doc "The player's program loadout size — the active deck's slots, or #{@default_slots} if deckless."
-  def deck_slots(player) do
-    case active_deck(player) do
-      nil -> @default_slots
-      deck -> deck.slots
-    end
-  end
+  def deck_slots(player), do: slots_for(active_deck(player))
+
+  @doc "Loadout size for an already-resolved active deck (or nil) — #{@default_slots} if deckless."
+  def slots_for(nil), do: @default_slots
+  def slots_for(deck), do: deck.slots
 
   @doc "The player's equipped program ids (the encounter loadout, sized by the active deck)."
   def loadout(player), do: Map.get(player.ghostwork_state, "loadout", [])

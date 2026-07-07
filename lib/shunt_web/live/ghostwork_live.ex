@@ -397,6 +397,8 @@ defmodule ShuntWeb.GhostworkLive do
   end
 
   defp assign_deck(socket, player) do
+    active_deck = Ghostwork.active_deck(player)
+
     socket
     |> assign(:player, player)
     |> assign(:location, World.get_location(player.location_id))
@@ -405,8 +407,8 @@ defmodule ShuntWeb.GhostworkLive do
     |> assign(:programs, Ghostwork.Programs.owned(player))
     |> assign(:loadout, Ghostwork.loadout(player))
     |> assign(:equipped_programs, Ghostwork.Programs.loadout(player))
-    |> assign(:active_deck, Ghostwork.active_deck(player))
-    |> assign(:deck_slots, Ghostwork.deck_slots(player))
+    |> assign(:active_deck, active_deck)
+    |> assign(:deck_slots, Ghostwork.slots_for(active_deck))
     |> assign(:mastery, Ghostwork.codex(player))
   end
 
