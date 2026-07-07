@@ -94,14 +94,13 @@ defmodule ShuntWeb.Components.IceTerminal do
               phx-click={not sub_down?(@encounter, sub) && "select_target"}
               phx-value-subroutine={sub.id}
             >
-              <%!-- TODO: hang the soft affinity on the always-visible threat label. Next to
-                   threat_label(sub.threat), render Ghostwork.threat_affinity(sub.threat) as a
-                   subordinate/muted hint like "usually ▷cloak" (render nothing when it is nil,
-                   e.g. vault). This shows even while the exact key is fogged (▓▓▓), giving a
-                   turn-one starting guess; when the key later un-redacts and differs from the
-                   affinity, both are visible on purpose — that is the learnable exception. --%>
               <span class={["ice-subroutine-threat", "ice-subroutine-threat--#{sub.threat}"]}>
                 {threat_label(sub.threat)}
+                <span
+                  :if={Ghostwork.threat_affinity(sub.threat)}
+                  class="ice-subroutine-affinity"
+                  title="rule of thumb — the real key can differ"
+                >usually ▷{Ghostwork.threat_affinity(sub.threat)}</span>
               </span>
               <span class="ice-subroutine-key">
                 <%= if @weakness_known? do %>
@@ -163,11 +162,6 @@ defmodule ShuntWeb.Components.IceTerminal do
                   <span class="ice-action-name">PROBE</span>
                   <.cost known={@numbers_known?} progress={@probe.progress} trace={@probe.trace} />
                 </button>
-                <%!-- TODO: name the deck at the moment of action — render each program's verb on
-                     its button so the player never has to remember that e.g. Signal Knife IS
-                     decrypt. Add "▷{prog.action}" (styled, e.g. class "ice-action-verb"), reusing
-                     the same ▷verb glyph the codex uses. Apply to BOTH these program buttons AND
-                     the DRILL buttons (`ice-drill-#{prog.id}`) below so they read the same. --%>
                 <button
                   :for={prog <- @programs}
                   id={"ice-program-#{prog.id}"}
@@ -176,7 +170,9 @@ defmodule ShuntWeb.Components.IceTerminal do
                   phx-value-action={"program:" <> prog.id}
                   phx-value-subroutine={@program_target}
                 >
-                  <span class="ice-action-name">{prog.name}</span>
+                  <span class="ice-action-name">
+                    {prog.name}<span class="ice-action-verb">▷{prog.action}</span>
+                  </span>
                   <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
                 </button>
               <% end %>
@@ -190,7 +186,9 @@ defmodule ShuntWeb.Components.IceTerminal do
                   phx-value-action={"program:" <> prog.id}
                   phx-value-subroutine={@drill_target}
                 >
-                  <span class="ice-action-name">DRILL · {prog.name}</span>
+                  <span class="ice-action-name">
+                    DRILL · {prog.name}<span class="ice-action-verb">▷{prog.action}</span>
+                  </span>
                   <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
                 </button>
               </div>

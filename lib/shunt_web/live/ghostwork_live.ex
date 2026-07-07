@@ -306,11 +306,12 @@ defmodule ShuntWeb.GhostworkLive do
               ]}
             >
               <span class="ghostwork-program-name">{prog.name}</span>
-              <%!-- TODO: speak the same verb language as the ice-break buttons and codex. Replace
-                   the bare "{prog.action}" with "▷{prog.action}" and expose the
-                   Ghostwork.verb_identity/1 tell (e.g. as a title tooltip) so the loadout reads
-                   as the program's identity, not a raw atom. --%>
-              <span class="ghostwork-program-action">{prog.action}</span>
+              <span
+                class="ghostwork-program-action"
+                title={Ghostwork.verb_identity(prog.action).tell}
+              >
+                ▷{prog.action}
+              </span>
               <span class="ghostwork-program-stats">P{prog.progress} / T{prog.trace}</span>
               <%= if prog.id in @loadout do %>
                 <button
@@ -337,13 +338,23 @@ defmodule ShuntWeb.GhostworkLive do
 
           <Chrome.section_header>CODEX</Chrome.section_header>
           <Chrome.panel id="codex-panel">
-            <%!-- TODO: add an always-visible verb legend (id="codex-legend") built from
-                 Ghostwork.verb_identity/1 — the 5 verbs with their one-line tells (e.g.
-                 "▷CLOAK — silence the watcher") plus the 3 threat affinities from
-                 Ghostwork.threat_affinity/1 ("SENTRY → usually ▷cloak"). This is the taught
-                 rule-of-thumb surface: the vocabulary is learnable here instead of memorized
-                 per program. It is NOT gated on mastery (it describes your deck + the general
-                 rule, not a specific family's fogged keys). --%>
+            <div id="codex-legend" class="ghostwork-legend">
+              <p class="ghostwork-legend-head">PROGRAMS</p>
+              <ul class="ghostwork-legend-verbs">
+                <li :for={v <- Ghostwork.verb_legend()} class="ghostwork-legend-verb">
+                  <span class="ghostwork-legend-glyph">▷{v.verb}</span>
+                  <span class="ghostwork-legend-tell">{v.tell}</span>
+                </li>
+              </ul>
+              <p class="ghostwork-legend-head">ICE USUALLY WANTS</p>
+              <ul class="ghostwork-legend-affinities">
+                <li :for={a <- Ghostwork.threat_affinities()} class="ghostwork-legend-affinity">
+                  <span class="ghostwork-legend-threat">{a.threat}</span>
+                  <span class="ghostwork-legend-glyph">▷{a.verb}</span>
+                </li>
+              </ul>
+              <p class="ghostwork-legend-note">a rule of thumb — the real key can differ; read the ICE</p>
+            </div>
             <div class="ghostwork-codex-mastery">
               <p :if={@mastery == []} class="ghostwork-empty">NO ICE READ YET</p>
               <div :for={m <- @mastery} id={"mastery-#{m.family}"} class="ghostwork-mastery-row">

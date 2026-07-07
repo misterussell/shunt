@@ -2203,6 +2203,63 @@
   letter-spacing: 0.12em;
   margin-bottom: 4px;
 }
+/* Verb legend — the taught rule-of-thumb surface: learn the vocabulary here, not per program. */
+.ghostwork-legend {
+  border-bottom: 1px solid var(--border-c);
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+.ghostwork-legend-head {
+  color: var(--muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 6px 0 3px;
+}
+.ghostwork-legend-verbs,
+.ghostwork-legend-affinities {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ghostwork-legend-verb {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 0.72rem;
+  padding: 1px 0;
+}
+.ghostwork-legend-affinities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.ghostwork-legend-affinity {
+  display: flex;
+  gap: 5px;
+  align-items: baseline;
+  font-size: 0.7rem;
+}
+.ghostwork-legend-glyph {
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.ghostwork-legend-tell {
+  color: var(--text);
+}
+.ghostwork-legend-threat {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.ghostwork-legend-note {
+  color: var(--border-c);
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+  margin-top: 6px;
+}
 .title-row {
   opacity: 0.4;
 }
@@ -2398,6 +2455,15 @@
   color: var(--green);
   font-weight: 600;
 }
+/* Soft threat affinity — a whispered guess beside the THREAT label, subordinate to the real key. */
+.ice-subroutine-affinity {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  opacity: 0.85;
+}
 
 /* Signature: Trace as a segmented detection heartbeat. */
 .ice-trace-gauge {
@@ -2528,6 +2594,14 @@
 .ice-action-name {
   font-weight: 600;
   text-transform: uppercase;
+}
+/* The program's verb, named on the button so the deck reads as a tool, not a memory test. */
+.ice-action-verb {
+  margin-left: 6px;
+  color: var(--cyan);
+  font-weight: 400;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
 }
 .ice-action-cost,
 .ice-action-hint {
