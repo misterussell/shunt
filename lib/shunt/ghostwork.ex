@@ -145,6 +145,29 @@ defmodule Shunt.Ghostwork do
   @doc "The single rule: whether a program's action counters a subroutine key."
   def counters?(program, key), do: program.action == key
 
+  # TODO: Add the Ghostwork "reading system" as domain single-sources-of-truth so UI labels and
+  # canon can't drift (same spirit as counters?/2 being the one match rule). Two pure functions:
+  #
+  #   verb_identity/1 — for each action verb, %{label: "SPOOF", tell: "walk past the gate"}:
+  #     :spoof    -> "walk past the gate"       (forged credentials)
+  #     :cloak    -> "silence the watcher"      (go dark before a sentry bleeds you)
+  #     :backdoor -> "slip the lock clean"      (a real key for a door that shouldn't open)
+  #     :decrypt  -> "saw through the cipher"   (broadly demanded, loud; the hedge key)
+  #     :overload -> "brute the hardened lock"  (loud on purpose; firepower / gear-tier)
+  #
+  #   threat_affinity/1 — the SOFT rule of thumb (a guess, NOT authoritative): the verb a threat
+  #   type usually wants, readable off the ALWAYS-visible threat label:
+  #     :barrier -> :spoof
+  #     :sentry  -> :cloak
+  #     :trap    -> :backdoor
+  #     _        -> nil    # :vault is a blind gamble — no affinity
+  #   The per-subroutine :key stays authoritative and fogged; deviations are real content
+  #   ("exceptions") the player learns by reading a family to KEYS mastery.
+  #
+  # Then formalize this SAME pairing as canon in docs/SHUNT_LEXICON.md and docs/SHUNT_TERMINOLOGY.md
+  # (the 5 verb identities + the 3 threat affinities), stating explicitly that the affinity is a
+  # rule of thumb and the subroutine key is the truth.
+
   defp coverage_for(nodes, owned, family) do
     nodes
     |> Enum.filter(&(&1.family == family))
