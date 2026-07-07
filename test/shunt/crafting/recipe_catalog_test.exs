@@ -20,6 +20,12 @@ defmodule Shunt.Crafting.RecipeCatalogTest do
     end
   end
 
+  # TODO: add a test asserting every recipe carries a valid `routes` field (Routing Filter):
+  # a non-empty list whose every element is in Shunt.Crafting.Routes.keys/0. This guards the
+  # authoring footgun where a new recipe .exs omits routes (or typos a route atom) — the rail
+  # and stamps would silently drop it, and nothing else catches it. Assert against the whole
+  # RecipeCatalog.recipes/0 set, not a fixed id list, so it covers recipes added later.
+
   describe "fetch!/1" do
     test "returns the matching recipe" do
       recipe = RecipeCatalog.fetch!("patchwork_courier_drone")

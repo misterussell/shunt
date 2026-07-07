@@ -917,6 +917,21 @@
   opacity: 0.8;
 }
 
+/* TODO: Street Alchemy Routing Filter — rail chips + per-row stamps (approved "Overlay Rail"
+   mock). Add:
+   - Six route color tokens on BOTH [data-theme] blocks (street + corp) near the other route/
+     accent vars, keyed --route-<key>. Street values (final palette):
+       repair #d9913e · tools #8fb0c8 · ghostwork #3fe0c8 · chrome_meat #ff4d5e ·
+       web #b18cff · fence #e8c24a
+     (tune corp-theme equivalents to match that theme's brighter register.)
+   - .route-rail: flex, wrap, gap ~7px, margin below; sits above .recipes-list.
+   - .route-gel: the chip — small uppercase label + dim count, 1px border. Idle state uses the
+     route color at reduced border/text emphasis; .route-gel.active fills with the route color and
+     dark text + soft glow (see mock). Color driven by a .route--<key> class reading --route-<key>.
+   - .recipe-stamp: the per-row tag — tiny uppercase, 1px border in the route color over a faint
+     dark fill; .route--<key> sets the color. Multiple stamps sit in a small flex gap row.
+   Follow existing recipe-row conventions (var(--border-c), sizes, letter-spacing). No @apply. */
+
 /* Chrome & Meat: Chrome Load meter + augment list */
 .chrome-load {
   --load-c: var(--muted);

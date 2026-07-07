@@ -8,6 +8,19 @@ defmodule ShuntWeb.SkillsLiveTest do
     :ok
   end
 
+  # TODO: add Routing Filter tests on the /skills/street-alchemy LiveView. Cover:
+  #   - default (no route patched): the rail renders one chip per route (assert #route-repair etc.)
+  #     and all recipe rows are present.
+  #   - clicking a route chip (render_click on #route-<key>) hides recipes not in that route and
+  #     keeps those that are — assert a known in-route recipe row is present and a known
+  #     out-of-route one is absent (element/has_element on #recipe-<id>, not raw HTML).
+  #   - a route with locked content: patching that route still shows the tier-locked row, and that
+  #     row shows its routing stamp while the name stays redacted (.recipe-stamp present inside the
+  #     locked #recipe-<id>).
+  #   - toggling the same chip off restores the full list.
+  # Reference recipe ids by their routes from the RecipeCatalog back-fill (e.g. standard_relay is
+  # :repair, patchwork_scalpel is :chrome_meat). Assert via element/2 & has_element?/2 on the ids.
+
   test "chrome_meat renders the Chrome Load meter and augments, not the dormant stub", %{
     conn: conn
   } do
