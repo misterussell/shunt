@@ -1275,4 +1275,48 @@ defmodule Shunt.GhostworkTest do
       assert effects == [{:heat, 2}]
     end
   end
+
+  describe "verb_identity/1 and verb_legend/0" do
+    test "each verb has a label and a tell" do
+      for verb <- [:spoof, :cloak, :backdoor, :decrypt, :overload] do
+        id = Ghostwork.verb_identity(verb)
+        assert id.label == verb |> to_string() |> String.upcase()
+        assert is_binary(id.tell) and id.tell != ""
+      end
+    end
+
+    test "verb_legend/0 lists every verb, in order, tagged with its verb atom" do
+      legend = Ghostwork.verb_legend()
+
+      assert Enum.map(legend, & &1.verb) == [:spoof, :cloak, :backdoor, :decrypt, :overload]
+      assert Enum.all?(legend, &match?(%{verb: _, label: _, tell: _}, &1))
+    end
+  end
+
+  describe "threat_affinity/1 and threat_affinities/0" do
+    test "the three keyed threats map to their canon verb" do
+      assert Ghostwork.threat_affinity(:barrier) == :spoof
+      assert Ghostwork.threat_affinity(:sentry) == :cloak
+      assert Ghostwork.threat_affinity(:trap) == :backdoor
+    end
+
+    test "vault (and anything else) has no affinity — it is a blind gamble" do
+      assert Ghostwork.threat_affinity(:vault) == nil
+      assert Ghostwork.threat_affinity(:whatever) == nil
+    end
+
+    test "affinity verbs are real verbs that counter their own key (the rule of thumb is honest)" do
+      for %{threat: _threat, verb: verb} <- Ghostwork.threat_affinities() do
+        assert Ghostwork.counters?(%{action: verb}, verb)
+      end
+    end
+
+    test "threat_affinities/0 lists the keyed threats in legend order" do
+      assert Ghostwork.threat_affinities() == [
+               %{threat: :barrier, verb: :spoof},
+               %{threat: :sentry, verb: :cloak},
+               %{threat: :trap, verb: :backdoor}
+             ]
+    end
+  end
 end

@@ -145,28 +145,42 @@ defmodule Shunt.Ghostwork do
   @doc "The single rule: whether a program's action counters a subroutine key."
   def counters?(program, key), do: program.action == key
 
-  # TODO: Add the Ghostwork "reading system" as domain single-sources-of-truth so UI labels and
-  # canon can't drift (same spirit as counters?/2 being the one match rule). Two pure functions:
-  #
-  #   verb_identity/1 — for each action verb, %{label: "SPOOF", tell: "walk past the gate"}:
-  #     :spoof    -> "walk past the gate"       (forged credentials)
-  #     :cloak    -> "silence the watcher"      (go dark before a sentry bleeds you)
-  #     :backdoor -> "slip the lock clean"      (a real key for a door that shouldn't open)
-  #     :decrypt  -> "saw through the cipher"   (broadly demanded, loud; the hedge key)
-  #     :overload -> "brute the hardened lock"  (loud on purpose; firepower / gear-tier)
-  #
-  #   threat_affinity/1 — the SOFT rule of thumb (a guess, NOT authoritative): the verb a threat
-  #   type usually wants, readable off the ALWAYS-visible threat label:
-  #     :barrier -> :spoof
-  #     :sentry  -> :cloak
-  #     :trap    -> :backdoor
-  #     _        -> nil    # :vault is a blind gamble — no affinity
-  #   The per-subroutine :key stays authoritative and fogged; deviations are real content
-  #   ("exceptions") the player learns by reading a family to KEYS mastery.
-  #
-  # Then formalize this SAME pairing as canon in docs/SHUNT_LEXICON.md and docs/SHUNT_TERMINOLOGY.md
-  # (the 5 verb identities + the 3 threat affinities), stating explicitly that the affinity is a
-  # rule of thumb and the subroutine key is the truth.
+  # The Ghostwork "reading system": one place that names what each program verb IS and which verb
+  # a threat type usually wants, so UI labels and canon can't drift (same spirit as counters?/2
+  # being the one match rule). Canon: docs/SHUNT_LEXICON.md, docs/SHUNT_TERMINOLOGY.md.
+  @verb_order [:spoof, :cloak, :backdoor, :decrypt, :overload]
+
+  @verb_identities %{
+    spoof: %{label: "SPOOF", tell: "walk past the gate"},
+    cloak: %{label: "CLOAK", tell: "silence the watcher"},
+    backdoor: %{label: "BACKDOOR", tell: "slip the lock clean"},
+    decrypt: %{label: "DECRYPT", tell: "saw through the cipher"},
+    overload: %{label: "OVERLOAD", tell: "brute the hardened lock"}
+  }
+
+  @doc "An action verb's identity: its display `label` and one-line `tell`."
+  def verb_identity(verb), do: Map.fetch!(@verb_identities, verb)
+
+  @doc "Every action verb in legend order, each as %{verb:, label:, tell:} — drives the codex legend."
+  def verb_legend do
+    Enum.map(@verb_order, fn verb -> Map.put(verb_identity(verb), :verb, verb) end)
+  end
+
+  @doc """
+  The SOFT rule of thumb: the verb a threat type usually wants, readable off the always-visible
+  threat label. A guess, NOT authoritative — the per-subroutine `key` stays the truth (and stays
+  fogged until KEYS mastery); deviations are authored "exceptions" the player learns by reading a
+  family. `nil` for `:vault` (a blind gamble) and any threat without an affinity.
+  """
+  def threat_affinity(:barrier), do: :spoof
+  def threat_affinity(:sentry), do: :cloak
+  def threat_affinity(:trap), do: :backdoor
+  def threat_affinity(_threat), do: nil
+
+  @doc "The threats that carry an affinity, in legend order, each as %{threat:, verb:}."
+  def threat_affinities do
+    for threat <- [:barrier, :sentry, :trap], do: %{threat: threat, verb: threat_affinity(threat)}
+  end
 
   defp coverage_for(nodes, owned, family) do
     nodes
