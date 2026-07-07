@@ -122,7 +122,7 @@ defmodule Shunt.Ghostwork do
     # every keys-read family — codex/1 runs on every ghostwork interaction, so a per-family
     # IceNode.all() scan would repeat the full-catalog read N times per render.
     nodes = Shunt.Ghostwork.IceNode.all()
-    owned = owned_counters(player)
+    owned = Shunt.Ghostwork.Programs.owned(player)
 
     Enum.map(mastery_summary(player), fn entry ->
       coverage =
@@ -139,12 +139,11 @@ defmodule Shunt.Ghostwork do
   carry one?"
   """
   def family_coverage(player, family) do
-    coverage_for(Shunt.Ghostwork.IceNode.all(), owned_counters(player), family)
+    coverage_for(Shunt.Ghostwork.IceNode.all(), Shunt.Ghostwork.Programs.owned(player), family)
   end
 
-  defp owned_counters(player) do
-    Map.new(Shunt.Ghostwork.Programs.owned(player), &{&1.action, &1.name})
-  end
+  @doc "The single rule: whether a program's action counters a subroutine key."
+  def counters?(program, key), do: program.action == key
 
   defp coverage_for(nodes, owned, family) do
     nodes
@@ -154,7 +153,9 @@ defmodule Shunt.Ghostwork do
     |> Enum.reject(&is_nil/1)
     |> Enum.uniq()
     |> Enum.sort()
-    |> Enum.map(&%{key: &1, program: Map.get(owned, &1)})
+    |> Enum.map(fn key ->
+      %{key: key, program: Enum.find_value(owned, &(counters?(&1, key) && &1.name))}
+    end)
   end
 
   def titles(player) do

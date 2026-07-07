@@ -272,5 +272,6 @@ defmodule ShuntWeb.Components.IceTerminal do
   defp key_text(key), do: to_string(key)
 
   # Does the equipped loadout carry a program whose action counters this subroutine's key?
-  defp countered?(programs, sub), do: Enum.any?(programs, &(&1.action == sub.key))
+  # Delegates to the single domain rule so the badge and the codex can't drift apart.
+  defp countered?(programs, sub), do: Enum.any?(programs, &Ghostwork.counters?(&1, sub.key))
 end
