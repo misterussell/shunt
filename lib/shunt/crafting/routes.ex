@@ -1,18 +1,25 @@
 defmodule Shunt.Crafting.Routes do
   @moduledoc false
 
-  # TODO: Define the six recipe routes as the single source of truth for the Street Alchemy
-  # Routing Filter (rail chips + per-row stamps). Provide, in this fixed display order:
-  #
-  #   {:repair, "Repair"}, {:tools, "Tools"}, {:ghostwork, "Ghostwork"},
-  #   {:chrome_meat, "Chrome & Meat"}, {:web, "Web"}, {:fence, "Fence"}
-  #
-  # Expose:
-  #   all/0        -> ordered list of %{key: atom, label: String.t()} for the six routes
-  #   keys/0       -> ordered list of the six route atoms (for validation/tests)
-  #   label/1      -> label for a route key
-  #
-  # The CSS class per route is derived from the atom in the template (e.g. "route--#{key}"),
-  # so colors live in app.css, not here. Per-recipe route assignments live in the recipe
-  # content files (routes: field), NOT in this module — this module only holds route metadata.
+  # The six recipe routes — the single source of truth for the Street Alchemy Routing Filter
+  # (rail chips + per-row stamps), in fixed display order. Fence is the residual route (a recipe
+  # with no other downstream use). The CSS class per route is derived from the atom in the
+  # template ("route--#{key}"), so colors live in app.css. Per-recipe route assignments live in
+  # the recipe content files (routes: field), not here — this module holds only route metadata.
+  @routes [
+    %{key: :repair, label: "Repair"},
+    %{key: :tools, label: "Tools"},
+    %{key: :ghostwork, label: "Ghostwork"},
+    %{key: :chrome_meat, label: "Chrome & Meat"},
+    %{key: :web, label: "Web"},
+    %{key: :fence, label: "Fence"}
+  ]
+
+  @labels Map.new(@routes, fn %{key: key, label: label} -> {key, label} end)
+
+  def all, do: @routes
+
+  def keys, do: Enum.map(@routes, & &1.key)
+
+  def label(key), do: Map.fetch!(@labels, key)
 end
