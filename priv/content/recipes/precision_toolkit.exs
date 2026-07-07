@@ -1,5 +1,6 @@
 %{
   id: "precision_toolkit",
+  routes: [:tools],
   name: "Precision Toolkit",
   tier_required: 1,
   inputs: %{

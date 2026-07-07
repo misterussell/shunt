@@ -1,5 +1,6 @@
 %{
   id: "improvised_relay",
+  routes: [:repair],
   name: "Improvised Relay",
   tier_required: 0,
   inputs: %{"battered_relay_coil" => 1, "stripped_copper_coil" => 1},
