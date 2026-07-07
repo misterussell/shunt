@@ -8,18 +8,56 @@ defmodule ShuntWeb.SkillsLiveTest do
     :ok
   end
 
-  # TODO: add Routing Filter tests on the /skills/street-alchemy LiveView. Cover:
-  #   - default (no route patched): the rail renders one chip per route (assert #route-repair etc.)
-  #     and all recipe rows are present.
-  #   - clicking a route chip (render_click on #route-<key>) hides recipes not in that route and
-  #     keeps those that are — assert a known in-route recipe row is present and a known
-  #     out-of-route one is absent (element/has_element on #recipe-<id>, not raw HTML).
-  #   - a route with locked content: patching that route still shows the tier-locked row, and that
-  #     row shows its routing stamp while the name stays redacted (.recipe-stamp present inside the
-  #     locked #recipe-<id>).
-  #   - toggling the same chip off restores the full list.
-  # Reference recipe ids by their routes from the RecipeCatalog back-fill (e.g. standard_relay is
-  # :repair, patchwork_scalpel is :chrome_meat). Assert via element/2 & has_element?/2 on the ids.
+  describe "street alchemy routing filter" do
+    test "renders a rail chip for every route, with all recipes shown by default", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+      for key <- Shunt.Crafting.Routes.keys() do
+        assert has_element?(view, "#route-#{key}")
+      end
+
+      # improvised_relay (:repair) and patchwork_scalpel (:chrome_meat) both present, unfiltered.
+      assert has_element?(view, "#recipe-improvised_relay")
+      assert has_element?(view, "#recipe-patchwork_scalpel")
+    end
+
+    test "patching a route hides off-route recipes and keeps on-route ones", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+      view |> element("#route-repair") |> render_click()
+
+      assert has_element?(view, "#recipe-improvised_relay")
+      refute has_element?(view, "#recipe-patchwork_scalpel")
+    end
+
+    test "a patched route still shows its tier-locked recipe: stamp visible, name redacted", %{
+      conn: conn
+    } do
+      {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+      view |> element("#route-repair") |> render_click()
+
+      # standard_relay is :repair and tier 1 -> locked for a fresh (tier 0) player.
+      assert has_element?(view, "#recipe-standard_relay .recipe-redacted-name")
+      assert has_element?(view, "#recipe-standard_relay .recipe-stamp")
+    end
+
+    test "toggling a route off restores the full list", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+      view |> element("#route-repair") |> render_click()
+      refute has_element?(view, "#recipe-patchwork_scalpel")
+
+      view |> element("#route-repair") |> render_click()
+      assert has_element?(view, "#recipe-patchwork_scalpel")
+    end
+
+    test "an unlocked recipe row shows its routing stamp", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+      assert has_element?(view, "#recipe-improvised_relay .recipe-stamp")
+    end
+  end
 
   test "chrome_meat renders the Chrome Load meter and augments, not the dormant stub", %{
     conn: conn

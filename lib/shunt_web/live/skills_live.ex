@@ -5,6 +5,7 @@ defmodule ShuntWeb.SkillsLive do
   alias Shunt.Crafting
   alias Shunt.Crafting.RawCatalog
   alias Shunt.Crafting.RecipeCatalog
+  alias Shunt.Crafting.Routes
   alias Shunt.Implants
   alias Shunt.Players
   alias Shunt.Skills.Catalog, as: SkillsCatalog
@@ -15,15 +16,15 @@ defmodule ShuntWeb.SkillsLive do
     player = Players.current(player_id)
     tree = SkillsCatalog.fetch!(Atom.to_string(socket.assigns.live_action))
 
-    # TODO: assign :active_routes as an empty MapSet here (Routing Filter). It holds the route
-    # keys currently patched in on the RECIPES rail. Empty = no filter = show all. It is pure UI
-    # state set once in mount and must NOT be reset by assign_player/2 (which reruns on every
-    # scavenge/assemble/sell), so it belongs in this chain, not in assign_player.
+    # :active_routes holds the route keys currently patched in on the RECIPES rail. Empty = no
+    # filter = show all. It is pure UI state and lives here (not in assign_player/2, which reruns
+    # on every scavenge/assemble/sell) so a bench action never clears the player's filter.
     {:ok,
      socket
      |> assign(player_id: player_id)
      |> assign(:status, nil)
      |> assign(:tree, tree)
+     |> assign(:active_routes, MapSet.new())
      |> assign_player(player)}
   end
 
@@ -40,10 +41,18 @@ defmodule ShuntWeb.SkillsLive do
      |> assign_player(player)}
   end
 
-  # TODO: add handle_event("toggle_route", %{"route" => route}, socket) (Routing Filter). Convert
-  # route to an existing atom with String.to_existing_atom/1 (the six route atoms already exist via
-  # Shunt.Crafting.Routes), then toggle its membership in socket.assigns.active_routes (MapSet
-  # put/delete) and assign it back. No player dispatch — this is presentation-only UI state.
+  def handle_event("toggle_route", %{"route" => route}, socket) do
+    route = String.to_existing_atom(route)
+    active = socket.assigns.active_routes
+
+    active =
+      if MapSet.member?(active, route),
+        do: MapSet.delete(active, route),
+        else: MapSet.put(active, route)
+
+    {:noreply, assign(socket, :active_routes, active)}
+  end
+
   def handle_event("assemble", %{"key" => recipe_key}, socket) do
     case Players.dispatch(socket.assigns.player_id, &Crafting.assemble(&1, recipe_key)) do
       {:ok, player, _meta} ->
@@ -148,36 +157,38 @@ defmodule ShuntWeb.SkillsLive do
           </Chrome.panel>
 
           <Chrome.section_header secondary="DECRYPTED BY TIER">RECIPES</Chrome.section_header>
-          <%!-- TODO: render the routing rail here, above .recipes-list (Routing Filter). One
-                chip per Shunt.Crafting.Routes.all/0, in order, with id={"route-#{key}"}. Each chip
-                shows the route label + a total count = number of recipes (locked AND unlocked)
-                whose routes include that key, computed from @recipes. A chip carries an "active"
-                class when its key is in @active_routes, and a "route--#{key}" class for its color.
-                Clicking dispatches phx-click="toggle_route" phx-value-route={key}. Markup/classes
-                follow the approved "Overlay Rail" mock: <div class="route-rail"> of
-                <button class="route-gel route--#{key} {active}"> chips. --%>
-          <%!-- TODO: filter the recipes feed by @active_routes (Routing Filter). When
-                @active_routes is empty, render every recipe (current behavior). When one or more
-                routes are patched in, render ONLY recipes whose routes list intersects
-                @active_routes — hide (do not merely dim) the rest, since the whole point is to
-                shrink a growing list. Locked/encrypted recipes in an active route still render
-                (as the redacted row below). Compute the filtered list in render or a private
-                helper; the route tags come from recipe content, so no domain logic is derived
-                here — keep it a pure presentation filter. --%>
+          <div class="route-rail">
+            <button
+              :for={route <- Routes.all()}
+              id={"route-#{route.key}"}
+              type="button"
+              class={[
+                "route-gel",
+                "route--#{route.key}",
+                MapSet.member?(@active_routes, route.key) && "active"
+              ]}
+              phx-click="toggle_route"
+              phx-value-route={route.key}
+            >
+              {route.label}<span class="route-gel-count">{route_count(@recipes, route.key)}</span>
+            </button>
+          </div>
           <div class="recipes-list">
-            <div :for={recipe <- @recipes} id={"recipe-#{recipe.id}"}>
+            <div
+              :for={recipe <- filter_recipes(@recipes, @active_routes)}
+              id={"recipe-#{recipe.id}"}
+            >
               <%= if @current_tier < recipe.tier_required do %>
                 <div class="recipe-row recipe-row--locked">
                   <span class="recipe-tier-chip recipe-tier-chip--locked">
                     T{recipe.tier_required}
                   </span>
                   <span class="recipe-redacted-name">█████ ███</span>
-                  <%!-- TODO: render the routing stamp(s) on this ENCRYPTED row too (Routing
-                        Filter). The name stays redacted, but each route in recipe.routes shows as a
-                        <span class="recipe-stamp route--#{key}"> with the route label — the
-                        "envelope address is readable though the payload is sealed" rule, so a
-                        filtered route reveals its locked future content. Reuse the same stamp markup
-                        as the unlocked row below. --%>
+                  <div class="recipe-stamps">
+                    <span :for={r <- recipe.routes} class={["recipe-stamp", "route--#{r}"]}>
+                      {Routes.label(r)}
+                    </span>
+                  </div>
                   <span class="recipe-encrypted-label">🔒 ENCRYPTED</span>
                 </div>
               <% else %>
@@ -192,11 +203,11 @@ defmodule ShuntWeb.SkillsLive do
                       end)}
                     </div>
                   </div>
-                  <%!-- TODO: render the routing stamp(s) on this unlocked row (Routing Filter).
-                        For each route in recipe.routes, a <span class="recipe-stamp route--#{key}">
-                        with the route label from Shunt.Crafting.Routes.label/1, placed between
-                        .recipe-info and .recipe-value per the approved "Overlay Rail" mock. This is
-                        the canonical stamp markup the encrypted row reuses. --%>
+                  <div class="recipe-stamps">
+                    <span :for={r <- recipe.routes} class={["recipe-stamp", "route--#{r}"]}>
+                      {Routes.label(r)}
+                    </span>
+                  </div>
                   <span class="recipe-value">+{recipe.sell_value}cr</span>
                   <Chrome.btn
                     id={"assemble-#{recipe.id}-button"}
@@ -327,6 +338,23 @@ defmodule ShuntWeb.SkillsLive do
       <% end %>
     </Layouts.app>
     """
+  end
+
+  # Presentation-only filter: intersect each recipe's content route tags with the patched-in
+  # routes. Empty selection = no filter = show all.
+  defp filter_recipes(recipes, active_routes) do
+    if MapSet.size(active_routes) == 0 do
+      recipes
+    else
+      Enum.filter(recipes, fn recipe ->
+        Enum.any?(recipe.routes, &MapSet.member?(active_routes, &1))
+      end)
+    end
+  end
+
+  # Total recipes on a route, locked and unlocked, so the rail chip advertises what's still coming.
+  defp route_count(recipes, key) do
+    Enum.count(recipes, &(key in &1.routes))
   end
 
   defp assign_player(socket, player) do
