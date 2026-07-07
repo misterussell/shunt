@@ -17,6 +17,23 @@ alias Shunt.World.Exit
 
   graph_position: {2860, -1280},
 
+  lattice: %{
+    leads: [
+      %{
+        id: "skim_registry_signal",
+        requirements: [],
+        text:
+          "From the Skim you can hear the Authority's watch-net the way the unread do — a registry node reading everyone it won't officially see, ringed in watchdogs. It logs from here. You could too.",
+        on_intercept: [{:knowledge, "windlass_skim_registry_found"}]
+      }
+    ],
+    filler: [
+      %{weight: 3, text: "Porter and sweeper chatter, careful and quiet, saying little worth logging.", on_intercept: []},
+      %{weight: 2, text: "A market till-feed bleeding through the wall — receipts for deals already done.", on_intercept: []},
+      %{weight: 1, text: "A dropped credit-transfer you catch mid-air before the feed forgets it.", on_intercept: [{:scrip, 3}]}
+    ]
+  },
+
   npcs: [
     "windlass_marrow",
     # Wick surfaces once word of your digging (the purge-list rumor) reaches the Skim.

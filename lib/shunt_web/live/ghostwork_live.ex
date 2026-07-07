@@ -131,6 +131,25 @@ defmodule ShuntWeb.GhostworkLive do
     {:noreply, socket |> assign(:encounter, nil) |> assign(:selected_subroutine, nil)}
   end
 
+  def handle_event("descend", _params, socket) do
+    case socket.assigns.encounter do
+      nil ->
+        {:noreply, socket}
+
+      encounter ->
+        case Ghostwork.descend(encounter) do
+          {:ok, updated, _effects} ->
+            {:noreply,
+             socket
+             |> assign(:encounter, updated)
+             |> assign(:selected_subroutine, Ghostwork.resolve_target(updated, nil))}
+
+          {:error, _reason} ->
+            {:noreply, socket}
+        end
+    end
+  end
+
   defp dispatch_loadout(socket, compute_ids) do
     resolver = fn player -> {:ok, [{:ghostwork_loadout, compute_ids.(player)}], %{}} end
 
@@ -267,8 +286,13 @@ defmodule ShuntWeb.GhostworkLive do
             LOADOUT
           </Chrome.section_header>
           <Chrome.panel id="loadout-panel">
+            <p :if={@active_deck} id="loadout-deck" class="ghostwork-loadout-deck">
+              <span class="ghostwork-loadout-deck-label">DECK</span>
+              <span class="ghostwork-loadout-deck-name">{@active_deck.name}</span>
+              <span class="ghostwork-loadout-deck-slots">{@deck_slots} slots</span>
+            </p>
             <p id="loadout-count" class="ghostwork-loadout-count">
-              {length(@loadout)}/3 equipped
+              {length(@loadout)}/{@deck_slots} equipped
             </p>
             <p :if={@programs == []} id="loadout-empty" class="ghostwork-empty">
               NO PROGRAMS OWNED
@@ -299,7 +323,7 @@ defmodule ShuntWeb.GhostworkLive do
                   class="ghostwork-loadout-toggle"
                   phx-click="equip"
                   phx-value-program={prog.id}
-                  disabled={length(@loadout) >= 3}
+                  disabled={length(@loadout) >= @deck_slots}
                 >
                   EQUIP
                 </button>
@@ -312,9 +336,36 @@ defmodule ShuntWeb.GhostworkLive do
             <div class="ghostwork-codex-mastery">
               <p :if={@mastery == []} class="ghostwork-empty">NO ICE READ YET</p>
               <div :for={m <- @mastery} id={"mastery-#{m.family}"} class="ghostwork-mastery-row">
-                <span class="ghostwork-mastery-family">{m.family}</span>
-                <span class="ghostwork-mastery-cracks">cracked ×{m.cracks}</span>
-                <span class="ghostwork-mastery-fog">fog: {fog_label(m.fog_stage)}</span>
+                <div class="ghostwork-mastery-head">
+                  <span class="ghostwork-mastery-family">{m.family}</span>
+                  <span class="ghostwork-mastery-cracks">cracked ×{m.cracks}</span>
+                </div>
+                <div class="ghostwork-read-meter" aria-label={"read level: #{m.read.label}"}>
+                  <span class="ghostwork-read-pips" aria-hidden="true">
+                    <span
+                      :for={i <- 1..3}
+                      class={[
+                        "ghostwork-read-pip",
+                        i <= m.read.filled && "ghostwork-read-pip--lit"
+                      ]}
+                    />
+                  </span>
+                  <span class="ghostwork-read-label">{m.read.label}</span>
+                  <span :if={m.read.to_keys > 0} class="ghostwork-read-hint">
+                    {m.read.to_keys} more {cracks_word(m.read.to_keys)} to read keys
+                  </span>
+                </div>
+                <div :if={m.coverage} class="ghostwork-coverage">
+                  <span
+                    :for={c <- m.coverage}
+                    class={[
+                      "ghostwork-coverage-key",
+                      c.program && "ghostwork-coverage-key--owned"
+                    ]}
+                  >
+                    ▷{c.key} {if(c.program, do: "✓ #{c.program}", else: "✗ none")}
+                  </span>
+                </div>
               </div>
             </div>
           </Chrome.panel>
@@ -332,15 +383,22 @@ defmodule ShuntWeb.GhostworkLive do
   defp node_count_label([_]), do: "1 node exposed"
   defp node_count_label(nodes), do: "#{length(nodes)} nodes exposed"
 
-  defp fog_label(:dark), do: "dark"
-  defp fog_label(:numbers), do: "P/T mapped"
-  defp fog_label(:weakness), do: "weakness"
+  # The compact per-node read hint on the NODES list, in the same vocabulary as the codex READ
+  # meter (SEEN → COSTS → KEYS): unread → costs → keys.
+  defp fog_label(:dark), do: "unread"
+  defp fog_label(:numbers), do: "costs"
+  defp fog_label(:weakness), do: "keys"
+
+  defp cracks_word(1), do: "crack"
+  defp cracks_word(_n), do: "cracks"
 
   defp signal_entry(meta) do
     %{id: System.unique_integer([:monotonic, :positive]), text: meta.text, kind: meta.kind}
   end
 
   defp assign_deck(socket, player) do
+    active_deck = Ghostwork.active_deck(player)
+
     socket
     |> assign(:player, player)
     |> assign(:location, World.get_location(player.location_id))
@@ -349,7 +407,9 @@ defmodule ShuntWeb.GhostworkLive do
     |> assign(:programs, Ghostwork.Programs.owned(player))
     |> assign(:loadout, Ghostwork.loadout(player))
     |> assign(:equipped_programs, Ghostwork.Programs.loadout(player))
-    |> assign(:mastery, Ghostwork.mastery_summary(player))
+    |> assign(:active_deck, active_deck)
+    |> assign(:deck_slots, Ghostwork.slots_for(active_deck))
+    |> assign(:mastery, Ghostwork.codex(player))
   end
 
   defp flash_heat_event(socket, nil), do: socket

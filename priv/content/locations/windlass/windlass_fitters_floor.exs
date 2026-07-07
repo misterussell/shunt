@@ -34,6 +34,24 @@ alias Shunt.World.Exit
         requirements: [],
         text: "Under the bench-chatter runs a hard Authority channel — a relay node routing half the floor's readers. There's a seam in it.",
         on_intercept: [{:knowledge, "windlass_fitworks_ice_found"}]
+      },
+      # The Collective arms your deck — the acquisition half of the crack->loot->crack loop. The
+      # cloak starter is theirs to give freely; the :overload brute is EARNED once your cracks have
+      # turned the grid war (grid >= :contested is derived from cracking Fitworks ICE — see
+      # districts/windlass.exs). Both are swept once their knowledge key is held.
+      %{
+        id: "collective_dampener",
+        requirements: [],
+        text:
+          "A Fitworks cutter presses a chip into your hand without looking up: a Dampener, Collective-cut, quiet by design. \"For the watchdogs,\" she says. \"You'll want it.\"",
+        on_intercept: [{:inventory, "dampener", 1}, {:knowledge, "windlass_dampener_taken"}]
+      },
+      %{
+        id: "collective_powerspike",
+        requirements: [{:district, "windlass", :grid, :>=, :contested}],
+        text:
+          "The grid's turning your way and the Fitworks knows it. Fuse slides you a Powerspike across the bench — raw current in a socket. \"You've earned loud,\" he says. \"Use it where they can't afford to hear.\"",
+        on_intercept: [{:inventory, "powerspike", 1}, {:knowledge, "windlass_powerspike_taken"}]
       }
     ],
     filler: [

@@ -48,6 +48,9 @@ defmodule ShuntWeb.Components.IceTerminal do
       |> assign(:probe, Ghostwork.probe_profile())
       |> assign(:trace_lit, lit_segments(encounter.trace))
       |> assign(:segments, 1..@trace_segments)
+      |> assign(:descend_available?, Ghostwork.descend_available?(encounter))
+      |> assign(:program_target, Ghostwork.program_target(encounter, assigns.selected_subroutine))
+      |> assign(:drill_target, Ghostwork.drill_target(encounter, assigns.selected_subroutine))
 
     ~H"""
     <div
@@ -84,6 +87,7 @@ defmodule ShuntWeb.Components.IceTerminal do
               id={"ice-sub-#{sub.id}"}
               class={[
                 "ice-subroutine",
+                sub.threat == :vault && "ice-subroutine--vault",
                 sub_down?(@encounter, sub) && "ice-subroutine--down",
                 sub.id == @selected_subroutine && "ice-subroutine--selected"
               ]}
@@ -95,7 +99,11 @@ defmodule ShuntWeb.Components.IceTerminal do
               </span>
               <span class="ice-subroutine-key">
                 <%= if @weakness_known? do %>
-                  {key_text(sub.key)}
+                  {key_text(sub.key)}<span
+                    :if={countered?(@programs, sub)}
+                    class="ice-subroutine-counter"
+                    title="counter equipped"
+                  >✓</span>
                 <% else %>
                   <span class="ice-redact">▓▓▓</span>
                 <% end %>
@@ -109,6 +117,9 @@ defmodule ShuntWeb.Components.IceTerminal do
               </div>
               <span class="ice-meter-readout">
                 {sub_progress(@encounter, sub)} / {sub.progress_required}
+              </span>
+              <span :if={sub.threat == :vault} class="ice-subroutine-warn">
+                SEALED · matching key only — wrong hit = LOCKOUT
               </span>
             </div>
           </div>
@@ -135,26 +146,51 @@ defmodule ShuntWeb.Components.IceTerminal do
 
           <%= if @encounter.status == :active do %>
             <div class="ice-actions">
+              <%= if @program_target do %>
+                <button
+                  id="ice-probe"
+                  class="ice-action"
+                  phx-click="act"
+                  phx-value-action="probe"
+                  phx-value-subroutine={@program_target}
+                >
+                  <span class="ice-action-name">PROBE</span>
+                  <.cost known={@numbers_known?} progress={@probe.progress} trace={@probe.trace} />
+                </button>
+                <button
+                  :for={prog <- @programs}
+                  id={"ice-program-#{prog.id}"}
+                  class="ice-action"
+                  phx-click="act"
+                  phx-value-action={"program:" <> prog.id}
+                  phx-value-subroutine={@program_target}
+                >
+                  <span class="ice-action-name">{prog.name}</span>
+                  <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
+                </button>
+              <% end %>
+              <div :if={@drill_target} class="ice-drill-group" id="ice-drill">
+                <p class="ice-drill-warn">DRILL VAULT · matching key only — wrong hit = LOCKOUT</p>
+                <button
+                  :for={prog <- @programs}
+                  id={"ice-drill-#{prog.id}"}
+                  class="ice-action ice-action--drill"
+                  phx-click="act"
+                  phx-value-action={"program:" <> prog.id}
+                  phx-value-subroutine={@drill_target}
+                >
+                  <span class="ice-action-name">DRILL · {prog.name}</span>
+                  <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
+                </button>
+              </div>
               <button
-                id="ice-probe"
-                class="ice-action"
-                phx-click="act"
-                phx-value-action="probe"
-                phx-value-subroutine={@selected_subroutine}
+                :if={@descend_available?}
+                id="ice-descend"
+                class="ice-action ice-action--descend"
+                phx-click="descend"
               >
-                <span class="ice-action-name">PROBE</span>
-                <.cost known={@numbers_known?} progress={@probe.progress} trace={@probe.trace} />
-              </button>
-              <button
-                :for={prog <- @programs}
-                id={"ice-program-#{prog.id}"}
-                class="ice-action"
-                phx-click="act"
-                phx-value-action={"program:" <> prog.id}
-                phx-value-subroutine={@selected_subroutine}
-              >
-                <span class="ice-action-name">{prog.name}</span>
-                <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
+                <span class="ice-action-name">DESCEND</span>
+                <span class="ice-action-hint">skip the vault</span>
               </button>
               <button id="ice-retreat" class="ice-action ice-action--retreat" phx-click="retreat">
                 <span class="ice-action-name">RETREAT</span>
@@ -210,14 +246,17 @@ defmodule ShuntWeb.Components.IceTerminal do
   defp status_label(:active), do: "BREAKING"
   defp status_label(:cracked), do: "CRACKED"
   defp status_label(:busted), do: "BUSTED"
+  defp status_label(:locked_out), do: "LOCKED OUT"
   defp status_label(:retreated), do: "CLEAN EXIT"
 
   defp status_accent(:busted), do: "ice-accent--danger"
+  defp status_accent(:locked_out), do: "ice-accent--danger"
   defp status_accent(:cracked), do: "ice-accent--good"
   defp status_accent(_status), do: nil
 
   defp end_line(:cracked), do: "Node owned. Data banked."
   defp end_line(:busted), do: "Trace maxed — connection burned. Node hardened."
+  defp end_line(:locked_out), do: "Vault defender tripped — locked out. Node hardened."
   defp end_line(:retreated), do: "Pulled out clean. Banked layers kept."
 
   defp sub_progress(encounter, sub), do: Map.get(encounter.subroutine_progress, sub.id, 0)
@@ -227,7 +266,12 @@ defmodule ShuntWeb.Components.IceTerminal do
   defp threat_label(:barrier), do: "BARRIER"
   defp threat_label(:sentry), do: "SENTRY"
   defp threat_label(:trap), do: "TRAP"
+  defp threat_label(:vault), do: "VAULT"
 
   defp key_text(nil), do: "—"
   defp key_text(key), do: to_string(key)
+
+  # Does the equipped loadout carry a program whose action counters this subroutine's key?
+  # Delegates to the single domain rule so the badge and the codex can't drift apart.
+  defp countered?(programs, sub), do: Enum.any?(programs, &Ghostwork.counters?(&1, sub.key))
 end

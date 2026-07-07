@@ -18,6 +18,23 @@ alias Shunt.World.Exit
 
   graph_position: {2860, -760},
 
+  lattice: %{
+    leads: [
+      %{
+        id: "slagfoot_relay_signal",
+        requirements: [],
+        text:
+          "Under the furnace-roar sits a hard Authority carrier that never quite goes quiet — a reader-relay welded into the oldest wall, humming to itself. There's a seam in it.",
+        on_intercept: [{:knowledge, "windlass_slagfoot_relay_found"}]
+      }
+    ],
+    filler: [
+      %{weight: 3, text: "Casting-line telemetry, endless and dull — heat, load, tonnage.", on_intercept: []},
+      %{weight: 2, text: "A crew channel griping about cold furnaces and Authority quotas.", on_intercept: []},
+      %{weight: 1, text: "A stray pay-manifest fragment. You skim a few loose credits off it.", on_intercept: [{:scrip, 3}]}
+    ]
+  },
+
   atmosphere: [
     %{requirements: [], text: "Half the furnaces are cold. The crews stand around them anyway, out of habit, because standing near a cold furnace still beats going home."},
     %{requirements: [{:district, "windlass", :haul, :>=, :running}], text: "The furnaces are up and the floor is moving, casting parts the engine needs faster than it can eat them. It's brutal work, and the crews would rather have it than not."}

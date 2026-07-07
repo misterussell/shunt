@@ -42,9 +42,25 @@
         {:scrip, 30},
         {:npc_loyalty, "windlass_drift", 6}
       ],
+      # A vault rides The Core: the Authority's master key to the district grid — the deepest prize
+      # on the meanest ICE in the game. Optional (the grid still comes open without it), but drill
+      # it and you walk out with the Authority's own way back in. Its key (:decrypt) is neither of
+      # the ones the Core already demands (:spoof, :backdoor), so any wrong hit here is a genuine
+      # lockout gamble — and with trace_multiplier 3.0, even a clean drill burns Trace hard.
       subroutines: [
         %{id: "core_trap", key: :spoof, threat: :trap, progress_required: 11},
-        %{id: "core_lock", key: :backdoor, threat: :barrier, progress_required: 15}
+        %{id: "core_lock", key: :backdoor, threat: :barrier, progress_required: 15},
+        %{
+          id: "grid_masterkey_vault",
+          key: :decrypt,
+          threat: :vault,
+          progress_required: 16,
+          reward: [
+            {:scrip, 40},
+            {:knowledge, "windlass_grid_masterkey"},
+            {:npc_loyalty, "windlass_drift", 4}
+          ]
+        }
       ]
     }
   ]

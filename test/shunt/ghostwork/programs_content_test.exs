@@ -20,6 +20,8 @@ defmodule Shunt.Ghostwork.ProgramsContentTest do
     assert :spoof in actions
     assert :decrypt in actions
     assert :backdoor in actions
+    assert :overload in actions
+    assert :cloak in actions
   end
 
   test "every shipped program has a well-formed action profile" do
@@ -27,7 +29,9 @@ defmodule Shunt.Ghostwork.ProgramsContentTest do
       assert is_binary(program.id) and program.id != ""
       assert is_binary(program.name) and program.name != ""
       assert is_binary(program.text) and program.text != ""
-      assert program.action in [:spoof, :decrypt, :backdoor]
+      # The Windlass gear pilot added the :overload / :cloak keys; both are guaranteed a program
+      # by the "at least one program for each subroutine key" test above.
+      assert program.action in [:spoof, :decrypt, :backdoor, :overload, :cloak]
       assert is_integer(program.progress) and program.progress > 0
       assert is_integer(program.trace) and program.trace >= 0
       assert is_integer(program.on_weakness.progress) and is_integer(program.on_weakness.trace)
@@ -112,6 +116,36 @@ defmodule Shunt.Ghostwork.ProgramsContentTest do
 
       assert status == :cracked
       assert trace < 100
+    end
+  end
+
+  describe "marquee vault nodes" do
+    for node_id <- ["crossgate_counting_house_ledger", "windlass_grid_core"] do
+      test "#{node_id} carries a vault whose key differs from its layer's required keys" do
+        node = IceNode.fetch!(unquote(node_id))
+
+        vault_layer =
+          Enum.find(node.layers, fn layer ->
+            Enum.any?(layer.subroutines, &(&1.threat == :vault))
+          end)
+
+        assert vault_layer, "expected a vault subroutine in #{unquote(node_id)}"
+
+        vault = Enum.find(vault_layer.subroutines, &(&1.threat == :vault))
+
+        required_keys =
+          vault_layer.subroutines
+          |> Enum.reject(&(&1.threat == :vault))
+          |> Enum.map(& &1.key)
+
+        # The lockout risk only bites if the vault demands a key the required subs don't already
+        # need — otherwise you'd be carrying its counter anyway. A program for it must exist so a
+        # master can actually loot it.
+        refute vault.key in required_keys
+        assert vault.key in Enum.map(Programs.all(), & &1.action)
+        assert vault.reward != []
+        assert is_integer(vault.progress_required) and vault.progress_required > 0
+      end
     end
   end
 

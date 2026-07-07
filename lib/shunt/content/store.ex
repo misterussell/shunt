@@ -23,6 +23,10 @@ defmodule Shunt.Content.Store do
     # since each entry exposes .id. Directories may be empty until Phase 5 content lands.
     {:ice_nodes, "priv/content/ice_nodes"},
     {:programs, "priv/content/programs"},
+    # Decks are stat-bearing deck-hardware items (plain %{id, name, slots, text} maps, id matches
+    # the inventory key) that define how many program loadout slots the player has. Generic
+    # load_source/2 handles the map shape.
+    {:decks, "priv/content/decks"},
     {:rumors, "priv/content/rumors"},
     {:rumor_connections, "priv/content/rumor_connections"},
     # Repairable infrastructure (generators, lifts, purifiers). Content files build

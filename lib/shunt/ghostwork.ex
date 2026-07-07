@@ -38,8 +38,15 @@ defmodule Shunt.Ghostwork do
   # Multiplies a turn's Trace when a non-Probe action MISMATCHES a :trap subroutine.
   @trap_trace_multiplier 2
 
-  # Equipped-program slots: only these are runnable in an encounter (the prep decision).
-  @loadout_slots 3
+  # Equipped-program slots come from the player's active deck (see deck_slots/1). This is the
+  # fallback when no deck is owned — unreachable in an encounter (you can't jack in without a
+  # deck), but keeps equip/2 total.
+  @default_slots 3
+
+  # Lockout: tripping a vault's defender is harsher than a Trace-bust. Base + per-layer, like
+  # bust heat but larger (deeper vaults hurt more). Tuning only.
+  @lockout_heat_base 15
+  @lockout_heat_per_layer 6
 
   # Earned-title milestones (doc "Progression"): a ghostwork tree tier is earned when the
   # player holds a deck AND total cracks (sum of all family mastery) reaches the threshold.
@@ -81,12 +88,73 @@ defmodule Shunt.Ghostwork do
   def fog_stage(count) when count >= @mastery_numbers, do: :numbers
   def fog_stage(_count), do: :dark
 
+  @doc """
+  How well the player reads a family, as a 3-rung ladder the codex renders directly:
+  SEEN → COSTS → KEYS. `filled` is how many rungs are lit (1..3); `to_keys` is how many more
+  cracks until the top rung (0 once there). Replaces the old opaque "P/T mapped" / "weakness" fog
+  tags with one legible climb driven by the same @mastery_numbers/@mastery_weakness thresholds.
+  """
+  def read_meter(cracks) when cracks >= @mastery_weakness,
+    do: %{stage: :keys, filled: 3, label: "KEYS", to_keys: 0}
+
+  def read_meter(cracks) when cracks >= @mastery_numbers,
+    do: %{stage: :costs, filled: 2, label: "COSTS", to_keys: @mastery_weakness - cracks}
+
+  def read_meter(cracks),
+    do: %{stage: :seen, filled: 1, label: "SEEN", to_keys: @mastery_weakness - cracks}
+
   def mastery_summary(player) do
     player.ghostwork_state
     |> Map.get("mastery", %{})
     |> Enum.sort_by(fn {family, _} -> family end)
     |> Enum.map(fn {family, cracks} ->
-      %{family: family, cracks: cracks, fog_stage: fog_stage(cracks)}
+      %{family: family, cracks: cracks, read: read_meter(cracks)}
+    end)
+  end
+
+  @doc """
+  The codex: `mastery_summary/1` plus, for each family the player has read to KEYS, a `coverage`
+  list of which action keys that family's ICE demands and which of the player's owned programs
+  answer them. `coverage` is nil below KEYS (you haven't learned the keys yet, so nothing to show).
+  """
+  def codex(player) do
+    # Materialize the ICE catalog and the player's owned counters once, then reuse them across
+    # every keys-read family — codex/1 runs on every ghostwork interaction, so a per-family
+    # IceNode.all() scan would repeat the full-catalog read N times per render.
+    nodes = Shunt.Ghostwork.IceNode.all()
+    owned = Shunt.Ghostwork.Programs.owned(player)
+
+    Enum.map(mastery_summary(player), fn entry ->
+      coverage =
+        if entry.read.stage == :keys, do: coverage_for(nodes, owned, entry.family), else: nil
+
+      Map.put(entry, :coverage, coverage)
+    end)
+  end
+
+  @doc """
+  The distinct action keys demanded by a family's ICE (across every subroutine of every node in
+  the family, vaults included), sorted, each paired with the name of an owned program that
+  counters it (or nil). The actionable half of the codex: "this family wants ▷decrypt — do you
+  carry one?"
+  """
+  def family_coverage(player, family) do
+    coverage_for(Shunt.Ghostwork.IceNode.all(), Shunt.Ghostwork.Programs.owned(player), family)
+  end
+
+  @doc "The single rule: whether a program's action counters a subroutine key."
+  def counters?(program, key), do: program.action == key
+
+  defp coverage_for(nodes, owned, family) do
+    nodes
+    |> Enum.filter(&(&1.family == family))
+    |> Enum.flat_map(fn node -> Enum.flat_map(node.layers, & &1.subroutines) end)
+    |> Enum.map(& &1.key)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.map(fn key ->
+      %{key: key, program: Enum.find_value(owned, &(counters?(&1, key) && &1.name))}
     end)
   end
 
@@ -224,6 +292,13 @@ defmodule Shunt.Ghostwork do
     4. add the action's Trace (Trap amplifies a mismatched non-Probe hit) plus a bleed
        for every Sentry still alive AFTER the hit,
     5. resolve into a downed subroutine / banked layer / cracked node / bust.
+
+  A subroutine may carry `threat: :vault` plus its own `reward: [...]` — an OPTIONAL, richer
+  target (it never blocks the layer's safe reward). The one rule: a vault advances ONLY when hit
+  with its matching key. A vault hit with any other action (probe — typeless — or a mismatched
+  program) trips the defender: the encounter ends `:locked_out` (heavier Heat than a bust + node
+  hardened; deeper unbanked layers are forfeited because the encounter ends). Vaults are never
+  auto-targeted (see target_subroutine/3), so a lockout only ever follows a deliberate mis-hit.
   """
   def act(%Encounter{} = encounter, player, action, subroutine_id \\ nil) do
     layer = Enum.at(encounter.node.layers, encounter.layer_index)
@@ -231,22 +306,53 @@ defmodule Shunt.Ghostwork do
     with {:ok, prof} <- profile(action, player),
          {:ok, target} <- target_subroutine(encounter, layer, subroutine_id) do
       matched? = prof.action != nil and prof.action == target.key
-      gained = if(matched?, do: prof.on_weakness, else: prof.base)
 
-      new_board =
-        Map.update(
-          encounter.subroutine_progress,
-          target.id,
-          gained.progress,
-          &(&1 + gained.progress)
-        )
-
-      new_trace = encounter.trace + turn_trace(gained.trace, layer, prof, target, new_board)
-
-      {updated, effects} = resolve(encounter, layer, new_board, new_trace)
-      {:ok, updated, effects}
+      if target.threat == :vault and not matched? do
+        lockout(encounter)
+      else
+        apply_hit(encounter, layer, prof, target, matched?)
+      end
     end
   end
+
+  defp apply_hit(%Encounter{} = encounter, layer, prof, target, matched?) do
+    gained = if(matched?, do: prof.on_weakness, else: prof.base)
+
+    new_board =
+      Map.update(
+        encounter.subroutine_progress,
+        target.id,
+        gained.progress,
+        &(&1 + gained.progress)
+      )
+
+    new_trace = encounter.trace + turn_trace(gained.trace, layer, prof, target, new_board)
+    vault_reward = vault_cracked_reward(target, encounter.subroutine_progress, new_board)
+
+    {updated, effects} = resolve(encounter, layer, new_board, new_trace, vault_reward)
+    {:ok, updated, effects}
+  end
+
+  # A vault just cracked this turn (was alive, now down) → its reward fires. A Trace-bust denies
+  # it (handled in resolve/5, which ignores vault_reward on the bust clause).
+  defp vault_cracked_reward(%{threat: :vault} = vault, old_board, new_board) do
+    was_alive = Map.get(old_board, vault.id, 0) < vault.progress_required
+    now_down = Map.get(new_board, vault.id, 0) >= vault.progress_required
+    if was_alive and now_down, do: Map.get(vault, :reward, []), else: []
+  end
+
+  defp vault_cracked_reward(_target, _old_board, _new_board), do: []
+
+  defp lockout(%Encounter{} = encounter) do
+    effects = [
+      {:heat, lockout_heat(encounter.layer_index)},
+      {:ghostwork_node, encounter.node.id, :harden}
+    ]
+
+    {:ok, %{encounter | status: :locked_out}, effects}
+  end
+
+  defp lockout_heat(layer_index), do: @lockout_heat_base + @lockout_heat_per_layer * layer_index
 
   @doc """
   The subroutine the UI should target next: the `preferred` id if it is still alive on the
@@ -254,18 +360,64 @@ defmodule Shunt.Ghostwork do
   or layer cleared). Lets the LiveView keep its highlight on a subroutine across turns
   without itself knowing what "alive" means.
   """
+  # Auto-target never picks a vault (that would risk an accidental lockout): a selected-alive
+  # subroutine of any kind keeps the highlight, but the fallback only ever lands on a non-vault.
   def resolve_target(%Encounter{status: :active} = encounter, preferred) do
     layer = Enum.at(encounter.node.layers, encounter.layer_index)
-    alive = Enum.filter(layer.subroutines, &alive?(&1, encounter.subroutine_progress))
+    board = encounter.subroutine_progress
+    preferred_alive? = Enum.any?(layer.subroutines, &(&1.id == preferred and alive?(&1, board)))
+    fallback = Enum.find(layer.subroutines, &(&1.threat != :vault and alive?(&1, board)))
 
     cond do
-      Enum.any?(alive, &(&1.id == preferred)) -> preferred
-      alive == [] -> nil
-      true -> hd(alive).id
+      preferred_alive? -> preferred
+      fallback -> fallback.id
+      true -> nil
     end
   end
 
   def resolve_target(%Encounter{}, _preferred), do: nil
+
+  @doc """
+  The subroutine a program/probe should hit: never a vault. Returns `preferred` when it is an
+  alive non-vault, otherwise the first still-alive non-vault, otherwise `nil` (nothing breakable
+  left — the layer is cleared but a vault may still be open). Lets the terminal point programs at
+  a barrier/sentry/trap without ever arming them against a vault, so a plain inspection click on a
+  vault can't trip a lockout.
+  """
+  def program_target(%Encounter{status: :active} = encounter, preferred) do
+    layer = Enum.at(encounter.node.layers, encounter.layer_index)
+    board = encounter.subroutine_progress
+    breakable? = fn sub -> sub.threat != :vault and alive?(sub, board) end
+    preferred_breakable? = Enum.any?(layer.subroutines, &(&1.id == preferred and breakable?.(&1)))
+    fallback = Enum.find(layer.subroutines, breakable?)
+
+    cond do
+      preferred_breakable? -> preferred
+      fallback -> fallback.id
+      true -> nil
+    end
+  end
+
+  def program_target(%Encounter{}, _preferred), do: nil
+
+  @doc """
+  The vault the DRILL control should attack: `preferred` only when it is an alive vault, otherwise
+  `nil`. Drilling a vault is deliberate-only — the terminal exposes a DRILL affordance solely when
+  the highlighted subroutine is a live vault, and only that path ever passes a vault id to `act/4`.
+  """
+  def drill_target(%Encounter{status: :active} = encounter, preferred) do
+    layer = Enum.at(encounter.node.layers, encounter.layer_index)
+    board = encounter.subroutine_progress
+
+    if Enum.any?(
+         layer.subroutines,
+         &(&1.id == preferred and &1.threat == :vault and alive?(&1, board))
+       ),
+       do: preferred,
+       else: nil
+  end
+
+  def drill_target(%Encounter{}, _preferred), do: nil
 
   defp turn_trace(base_trace, layer, prof, target, new_board) do
     trapped? = prof.action != nil and target.threat == :trap and prof.action != target.key
@@ -282,7 +434,10 @@ defmodule Shunt.Ghostwork do
   end
 
   defp target_subroutine(encounter, layer, nil) do
-    case Enum.find(layer.subroutines, &alive?(&1, encounter.subroutine_progress)) do
+    case Enum.find(
+           layer.subroutines,
+           &(&1.threat != :vault and alive?(&1, encounter.subroutine_progress))
+         ) do
       nil -> {:error, :invalid_target}
       sub -> {:ok, sub}
     end
@@ -328,7 +483,9 @@ defmodule Shunt.Ghostwork do
     Enum.random(max(1, trace_base - spread)..(trace_base + spread))
   end
 
-  defp resolve(%Encounter{} = encounter, _layer, _new_board, new_trace)
+  # A Trace-bust is terminal and takes priority over any layer/vault credit this turn (the
+  # vault_reward is intentionally dropped here — you got traced out as it cracked).
+  defp resolve(%Encounter{} = encounter, _layer, _new_board, new_trace, _vault_reward)
        when new_trace >= @trace_bust do
     effects = [
       {:heat, bust_heat(encounter.layer_index)},
@@ -338,48 +495,104 @@ defmodule Shunt.Ghostwork do
     {%{encounter | status: :busted, trace: @trace_bust}, effects}
   end
 
-  defp resolve(%Encounter{} = encounter, layer, new_board, new_trace) do
-    if layer_cleared?(layer, new_board) do
-      bank_layer(encounter, layer, new_trace)
-    else
-      {%{encounter | subroutine_progress: new_board, trace: new_trace}, []}
+  # Model ii ("cleared but open"): a vault never blocks the safe reward, and it creates a discrete
+  # "safe now — drill the vault or descend?" beat. Vault-LESS layers advance immediately, exactly
+  # as before (required cleared + no vault → advance).
+  defp resolve(%Encounter{} = encounter, layer, new_board, new_trace, vault_reward) do
+    cond do
+      required_cleared?(layer, new_board) and not alive_vault?(layer, new_board) ->
+        {updated, bank} = advance(encounter, layer, new_board, new_trace)
+        {updated, vault_reward ++ bank}
+
+      required_cleared?(layer, new_board) and not encounter.layer_banked ->
+        {updated, bank} = bank_and_hold(encounter, layer, new_board, new_trace)
+        {updated, vault_reward ++ bank}
+
+      true ->
+        {%{encounter | subroutine_progress: new_board, trace: new_trace}, vault_reward}
     end
   end
 
-  defp layer_cleared?(layer, board) do
-    Enum.all?(layer.subroutines, &(not alive?(&1, board)))
+  defp required_cleared?(layer, board) do
+    layer.subroutines
+    |> Enum.reject(&(&1.threat == :vault))
+    |> Enum.all?(&(not alive?(&1, board)))
   end
 
-  defp bank_layer(%Encounter{} = encounter, layer, new_trace) do
+  defp alive_vault?(layer, board) do
+    Enum.any?(layer.subroutines, &(&1.threat == :vault and alive?(&1, board)))
+  end
+
+  # Bank the current layer's safe reward once and hold the layer open for the vault.
+  defp bank_and_hold(%Encounter{} = encounter, layer, new_board, new_trace) do
+    {%{encounter | subroutine_progress: new_board, trace: new_trace, layer_banked: true},
+     bank_effects(encounter, layer)}
+  end
+
+  # Move to the next layer (or crack the node). Emits the safe bank effects only if they weren't
+  # already banked while the layer was held open.
+  defp advance(%Encounter{} = encounter, layer, new_board, new_trace) do
     node = encounter.node
-
-    effects =
-      layer.reward ++
-        [
-          {:ghostwork_mastery, node.family, 1},
-          {:ghostwork_node, node.id, {:bank_layer, encounter.layer_index}}
-        ]
-
+    bank = if encounter.layer_banked, do: [], else: bank_effects(encounter, layer)
     next_index = encounter.layer_index + 1
 
     updated =
       if next_index >= length(node.layers) do
-        %{encounter | status: :cracked, trace: new_trace}
+        %{encounter | status: :cracked, subroutine_progress: new_board, trace: new_trace}
       else
         %{
           encounter
           | layer_index: next_index,
             subroutine_progress: zeroed_board(node, next_index),
-            trace: new_trace
+            trace: new_trace,
+            layer_banked: false
         }
       end
 
-    {updated, effects}
+    {updated, bank}
+  end
+
+  defp bank_effects(%Encounter{} = encounter, layer) do
+    node = encounter.node
+
+    layer.reward ++
+      [
+        {:ghostwork_mastery, node.family, 1},
+        {:ghostwork_node, node.id, {:bank_layer, encounter.layer_index}}
+      ]
   end
 
   defp bust_heat(layer_index), do: @bust_heat_base + @bust_heat_per_layer * layer_index
 
   def retreat(%Encounter{} = encounter), do: {:ok, %{encounter | status: :retreated}, []}
+
+  @doc """
+  Skip a still-alive vault and go deeper — the player's "banked, don't push my luck" choice.
+  Valid only on a "cleared but open" layer (required set down, safe reward already banked, a
+  vault still alive). Advances to the next layer (re-zeroing the board, carrying Trace) or cracks
+  the node on the last layer. Dispatches no effects: the safe reward already banked, the vault is
+  forfeited by choice.
+  """
+  def descend(%Encounter{status: :active, layer_banked: true} = encounter) do
+    layer = Enum.at(encounter.node.layers, encounter.layer_index)
+
+    if alive_vault?(layer, encounter.subroutine_progress) do
+      {updated, []} = advance(encounter, layer, encounter.subroutine_progress, encounter.trace)
+      {:ok, updated, []}
+    else
+      {:error, :nothing_to_skip}
+    end
+  end
+
+  def descend(%Encounter{}), do: {:error, :not_banked}
+
+  @doc "Whether the UI should offer DESCEND — the current layer is cleared-but-open on a live vault."
+  def descend_available?(%Encounter{status: :active, layer_banked: true} = encounter) do
+    layer = Enum.at(encounter.node.layers, encounter.layer_index)
+    alive_vault?(layer, encounter.subroutine_progress)
+  end
+
+  def descend_available?(%Encounter{}), do: false
 
   @doc "The innate Probe action's base profile, for the encounter UI readout."
   def probe_profile, do: %{progress: @probe_progress, trace: @probe_trace}
@@ -393,19 +606,37 @@ defmodule Shunt.Ghostwork do
   """
   def weakness_known?(encounter), do: encounter.mastery >= @mastery_weakness
 
-  @doc "The player's equipped program ids (the 3-slot encounter loadout)."
+  @doc """
+  The player's active deck — the highest-`slots` deck they own — or nil if they own none.
+  Decks are gear (`Shunt.Ghostwork.Decks`); a better deck grants more loadout slots.
+  """
+  def active_deck(player) do
+    case Shunt.Ghostwork.Decks.owned(player) do
+      [] -> nil
+      decks -> Enum.max_by(decks, & &1.slots)
+    end
+  end
+
+  @doc "The player's program loadout size — the active deck's slots, or #{@default_slots} if deckless."
+  def deck_slots(player), do: slots_for(active_deck(player))
+
+  @doc "Loadout size for an already-resolved active deck (or nil) — #{@default_slots} if deckless."
+  def slots_for(nil), do: @default_slots
+  def slots_for(deck), do: deck.slots
+
+  @doc "The player's equipped program ids (the encounter loadout, sized by the active deck)."
   def loadout(player), do: Map.get(player.ghostwork_state, "loadout", [])
 
   @doc """
   The new loadout list with `program_id` equipped — for the caller to dispatch via the
   `{:ghostwork_loadout, ids}` effect. A no-op if the program isn't owned, is already
-  equipped, or all #{@loadout_slots} slots are full. Does not mutate the player.
+  equipped, or every deck slot (see deck_slots/1) is full. Does not mutate the player.
   """
   def equip(player, program_id) do
     current = loadout(player)
     owned? = Map.get(player.inventory, program_id, 0) >= 1
 
-    if owned? and program_id not in current and length(current) < @loadout_slots,
+    if owned? and program_id not in current and length(current) < deck_slots(player),
       do: current ++ [program_id],
       else: current
   end

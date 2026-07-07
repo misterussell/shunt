@@ -2009,6 +2009,16 @@
   padding: 8px 0;
   border-bottom: 1px solid var(--border-c);
 }
+.ghostwork-mastery-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.ghostwork-mastery-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .ghostwork-node-info {
   display: flex;
   flex-direction: column;
@@ -2068,6 +2078,32 @@
   padding-left: 8px;
   margin-left: -10px;
 }
+.ghostwork-loadout-deck {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border-c);
+}
+.ghostwork-loadout-deck-label {
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.ghostwork-loadout-deck-name {
+  flex: 1;
+  color: var(--cyan);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+.ghostwork-loadout-deck-slots {
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 .ghostwork-loadout-count {
   color: var(--muted);
   font-size: 0.7rem;
@@ -2116,11 +2152,50 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
-.ghostwork-mastery-fog {
+.ghostwork-read-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ghostwork-read-pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.ghostwork-read-pip {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--border-c);
+  background: transparent;
+}
+.ghostwork-read-pip--lit {
+  border-color: var(--cyan);
+  background: var(--cyan);
+}
+.ghostwork-read-label {
   color: var(--cyan);
   font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+.ghostwork-read-hint {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+}
+.ghostwork-coverage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.ghostwork-coverage-key {
+  color: var(--red);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ghostwork-coverage-key--owned {
+  color: var(--green);
 }
 .ghostwork-codex-label {
   color: var(--muted);
@@ -2293,12 +2368,35 @@
 .ice-subroutine-threat--trap {
   color: var(--red);
 }
+.ice-subroutine-threat--vault {
+  color: var(--amber);
+  font-weight: 600;
+}
+.ice-subroutine--vault {
+  border-left-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 7%, var(--sunk));
+}
+.ice-subroutine--vault:hover {
+  border-color: var(--amber);
+}
+.ice-subroutine-warn {
+  grid-column: 1 / -1;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--red);
+}
 .ice-subroutine-key {
   grid-area: key;
   font-size: 0.72rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--cyan);
+}
+.ice-subroutine-counter {
+  margin-left: 3px;
+  color: var(--green);
+  font-weight: 600;
 }
 
 /* Signature: Trace as a segmented detection heartbeat. */
@@ -2396,6 +2494,34 @@
   outline-offset: 1px;
 }
 .ice-action--retreat:hover {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 8%, var(--sunk));
+}
+.ice-action--descend {
+  border-color: color-mix(in srgb, var(--amber) 40%, var(--border-c));
+}
+.ice-action--descend:hover {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 8%, var(--sunk));
+}
+.ice-drill-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--border-c));
+  background: color-mix(in srgb, var(--amber) 5%, var(--sunk));
+}
+.ice-drill-warn {
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+.ice-action--drill {
+  border-color: color-mix(in srgb, var(--amber) 40%, var(--border-c));
+}
+.ice-action--drill:hover {
   border-color: var(--amber);
   background: color-mix(in srgb, var(--amber) 8%, var(--sunk));
 }
