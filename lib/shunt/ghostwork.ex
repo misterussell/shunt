@@ -364,6 +364,48 @@ defmodule Shunt.Ghostwork do
 
   def resolve_target(%Encounter{}, _preferred), do: nil
 
+  @doc """
+  The subroutine a program/probe should hit: never a vault. Returns `preferred` when it is an
+  alive non-vault, otherwise the first still-alive non-vault, otherwise `nil` (nothing breakable
+  left — the layer is cleared but a vault may still be open). Lets the terminal point programs at
+  a barrier/sentry/trap without ever arming them against a vault, so a plain inspection click on a
+  vault can't trip a lockout.
+  """
+  def program_target(%Encounter{status: :active} = encounter, preferred) do
+    layer = Enum.at(encounter.node.layers, encounter.layer_index)
+    board = encounter.subroutine_progress
+    breakable? = fn sub -> sub.threat != :vault and alive?(sub, board) end
+    preferred_breakable? = Enum.any?(layer.subroutines, &(&1.id == preferred and breakable?.(&1)))
+    fallback = Enum.find(layer.subroutines, breakable?)
+
+    cond do
+      preferred_breakable? -> preferred
+      fallback -> fallback.id
+      true -> nil
+    end
+  end
+
+  def program_target(%Encounter{}, _preferred), do: nil
+
+  @doc """
+  The vault the DRILL control should attack: `preferred` only when it is an alive vault, otherwise
+  `nil`. Drilling a vault is deliberate-only — the terminal exposes a DRILL affordance solely when
+  the highlighted subroutine is a live vault, and only that path ever passes a vault id to `act/4`.
+  """
+  def drill_target(%Encounter{status: :active} = encounter, preferred) do
+    layer = Enum.at(encounter.node.layers, encounter.layer_index)
+    board = encounter.subroutine_progress
+
+    if Enum.any?(
+         layer.subroutines,
+         &(&1.id == preferred and &1.threat == :vault and alive?(&1, board))
+       ),
+       do: preferred,
+       else: nil
+  end
+
+  def drill_target(%Encounter{}, _preferred), do: nil
+
   defp turn_trace(base_trace, layer, prof, target, new_board) do
     trapped? = prof.action != nil and target.threat == :trap and prof.action != target.key
     scaled = round(base_trace * layer.trace_multiplier)

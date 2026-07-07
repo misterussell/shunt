@@ -420,6 +420,74 @@ defmodule Shunt.GhostworkTest do
     end
   end
 
+  describe "program_target/2" do
+    test "keeps the preferred subroutine while it is an alive non-vault" do
+      node = board_node([barrier("a", :spoof), barrier("b", :decrypt)])
+
+      assert Ghostwork.program_target(on_board(node), "b") == "b"
+    end
+
+    test "never targets a vault: a highlighted vault falls back to the first breakable" do
+      node = board_node([barrier("a", :spoof), vault("v", :decrypt, 10, [])])
+
+      assert Ghostwork.program_target(on_board(node), "v") == "a"
+    end
+
+    test "defaults to the first alive non-vault when no preference is given" do
+      node = board_node([barrier("a", :spoof), barrier("b", :decrypt)])
+
+      assert Ghostwork.program_target(on_board(node), nil) == "a"
+    end
+
+    test "is nil when only a vault is alive (nothing breakable to hit)" do
+      node = board_node([barrier("a", :spoof, 3), vault("v", :decrypt, 10, [])])
+      enc = on_board(node, %{subroutine_progress: %{"a" => 3, "v" => 0}})
+
+      assert Ghostwork.program_target(enc, "v") == nil
+    end
+
+    test "is nil once the encounter has ended" do
+      node = board_node([barrier("a", :spoof)])
+      enc = on_board(node, %{status: :locked_out})
+
+      assert Ghostwork.program_target(enc, "a") == nil
+    end
+  end
+
+  describe "drill_target/2" do
+    test "returns the highlighted vault id when it is an alive vault" do
+      node = board_node([barrier("a", :spoof), vault("v", :decrypt, 10, [])])
+
+      assert Ghostwork.drill_target(on_board(node), "v") == "v"
+    end
+
+    test "is nil when the highlighted subroutine is a non-vault" do
+      node = board_node([barrier("a", :spoof), vault("v", :decrypt, 10, [])])
+
+      assert Ghostwork.drill_target(on_board(node), "a") == nil
+    end
+
+    test "is nil when nothing is highlighted" do
+      node = board_node([vault("v", :decrypt, 10, [])])
+
+      assert Ghostwork.drill_target(on_board(node), nil) == nil
+    end
+
+    test "is nil once the vault is already down" do
+      node = board_node([vault("v", :decrypt, 6, [])])
+      enc = on_board(node, %{subroutine_progress: %{"v" => 6}})
+
+      assert Ghostwork.drill_target(enc, "v") == nil
+    end
+
+    test "is nil once the encounter has ended" do
+      node = board_node([vault("v", :decrypt, 10, [])])
+      enc = on_board(node, %{status: :locked_out})
+
+      assert Ghostwork.drill_target(enc, "v") == nil
+    end
+  end
+
   describe "act/4 with {:program, id}" do
     setup do
       prog = %{

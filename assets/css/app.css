@@ -2504,6 +2504,27 @@
   border-color: var(--amber);
   background: color-mix(in srgb, var(--amber) 8%, var(--sunk));
 }
+.ice-drill-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--border-c));
+  background: color-mix(in srgb, var(--amber) 5%, var(--sunk));
+}
+.ice-drill-warn {
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+.ice-action--drill {
+  border-color: color-mix(in srgb, var(--amber) 40%, var(--border-c));
+}
+.ice-action--drill:hover {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 8%, var(--sunk));
+}
 .ice-action-name {
   font-weight: 600;
   text-transform: uppercase;

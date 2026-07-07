@@ -337,12 +337,14 @@ defmodule ShuntWeb.GhostworkLiveTest do
       :ets.insert(:ice_nodes, {node.id, node})
       on_exit(fn -> :ets.delete(:ice_nodes, "gw_vault_node") end)
 
-      # A matching :decrypt program (real content) to drill the vault, plus the reveal knowledge.
+      # A matching :decrypt program (real content) to drill the vault, plus a mismatched :spoof
+      # program (maskchip) that would trip the lockout if it ever hit the vault, plus the reveal.
       Players.dispatch(player_id, fn _player ->
         {:ok,
          [
            {:inventory, "tracebreaker", 1},
-           {:ghostwork_loadout, ["tracebreaker"]},
+           {:inventory, "maskchip", 1},
+           {:ghostwork_loadout, ["tracebreaker", "maskchip"]},
            {:knowledge, "gw_node_found"}
          ], %{}}
       end)
@@ -360,15 +362,38 @@ defmodule ShuntWeb.GhostworkLiveTest do
       assert has_element?(view, "#ice-sub-vault", "LOCKOUT")
     end
 
-    test "probing a vault trips the lockout end-state", %{conn: conn} do
+    test "reading a sealed vault never arms the normal actions against it", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
       view |> element("#break-gw_vault_node") |> render_click()
 
+      # Highlight the vault to read its stats, then fire a mismatched (:spoof) program: it must
+      # hit the required barrier, not the vault. Were it routed at the vault it would lock out, so
+      # "still breaking" proves an inspection click can no longer arm a program against the vault.
       view |> element("#ice-sub-vault") |> render_click()
+      view |> element("#ice-program-maskchip") |> render_click()
+
+      refute has_element?(view, "#ice-modal", "LOCKED OUT")
+      assert has_element?(view, "#ice-modal", "BREAKING")
+    end
+
+    test "a cleared-but-open vault layer drops the normal actions and gates the vault behind DRILL",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+      view |> element("#break-gw_vault_node") |> render_click()
+
+      # Auto-target hits the required barrier; one probe (req = 3) clears the required set.
       view |> element("#ice-probe") |> render_click()
 
-      assert has_element?(view, "#ice-modal", "LOCKED OUT")
-      assert has_element?(view, "#ice-close")
+      # Nothing breakable is left, so PROBE and the normal program buttons are gone (not dead) —
+      # only DESCEND and RETREAT remain until the vault is deliberately selected.
+      refute has_element?(view, "#ice-probe")
+      refute has_element?(view, "#ice-program-tracebreaker")
+      assert has_element?(view, "#ice-descend")
+      assert has_element?(view, "#ice-retreat")
+
+      # Selecting the vault reveals the DRILL affordance — the only path to the vault.
+      view |> element("#ice-sub-vault") |> render_click()
+      assert has_element?(view, "#ice-drill-tracebreaker")
     end
 
     test "clearing the required set reveals DESCEND; descending finishes the node", %{conn: conn} do
@@ -394,7 +419,7 @@ defmodule ShuntWeb.GhostworkLiveTest do
       view |> element("#ice-probe") |> render_click()
 
       view |> element("#ice-sub-vault") |> render_click()
-      view |> element("#ice-program-tracebreaker") |> render_click()
+      view |> element("#ice-drill-tracebreaker") |> render_click()
 
       assert has_element?(view, "#ice-modal", "CRACKED")
       assert "gw_vault_loot" in Players.get_player!().knowledge

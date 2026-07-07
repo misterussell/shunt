@@ -49,6 +49,8 @@ defmodule ShuntWeb.Components.IceTerminal do
       |> assign(:trace_lit, lit_segments(encounter.trace))
       |> assign(:segments, 1..@trace_segments)
       |> assign(:descend_available?, Ghostwork.descend_available?(encounter))
+      |> assign(:program_target, Ghostwork.program_target(encounter, assigns.selected_subroutine))
+      |> assign(:drill_target, Ghostwork.drill_target(encounter, assigns.selected_subroutine))
 
     ~H"""
     <div
@@ -144,27 +146,43 @@ defmodule ShuntWeb.Components.IceTerminal do
 
           <%= if @encounter.status == :active do %>
             <div class="ice-actions">
-              <button
-                id="ice-probe"
-                class="ice-action"
-                phx-click="act"
-                phx-value-action="probe"
-                phx-value-subroutine={@selected_subroutine}
-              >
-                <span class="ice-action-name">PROBE</span>
-                <.cost known={@numbers_known?} progress={@probe.progress} trace={@probe.trace} />
-              </button>
-              <button
-                :for={prog <- @programs}
-                id={"ice-program-#{prog.id}"}
-                class="ice-action"
-                phx-click="act"
-                phx-value-action={"program:" <> prog.id}
-                phx-value-subroutine={@selected_subroutine}
-              >
-                <span class="ice-action-name">{prog.name}</span>
-                <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
-              </button>
+              <%= if @program_target do %>
+                <button
+                  id="ice-probe"
+                  class="ice-action"
+                  phx-click="act"
+                  phx-value-action="probe"
+                  phx-value-subroutine={@program_target}
+                >
+                  <span class="ice-action-name">PROBE</span>
+                  <.cost known={@numbers_known?} progress={@probe.progress} trace={@probe.trace} />
+                </button>
+                <button
+                  :for={prog <- @programs}
+                  id={"ice-program-#{prog.id}"}
+                  class="ice-action"
+                  phx-click="act"
+                  phx-value-action={"program:" <> prog.id}
+                  phx-value-subroutine={@program_target}
+                >
+                  <span class="ice-action-name">{prog.name}</span>
+                  <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
+                </button>
+              <% end %>
+              <div :if={@drill_target} class="ice-drill-group" id="ice-drill">
+                <p class="ice-drill-warn">DRILL VAULT · matching key only — wrong hit = LOCKOUT</p>
+                <button
+                  :for={prog <- @programs}
+                  id={"ice-drill-#{prog.id}"}
+                  class="ice-action ice-action--drill"
+                  phx-click="act"
+                  phx-value-action={"program:" <> prog.id}
+                  phx-value-subroutine={@drill_target}
+                >
+                  <span class="ice-action-name">DRILL · {prog.name}</span>
+                  <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
+                </button>
+              </div>
               <button
                 :if={@descend_available?}
                 id="ice-descend"
