@@ -148,13 +148,6 @@ defmodule Shunt.Effects do
     append_distinct(rest, player, acc, meta, :rumors, key)
   end
 
-  # TODO: [effects] Delete this {:web_board, board} clause — the board is gone and Shunt.Web no
-  # longer emits :web_board effects. Remove the "apply/2 - :web_board" describe from
-  # test/shunt/effects_test.exs.
-  defp do_apply([{:web_board, board} | rest], player, acc, meta) do
-    do_apply(rest, player, Map.put(acc, :web_board, board), meta)
-  end
-
   defp do_apply([{:install_module, key} | rest], player, acc, meta) do
     append_distinct(rest, player, acc, meta, :modules, key)
   end
