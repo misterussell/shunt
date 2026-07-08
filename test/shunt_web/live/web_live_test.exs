@@ -326,6 +326,16 @@ defmodule ShuntWeb.WebLiveTest do
     end
   end
 
+  # TODO: describe "signal web (entities view)" — after giving the player rumors and clicking
+  #   #view-entities, assert:
+  #   - the web renders: has_element?(view, "#entity-web") and node elements
+  #     "#web-node-<tag>" exist for held tags
+  #   - clicking a node ("#web-node-<tag>" |> render_click()) selects that entity: the
+  #     #entity-detail panel populates (its held-rumor list / case cards), same outcome as a chip
+  #   - threads carry a data-status attribute (assert a [data-status] element inside #entity-web)
+  #   - the chip rail (#entity-rail) still renders as the fallback alongside the web
+  #   Test outcomes via element/2 + has_element?/2, not raw HTML or content counts.
+
   defp give_player_rumors(player, rumor_ids) do
     Shunt.Players.dispatch(player.id, fn _p ->
       {:ok, Enum.map(rumor_ids, &{:rumor, &1}), %{}}

@@ -2884,6 +2884,15 @@
   gap: 8px;
 }
 
+/* TODO: signal-web styles for the SVG node-link entities visual (ShuntWeb.Components.SignalWeb,
+   #entity-web / .entity-web). Use the shared token palette (--cyan/--amber/--green/--muted/
+   --border-c) and color-mix glow like .case-card. Color threads by [data-status]
+   (crackable/lead/forming/solved/unaffiliated, matching the case status accents); give nodes
+   --active/--dim states for the selected-neighborhood highlight; crackable threads get a subtle
+   dash-flow/pulse in the signal-flicker spirit; node hover micro-interaction. Rework
+   .entities-view below from rail+detail into web-canvas + chip-fallback + detail. Gate ALL motion
+   behind @media (prefers-reduced-motion: reduce), alongside the existing block at the bottom. */
+
 /* Entities — the browse-by-tag axis: a facet rail plus a detail column. */
 .entities-view {
   display: grid;

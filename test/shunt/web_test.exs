@@ -220,6 +220,18 @@ defmodule Shunt.WebTest do
     end
   end
 
+  # TODO: describe "entity_graph/1 (signal web)" — cover, driving a player's held rumors:
+  #   - nodes: one per distinct held tag, weight = count of held rumors touching the tag
+  #   - edges: one per co-occurring tag-pair, weight = held rumors carrying both, de-duped by
+  #     sorted pair; edge status = best case status among cases producing the pair
+  #     (crackable/lead/forming/solved/:unaffiliated)
+  #   - layout determinism: same held set -> identical nodes/edges/positions; assert structural
+  #     properties (cluster adjacency, stable ordering), NOT exact float coords or content counts
+  #   - empty: no held rumors -> %{nodes: [], edges: []}
+  #   Build the player from EXISTING seeded rumor/connection content so this stays async: true.
+  #   If a case genuinely needs synthetic rumors/connections inserted into the content :ets
+  #   tables, isolate it in a separate async: false module (see the ets-sync flake note).
+
   defp location_ids(player) do
     player |> World.accessible_locations() |> Enum.map(& &1.id)
   end

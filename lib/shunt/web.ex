@@ -122,6 +122,31 @@ defmodule Shunt.Web do
     %{rumors: tagged, cases: cases}
   end
 
+  # TODO: add entity_graph/1 -> %{nodes: [...], edges: [...]}, the entity-to-entity "signal web"
+  #   derived from held rumors only (reuse held_rumors/1). This is a pure function.
+  #   Nodes: one per distinct tag, %{tag, weight, cluster, x, y} where weight = number of held
+  #     rumors carrying the tag (drives node size). cluster/x/y are filled by the layout below.
+  #   Edges: one per unordered tag-pair that co-occurs on >= 1 held rumor,
+  #     %{a, b, weight, status} where weight = number of held rumors carrying BOTH tags (drives
+  #     thread thickness) and status = the best case status among network/1 cases whose held
+  #     rumors produce that pair (crackable > lead > forming > solved, else :unaffiliated).
+  #     De-dup pairs by sorted [a, b] the way MapGraph.edges/2 de-dups exits.
+  #   Deterministic: nodes sorted by tag asc, edges by sorted-pair asc, so the same held set
+  #   always yields the same structure (assert structural props in tests, not content counts).
+
+  # TODO: add entity_web_layout/1, a private helper entity_graph/1 calls to stamp each node with
+  #   {cluster, x, y} via a deterministic clustered-radial layout (no physics, server-computed):
+  #   1. home cluster per entity = the highest-status network/1 case touching it (tie-break by
+  #      case id); entities in no held case -> the :unaffiliated cluster.
+  #   2. order clusters by status then id; within a cluster order entities by weight desc, then
+  #      tag asc (fully stable ordering).
+  #   3. sweep entities around a ring in that combined order so same-case entities land
+  #      angularly adjacent (short, bright threads) and cross-case shared entities become the
+  #      long bridge threads.
+  #   4. nudge each node's radius inward proportional to its weight (bounded so nothing
+  #      collapses) so hub entities pull toward center for depth.
+  #   Positions live in the same window space MapGraph uses. Same input -> same coordinates.
+
   defp held_rumors(player) do
     Enum.flat_map(player.rumors, fn id ->
       case Rumor.fetch(id) do
