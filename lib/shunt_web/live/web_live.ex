@@ -155,13 +155,13 @@ defmodule ShuntWeb.WebLive do
 
           <%= if @view == :entities do %>
             <div id="entities-view" class="entities-view">
-              <SignalWeb.signal_web graph={@entity_graph} selected_entity={@selected_entity} />
+              <SignalWeb.signal_web graph={@entity_graph} focus={@entity_focus} />
               <div id="entity-rail" class="entity-rail">
                 <button
                   :for={tag <- @entities}
                   id={"entity-#{tag}"}
                   type="button"
-                  class={["entity-chip", @selected_entity == tag && "entity-chip--on"]}
+                  class={["entity-chip", @entity_focus == tag && "entity-chip--on"]}
                   phx-click="select_entity"
                   phx-value-entity={tag}
                 >
@@ -169,18 +169,14 @@ defmodule ShuntWeb.WebLive do
                 </button>
               </div>
               <div id="entity-detail" class="entity-detail">
-                <%= if @selected_entity do %>
-                  <ul :if={@entity_rumors != []} class="entity-rumors">
-                    <li :for={rumor <- @entity_rumors} class="entity-rumor">{rumor.title}</li>
-                  </ul>
-                  <.case_card
-                    :for={entry <- @entity_cases}
-                    entry={entry}
-                    event_open?={not is_nil(@active_event_id)}
-                  />
-                <% else %>
-                  <p class="entity-empty">SELECT AN ENTITY TO TRACE ITS NETWORK</p>
-                <% end %>
+                <ul :if={@entity_rumors != []} class="entity-rumors">
+                  <li :for={rumor <- @entity_rumors} class="entity-rumor">{rumor.title}</li>
+                </ul>
+                <.case_card
+                  :for={entry <- @entity_cases}
+                  entry={entry}
+                  event_open?={not is_nil(@active_event_id)}
+                />
               </div>
             </div>
           <% else %>
@@ -252,9 +248,11 @@ defmodule ShuntWeb.WebLive do
   # and (when an entity is selected) that entity's held rumors and the cases it touches.
   defp view_assigns(socket) do
     player = socket.assigns.player
+    graph = Web.entity_graph(player)
+    focus = resolve_focus(graph, socket.assigns.selected_entity)
 
     {entity_rumors, entity_cases} =
-      case socket.assigns.selected_entity do
+      case focus do
         nil ->
           {[], []}
 
@@ -266,9 +264,18 @@ defmodule ShuntWeb.WebLive do
     socket
     |> assign(:network, player |> Web.network() |> Enum.map(&enrich/1))
     |> assign(:entities, Web.entities(player))
-    |> assign(:entity_graph, Web.entity_graph(player))
+    |> assign(:entity_graph, graph)
+    |> assign(:entity_focus, focus)
     |> assign(:entity_rumors, entity_rumors)
     |> assign(:entity_cases, entity_cases)
+  end
+
+  # Center the web on the player's selection while it's still a live entity, otherwise on the
+  # highest-signal one so the view is never empty-handed.
+  defp resolve_focus(graph, selected) do
+    if selected && Enum.any?(graph.nodes, &(&1.tag == selected)),
+      do: selected,
+      else: Web.default_focus(graph)
   end
 
   # Decorates a network entry with the display data the case card needs: the held rumors as structs

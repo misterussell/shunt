@@ -124,51 +124,38 @@ defmodule Shunt.Web do
 
   @doc """
   The entity-to-entity "signal web": `%{nodes: [...], edges: [...]}` derived purely from the rumors
-  the player holds — the hidden social/political web weaves itself as intel is gathered.
+  the player holds — the hidden social/political web weaves itself as intel is gathered. The view
+  renders one focal entity's neighborhood at a time (see `default_focus/1`), so this stays a plain
+  structure with no layout baked in.
 
-    node  %{tag, weight, cluster, x, y}
-      weight  = number of held rumors carrying the tag (drives node size)
-      cluster = the highest-status network/1 case touching the tag, or `:unaffiliated`
-      x, y    = a deterministic clustered-radial position in a normalized unit circle
-
-    edge  %{a, b, weight, status}   (a < b, one per unordered tag-pair)
-      weight = number of held rumors carrying BOTH tags (drives thread thickness)
-      status = the best status among cases whose held rumors produce the pair
-               (crackable > lead > forming > solved), or `:unaffiliated`
-
-  Same held set always yields the same structure and coordinates.
+    node  %{tag, weight}          weight = number of held rumors carrying the tag
+    edge  %{a, b, weight, status} a < b; weight = held rumors carrying both tags; status = the best
+          status among cases whose held rumors produce the pair (crackable > lead > forming >
+          solved), or `:unaffiliated`
   """
   def entity_graph(player) do
     case held_rumors(player) do
       [] -> %{nodes: [], edges: []}
-      held -> build_graph(player, held)
+      held -> %{nodes: nodes(held), edges: edges(held, rumor_status(network(player)))}
     end
   end
 
-  defp build_graph(player, held) do
-    net = network(player)
-    held_by_id = Map.new(held, &{&1.id, &1})
-    case_status = Map.new(net, fn %{connection: conn, status: status} -> {conn.id, status} end)
+  @doc """
+  The default focal entity for the web: the highest-signal tag (carried by the most held rumors),
+  ties broken alphabetically. `nil` when the graph is empty.
+  """
+  def default_focus(%{nodes: []}), do: nil
 
-    %{
-      nodes: layout(node_weights(held), node_clusters(net, held_by_id), case_status),
-      edges: edges(held, rumor_status(net))
-    }
-  end
+  def default_focus(%{nodes: nodes}),
+    do: nodes |> Enum.min_by(&{-&1.weight, &1.tag}) |> Map.fetch!(:tag)
 
-  # tag -> number of held rumors carrying it.
-  defp node_weights(held), do: held |> Enum.flat_map(& &1.tags) |> Enum.frequencies()
-
-  # tag -> the case id of the highest-status held case touching it (best status, then lowest id).
-  defp node_clusters(net, held_by_id) do
-    net
-    |> Enum.flat_map(fn %{connection: conn, status: status} ->
-      for rid <- conn.rumors, rumor = held_by_id[rid], rumor != nil, tag <- rumor.tags do
-        {tag, {Map.fetch!(@status_order, status), conn.id}}
-      end
-    end)
-    |> Enum.group_by(fn {tag, _} -> tag end, fn {_, ranked} -> ranked end)
-    |> Map.new(fn {tag, ranked} -> {tag, elem(Enum.min(ranked), 1)} end)
+  # One node per distinct held tag, weighted by how many held rumors carry it.
+  defp nodes(held) do
+    held
+    |> Enum.flat_map(& &1.tags)
+    |> Enum.frequencies()
+    |> Enum.map(fn {tag, weight} -> %{tag: tag, weight: weight} end)
+    |> Enum.sort_by(& &1.tag)
   end
 
   # rumor id -> the best status among held cases containing it.
@@ -205,46 +192,6 @@ defmodule Shunt.Web do
   defp best_status(a, b), do: if(status_rank(a) <= status_rank(b), do: a, else: b)
   defp status_rank(:unaffiliated), do: map_size(@status_order)
   defp status_rank(status), do: Map.fetch!(@status_order, status)
-
-  # Deterministic clustered-radial layout: entities swept around a ring in (cluster, weight, tag)
-  # order so same-case entities land adjacent (short, bright threads) and shared entities bridge
-  # across; hubs are nudged inward for depth. Coordinates live in a normalized unit circle — the
-  # renderer scales them to its viewport.
-  defp layout(weights, clusters, case_status) do
-    weights
-    |> Enum.map(fn {tag, weight} ->
-      %{tag: tag, weight: weight, cluster: Map.get(clusters, tag, :unaffiliated)}
-    end)
-    |> Enum.sort_by(fn node ->
-      {cluster_rank(node.cluster, case_status), -node.weight, node.tag}
-    end)
-    |> place()
-  end
-
-  defp place([]), do: []
-
-  defp place(nodes) do
-    count = length(nodes)
-    max_weight = nodes |> Enum.map(& &1.weight) |> Enum.max()
-
-    nodes
-    |> Enum.with_index()
-    |> Enum.map(fn {node, i} ->
-      theta = 2 * :math.pi() * i / count
-      radius = radius_for(node.weight, max_weight)
-      Map.merge(node, %{x: radius * :math.cos(theta), y: radius * :math.sin(theta)})
-    end)
-  end
-
-  # Clusters order by status (best first), then id; :unaffiliated always trails.
-  defp cluster_rank(:unaffiliated, _case_status), do: {map_size(@status_order), ""}
-
-  defp cluster_rank(case_id, case_status),
-    do: {Map.fetch!(@status_order, Map.fetch!(case_status, case_id)), case_id}
-
-  # Heavier (hub) entities pull toward the center; the lightest ride the rim.
-  defp radius_for(_weight, max_weight) when max_weight <= 1, do: 1.0
-  defp radius_for(weight, max_weight), do: 1.0 - 0.45 * (weight - 1) / (max_weight - 1)
 
   defp held_rumors(player) do
     Enum.flat_map(player.rumors, fn id ->

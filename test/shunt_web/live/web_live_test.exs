@@ -312,7 +312,7 @@ defmodule ShuntWeb.WebLiveTest do
       assert has_element?(view, "#entity-detail #case-test_conn")
     end
 
-    test "the entity detail starts with a prompt before any entity is chosen", %{
+    test "the entity detail defaults to the top-signal entity before any click", %{
       conn: conn,
       player: player
     } do
@@ -322,62 +322,84 @@ defmodule ShuntWeb.WebLiveTest do
 
       view |> element("#view-entities") |> render_click()
 
-      assert has_element?(view, "#entity-detail .entity-empty")
+      # juno is the only entity, so the web auto-focuses it and the detail shows its intel.
+      assert has_element?(view, "#entity-detail", "Intel A")
+      assert has_element?(view, "#entity-detail #case-test_conn")
     end
   end
 
   describe "signal web (entities view)" do
     setup do
-      # A multi-tag rumor so the web has co-occurring tags to thread together.
-      web_rumor = %Rumor{
-        id: "web_juno_corp",
-        title: "Juno & Corp",
-        description: "Two threads.",
-        source: "npc",
-        tags: ["juno", "corp"]
-      }
+      # A two-hop chain: alpha–beta (web_ab) and beta–gamma (web_bc). alpha and gamma share no
+      # rumor, so the focal neighborhood is provably local — the web never draws the whole graph.
+      rumors = [
+        %Rumor{
+          id: "web_ab",
+          title: "AB",
+          description: "…",
+          source: "npc",
+          tags: ["alpha", "beta"]
+        },
+        %Rumor{
+          id: "web_bc",
+          title: "BC",
+          description: "…",
+          source: "npc",
+          tags: ["beta", "gamma"]
+        }
+      ]
 
-      :ets.insert(:rumors, [{web_rumor.id, web_rumor}])
-      on_exit(fn -> :ets.delete(:rumors, web_rumor.id) end)
+      :ets.insert(:rumors, Enum.map(rumors, &{&1.id, &1}))
+      on_exit(fn -> Enum.each(rumors, &:ets.delete(:rumors, &1.id)) end)
       :ok
     end
 
-    test "renders the web with a node per held tag, alongside the chip-rail fallback", %{
-      conn: conn,
-      player: player
-    } do
-      give_player_rumors(player, ["test_rumor_a", "web_juno_corp"])
+    test "centers on the top-signal entity and shows its neighbors, with the chip-rail fallback",
+         %{conn: conn, player: player} do
+      give_player_rumors(player, ["web_ab", "web_bc"])
 
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
       view |> element("#view-entities") |> render_click()
 
+      # beta is the hub (weight 2) -> default focus; alpha and gamma are its neighbors.
       assert has_element?(view, "#entity-web")
-      assert has_element?(view, "#web-node-juno")
-      assert has_element?(view, "#web-node-corp")
-      assert has_element?(view, "#entity-rail #entity-juno")
+      assert has_element?(view, "#web-node-beta")
+      assert has_element?(view, "#web-node-alpha")
+      assert has_element?(view, "#web-node-gamma")
+      assert has_element?(view, "#entity-rail #entity-beta")
+    end
+
+    test "draws only the focal entity's neighborhood", %{conn: conn, player: player} do
+      give_player_rumors(player, ["web_ab", "web_bc"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+      view |> element("#view-entities") |> render_click()
+      view |> element("#web-node-alpha") |> render_click()
+
+      # Focused on alpha: beta is a neighbor; gamma (two hops away) is not drawn.
+      assert has_element?(view, "#web-node-beta")
+      refute has_element?(view, "#web-node-gamma")
+    end
+
+    test "clicking a node re-centers the web on it", %{conn: conn, player: player} do
+      give_player_rumors(player, ["web_ab", "web_bc"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+      view |> element("#view-entities") |> render_click()
+      view |> element("#web-node-alpha") |> render_click()
+      refute has_element?(view, "#web-node-gamma")
+
+      view |> element("#web-node-beta") |> render_click()
+      assert has_element?(view, "#web-node-gamma")
     end
 
     test "threads carry a data-status attribute", %{conn: conn, player: player} do
-      give_player_rumors(player, ["web_juno_corp"])
+      give_player_rumors(player, ["web_ab"])
 
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
       view |> element("#view-entities") |> render_click()
 
       assert has_element?(view, "#entity-web [data-status]")
-    end
-
-    test "clicking a node selects that entity, same as clicking its chip", %{
-      conn: conn,
-      player: player
-    } do
-      give_player_rumors(player, ["test_rumor_a", "web_juno_corp"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-      view |> element("#view-entities") |> render_click()
-      view |> element("#web-node-juno") |> render_click()
-
-      assert has_element?(view, "#entity-detail", "Intel A")
-      assert has_element?(view, "#entity-detail #case-test_conn")
     end
   end
 

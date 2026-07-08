@@ -201,7 +201,7 @@ defmodule Shunt.WebNetworkTest do
     end
   end
 
-  describe "entity_graph/1" do
+  describe "entity_graph/1 and default_focus/1" do
     setup do
       rumors = [
         rumor("gr_a", ["corp", "smug", "juno"]),
@@ -263,26 +263,23 @@ defmodule Shunt.WebNetworkTest do
       assert find_edge(edges, "ghost", "wire").status == :unaffiliated
     end
 
-    test "each node's cluster is the highest-status case touching it (or :unaffiliated)" do
-      %{nodes: nodes} = Web.entity_graph(player(["gr_a", "gr_b", "gr_c", "gr_orphan"]))
-      by_tag = Map.new(nodes, &{&1.tag, &1})
-
-      assert by_tag["vex"].cluster == "gcase"
-      assert by_tag["ghost"].cluster == :unaffiliated
-      # corp is in gcase (crackable) and gcase_partial (forming) — crackable wins.
-      assert by_tag["corp"].cluster == "gcase"
-    end
-
     test "no held rumors yields an empty graph" do
       assert Web.entity_graph(player([])) == %{nodes: [], edges: []}
     end
 
-    test "every node has numeric coordinates and the layout is deterministic" do
-      p = player(["gr_a", "gr_b", "gr_c", "gr_orphan"])
-      %{nodes: nodes} = graph = Web.entity_graph(p)
+    test "default_focus picks the highest-signal entity" do
+      graph = Web.entity_graph(player(["gr_a", "gr_b", "gr_c"]))
+      assert Web.default_focus(graph) == "corp"
+    end
 
-      assert Enum.all?(nodes, &(is_float(&1.x) and is_float(&1.y)))
-      assert Web.entity_graph(p) == graph
+    test "default_focus breaks weight ties alphabetically" do
+      # gr_a alone: corp, juno, smug each carried by one rumor — alphabetical wins.
+      graph = Web.entity_graph(player(["gr_a"]))
+      assert Web.default_focus(graph) == "corp"
+    end
+
+    test "default_focus of an empty graph is nil" do
+      assert Web.default_focus(Web.entity_graph(player([]))) == nil
     end
   end
 
