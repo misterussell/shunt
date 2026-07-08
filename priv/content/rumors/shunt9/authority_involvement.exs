@@ -1,8 +1,13 @@
 %Shunt.Web.Rumor{
   id: "authority_involvement",
   title: "Authority Cut",
-  description: "Someone with transit authority credentials has been signing off on cargo that should have been flagged. The paperwork is too clean to be accidental.",
+  description:
+    "Someone with transit authority credentials has been signing off on cargo that should have been flagged. The paperwork is too clean to be accidental.",
   source: "npc",
   origin: "From a transit clerk worn out countersigning cargo nobody inspected.",
-  tags: ["corporate", "transit", "authority"]
+  tags: ["corporate", "transit", "authority"],
+  entities: [
+    {:location, "shunt9_freight_tunnel"},
+    {:ice, "shunt9_salvage_grid"}
+  ]
 }

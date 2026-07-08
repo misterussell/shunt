@@ -155,133 +155,108 @@ defmodule Shunt.WebNetworkTest do
     end
   end
 
-  describe "entities/1 and entity_view/2" do
+  describe "entity_graph, entity_view, and default_focus (real entities)" do
     setup do
-      rumors = [
-        rumor("r_juno", ["juno", "corporate"]),
-        rumor("r_ship", ["smuggling", "juno"]),
-        rumor("r_debt", ["debt"])
+      # Real content the rumors' entity refs resolve against; npc_ghost is deliberately absent so
+      # a dangling ref can be exercised.
+      npcs = [%{id: "npc_juno", name: "Juno"}]
+
+      locations = [
+        %{id: "loc_tunnel", name: "Freight Tunnel"},
+        %{id: "loc_bazaar", name: "Bazaar"}
       ]
 
-      ent_case = conn("ent_case", ["r_juno", "r_ship", "r_debt"], 2)
+      ice = [%{id: "ice_grid", name: "Salvage Grid"}]
 
+      rumors = [
+        rumor("er_a", [{:npc, "npc_juno"}, {:location, "loc_tunnel"}]),
+        rumor("er_b", [{:location, "loc_tunnel"}, {:ice, "ice_grid"}]),
+        rumor("er_c", [{:npc, "npc_juno"}, {:location, "loc_bazaar"}, {:npc, "npc_ghost"}])
+      ]
+
+      ecase = conn("ecase", ["er_a", "er_b"], 1)
+
+      :ets.insert(:world_npcs, Enum.map(npcs, &{&1.id, &1}))
+      :ets.insert(:locations, Enum.map(locations, &{&1.id, &1}))
+      :ets.insert(:ice_nodes, Enum.map(ice, &{&1.id, &1}))
       :ets.insert(:rumors, Enum.map(rumors, &{&1.id, &1}))
-      :ets.insert(:rumor_connections, {ent_case.id, ent_case})
+      :ets.insert(:rumor_connections, {ecase.id, ecase})
 
       on_exit(fn ->
+        Enum.each(npcs, &:ets.delete(:world_npcs, &1.id))
+        Enum.each(locations, &:ets.delete(:locations, &1.id))
+        Enum.each(ice, &:ets.delete(:ice_nodes, &1.id))
         Enum.each(rumors, &:ets.delete(:rumors, &1.id))
-        :ets.delete(:rumor_connections, ent_case.id)
+        :ets.delete(:rumor_connections, ecase.id)
       end)
 
       :ok
     end
 
-    test "entities lists the distinct tags across the player's held rumors, sorted" do
-      assert Web.entities(player(["r_juno", "r_ship"])) == ["corporate", "juno", "smuggling"]
+    defp keyed(nodes), do: Map.new(nodes, &{&1.key, &1})
+    defp epair(edge), do: Enum.sort([edge.a, edge.b])
+    defp efind(edges, a, b), do: Enum.find(edges, &(epair(&1) == Enum.sort([a, b])))
+
+    test "nodes resolve to real entities with kind, name, and weight" do
+      nodes = Web.entity_graph(player(["er_a", "er_b"])).nodes |> keyed()
+
+      assert %{kind: :location, name: "Freight Tunnel", weight: 2} = nodes["location-loc_tunnel"]
+      assert %{kind: :npc, name: "Juno", weight: 1} = nodes["npc-npc_juno"]
+      assert %{kind: :ice, name: "Salvage Grid"} = nodes["ice-ice_grid"]
     end
 
-    test "entities ignores tags from rumors the player does not hold" do
-      refute "debt" in Web.entities(player(["r_juno", "r_ship"]))
+    test "a dangling entity ref is dropped, not surfaced" do
+      keys = Web.entity_graph(player(["er_c"])).nodes |> Enum.map(& &1.key)
+
+      refute "npc-npc_ghost" in keys
+      assert "npc-npc_juno" in keys
+      assert "location-loc_bazaar" in keys
     end
 
-    test "entity_view returns the held rumors carrying the tag, in held order" do
-      view = Web.entity_view(player(["r_juno", "r_ship"]), "juno")
-      assert Enum.map(view.rumors, & &1.id) == ["r_juno", "r_ship"]
+    test "edges connect entities co-named in a held rumor, colored by case status" do
+      edges = Web.entity_graph(player(["er_a", "er_b"])).edges
+
+      assert efind(edges, "npc-npc_juno", "location-loc_tunnel").status == :crackable
+      assert efind(edges, "ice-ice_grid", "location-loc_tunnel")
+      # Juno and the grid are never named in the same rumor.
+      refute efind(edges, "npc-npc_juno", "ice-ice_grid")
     end
 
-    test "entity_view returns the cases those rumors touch" do
-      view = Web.entity_view(player(["r_juno", "r_ship"]), "juno")
-      assert [%{status: :lead, connection: %{id: "ent_case"}}] = view.cases
+    test "edge status follows the case: a partial holding reads as a lead" do
+      edges = Web.entity_graph(player(["er_a"])).edges
+      assert efind(edges, "npc-npc_juno", "location-loc_tunnel").status == :lead
     end
 
-    test "entity_view of a tag with no held rumor is empty" do
-      view = Web.entity_view(player(["r_juno"]), "debt")
-      assert view.rumors == []
-      assert view.cases == []
-    end
-  end
-
-  describe "entity_graph/1 and default_focus/1" do
-    setup do
-      rumors = [
-        rumor("gr_a", ["corp", "smug", "juno"]),
-        rumor("gr_b", ["corp", "smug", "freight"]),
-        rumor("gr_c", ["corp", "vex"]),
-        rumor("gr_orphan", ["ghost", "wire"])
-      ]
-
-      connections = [
-        conn("gcase", ["gr_a", "gr_b", "gr_c"], 2),
-        # Shares gr_a but stays forming (gp_b/gp_c never held) — exercises "best status wins".
-        conn("gcase_partial", ["gr_a", "gp_b", "gp_c"], 2)
-      ]
-
-      :ets.insert(:rumors, Enum.map(rumors, &{&1.id, &1}))
-      Enum.each(connections, &:ets.insert(:rumor_connections, {&1.id, &1}))
-
-      on_exit(fn ->
-        Enum.each(rumors, &:ets.delete(:rumors, &1.id))
-        Enum.each(connections, &:ets.delete(:rumor_connections, &1.id))
-      end)
-
-      :ok
+    test "a co-occurrence in no case is :unaffiliated" do
+      edges = Web.entity_graph(player(["er_c"])).edges
+      assert efind(edges, "npc-npc_juno", "location-loc_bazaar").status == :unaffiliated
     end
 
-    defp pair(edge), do: Enum.sort([edge.a, edge.b])
-    defp find_edge(edges, a, b), do: Enum.find(edges, &(pair(&1) == Enum.sort([a, b])))
-
-    test "nodes: one per distinct held tag, weight = held rumors touching it" do
-      %{nodes: nodes} = Web.entity_graph(player(["gr_a", "gr_b", "gr_c"]))
-      weights = Map.new(nodes, &{&1.tag, &1.weight})
-
-      assert weights["corp"] == 3
-      assert weights["smug"] == 2
-      assert weights["juno"] == 1
-      assert weights["vex"] == 1
-    end
-
-    test "edges: one deduped edge per co-occurring pair, weight = held rumors carrying both" do
-      %{edges: edges} = Web.entity_graph(player(["gr_a", "gr_b", "gr_c"]))
-
-      assert [%{weight: 2}] = Enum.filter(edges, &(pair(&1) == ["corp", "smug"]))
-      assert find_edge(edges, "corp", "vex").weight == 1
-    end
-
-    test "edge status is the producing case's status, crackable when fully held" do
-      %{edges: edges} = Web.entity_graph(player(["gr_a", "gr_b", "gr_c"]))
-      assert Enum.all?(edges, &(&1.status == :crackable))
-    end
-
-    test "edge status reflects a lead-level case, and the best status wins" do
-      # gcase holds 2/3 -> :lead; gcase_partial holds only gr_a -> :forming. corp-smug touches both.
-      %{edges: edges} = Web.entity_graph(player(["gr_a", "gr_b"]))
-      assert find_edge(edges, "corp", "smug").status == :lead
-    end
-
-    test "a co-occurrence in no held case is :unaffiliated" do
-      %{edges: edges} = Web.entity_graph(player(["gr_orphan"]))
-      assert find_edge(edges, "ghost", "wire").status == :unaffiliated
-    end
-
-    test "no held rumors yields an empty graph" do
-      assert Web.entity_graph(player([])) == %{nodes: [], edges: []}
-    end
-
-    test "default_focus picks the highest-signal entity" do
-      graph = Web.entity_graph(player(["gr_a", "gr_b", "gr_c"]))
-      assert Web.default_focus(graph) == "corp"
-    end
-
-    test "default_focus breaks weight ties alphabetically" do
-      # gr_a alone: corp, juno, smug each carried by one rumor — alphabetical wins.
-      graph = Web.entity_graph(player(["gr_a"]))
-      assert Web.default_focus(graph) == "corp"
+    test "default_focus is the highest-signal entity key" do
+      graph = Web.entity_graph(player(["er_a", "er_b"]))
+      assert Web.default_focus(graph) == "location-loc_tunnel"
     end
 
     test "default_focus of an empty graph is nil" do
       assert Web.default_focus(Web.entity_graph(player([]))) == nil
     end
+
+    test "entities lists the distinct held entities as descriptors, sorted by name" do
+      names = player(["er_a", "er_b"]) |> Web.entities() |> Enum.map(& &1.name)
+      assert names == ["Freight Tunnel", "Juno", "Salvage Grid"]
+    end
+
+    test "entity_view returns the held rumors naming the entity and the cases they touch" do
+      view = Web.entity_view(player(["er_a", "er_b"]), "npc-npc_juno")
+
+      assert Enum.map(view.rumors, & &1.id) == ["er_a"]
+      assert [%{connection: %{id: "ecase"}}] = view.cases
+    end
+
+    test "no held rumors yields an empty graph" do
+      assert Web.entity_graph(player([])) == %{nodes: [], edges: []}
+    end
   end
 
-  defp rumor(id, tags), do: %Rumor{id: id, title: id, description: "…", tags: tags}
+  defp rumor(id, entities), do: %Rumor{id: id, title: id, description: "…", entities: entities}
 end

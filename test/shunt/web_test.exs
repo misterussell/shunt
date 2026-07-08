@@ -220,6 +220,18 @@ defmodule Shunt.WebTest do
     end
   end
 
+  describe "rumor entity references" do
+    test "every authored rumor entity ref resolves to real content" do
+      dangling =
+        for rumor <- Shunt.Web.Rumor.all(),
+            ref <- rumor.entities,
+            is_nil(Shunt.Web.Entity.resolve(ref)),
+            do: {rumor.id, ref}
+
+      assert dangling == [], "dangling rumor entity refs: #{inspect(dangling)}"
+    end
+  end
+
   defp location_ids(player) do
     player |> World.accessible_locations() |> Enum.map(& &1.id)
   end

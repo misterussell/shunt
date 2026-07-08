@@ -2,6 +2,7 @@ defmodule Shunt.Web do
   @moduledoc false
 
   alias Shunt.Events
+  alias Shunt.Web.Entity
   alias Shunt.Web.Rumor
   alias Shunt.Web.RumorConnection
 
@@ -93,45 +94,50 @@ defmodule Shunt.Web do
   end
 
   @doc """
-  The browse-by-entity axis: the sorted, distinct tags across the rumors the player actually holds.
-  Grounds the network in intel collected, not in cases they haven't touched.
+  The browse-by-entity axis: the distinct real entities (NPCs, locations, ICE) named across the
+  rumors the player holds, as `%{key, kind, id, name}` descriptors sorted by name. Grounds the
+  network in intel collected, not in cases they haven't touched.
   """
   def entities(player) do
     player
     |> held_rumors()
-    |> Enum.flat_map(& &1.tags)
-    |> Enum.uniq()
-    |> Enum.sort()
+    |> Enum.flat_map(&rumor_entities/1)
+    |> Enum.uniq_by(& &1.key)
+    |> Enum.sort_by(&{&1.name, &1.key})
   end
 
   @doc """
-  Everything the network shows for one entity (tag): the held rumors carrying it (in held order),
-  and the `network/1` cases those rumors touch. `%{rumors: [...], cases: [...]}`.
+  Everything the network shows for one entity (by `key`): the held rumors that name it (in held
+  order), and the `network/1` cases those rumors touch. `%{rumors: [...], cases: [...]}`.
   """
-  def entity_view(player, tag) do
-    tagged = player |> held_rumors() |> Enum.filter(&(tag in &1.tags))
-    tagged_ids = MapSet.new(tagged, & &1.id)
+  def entity_view(player, key) do
+    named =
+      player
+      |> held_rumors()
+      |> Enum.filter(&(key in Enum.map(rumor_entities(&1), fn e -> e.key end)))
+
+    named_ids = MapSet.new(named, & &1.id)
 
     cases =
       player
       |> network()
       |> Enum.filter(fn %{connection: conn} ->
-        Enum.any?(conn.rumors, &MapSet.member?(tagged_ids, &1))
+        Enum.any?(conn.rumors, &MapSet.member?(named_ids, &1))
       end)
 
-    %{rumors: tagged, cases: cases}
+    %{rumors: named, cases: cases}
   end
 
   @doc """
-  The entity-to-entity "signal web": `%{nodes: [...], edges: [...]}` derived purely from the rumors
-  the player holds — the hidden social/political web weaves itself as intel is gathered. The view
-  renders one focal entity's neighborhood at a time (see `default_focus/1`), so this stays a plain
-  structure with no layout baked in.
+  The entity-to-entity "signal web": `%{nodes: [...], edges: [...]}` of the real game objects the
+  player's held rumors name — the hidden social/political web weaves itself as intel is gathered.
+  The view renders one focal entity's neighborhood at a time (see `default_focus/1`), so this stays
+  a plain structure with no layout baked in.
 
-    node  %{tag, weight}          weight = number of held rumors carrying the tag
-    edge  %{a, b, weight, status} a < b; weight = held rumors carrying both tags; status = the best
-          status among cases whose held rumors produce the pair (crackable > lead > forming >
-          solved), or `:unaffiliated`
+    node  %{key, kind, id, name, weight}  weight = number of held rumors naming the entity
+    edge  %{a, b, weight, status}  a/b are node keys, a < b; weight = held rumors naming both;
+          status = the best status among cases whose held rumors produce the pair
+          (crackable > lead > forming > solved), or `:unaffiliated`
   """
   def entity_graph(player) do
     case held_rumors(player) do
@@ -141,21 +147,32 @@ defmodule Shunt.Web do
   end
 
   @doc """
-  The default focal entity for the web: the highest-signal tag (carried by the most held rumors),
-  ties broken alphabetically. `nil` when the graph is empty.
+  The default focal entity for the web: the highest-signal entity (named by the most held rumors),
+  ties broken by key. Returns the entity `key`, or `nil` when the graph is empty.
   """
   def default_focus(%{nodes: []}), do: nil
 
   def default_focus(%{nodes: nodes}),
-    do: nodes |> Enum.min_by(&{-&1.weight, &1.tag}) |> Map.fetch!(:tag)
+    do: nodes |> Enum.min_by(&{-&1.weight, &1.key}) |> Map.fetch!(:key)
 
-  # One node per distinct held tag, weighted by how many held rumors carry it.
+  # The real entities a rumor names, resolved to descriptors (dangling refs dropped), unique per
+  # rumor so naming an entity twice doesn't double-count.
+  defp rumor_entities(rumor) do
+    rumor.entities
+    |> Enum.map(&Entity.resolve/1)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq_by(& &1.key)
+  end
+
+  # One node per distinct named entity, weighted by how many held rumors name it.
   defp nodes(held) do
     held
-    |> Enum.flat_map(& &1.tags)
-    |> Enum.frequencies()
-    |> Enum.map(fn {tag, weight} -> %{tag: tag, weight: weight} end)
-    |> Enum.sort_by(& &1.tag)
+    |> Enum.flat_map(&rumor_entities/1)
+    |> Enum.group_by(& &1.key)
+    |> Enum.map(fn {_key, [descriptor | _] = named} ->
+      Map.put(descriptor, :weight, length(named))
+    end)
+    |> Enum.sort_by(& &1.key)
   end
 
   # rumor id -> the best status among held cases containing it.
@@ -167,13 +184,14 @@ defmodule Shunt.Web do
     end)
   end
 
-  # One edge per co-occurring tag-pair: weight = how many held rumors carry both, status = the best
-  # status among the rumors that produce it. Pairs are de-duped by sorted [a, b].
+  # One edge per co-named entity pair: weight = how many held rumors name both, status = the best
+  # status among the rumors that produce it. Pairs are de-duped by sorted [a, b] (entity keys).
   defp edges(held, rumor_statuses) do
     held
     |> Enum.flat_map(fn rumor ->
       status = Map.get(rumor_statuses, rumor.id, :unaffiliated)
-      Enum.map(tag_pairs(rumor.tags), fn {a, b} -> {a, b, status} end)
+      keys = Enum.map(rumor_entities(rumor), & &1.key)
+      Enum.map(key_pairs(keys), fn {a, b} -> {a, b, status} end)
     end)
     |> Enum.group_by(fn {a, b, _} -> {a, b} end)
     |> Enum.map(fn {{a, b}, occurrences} ->
@@ -183,8 +201,8 @@ defmodule Shunt.Web do
     |> Enum.sort_by(&{&1.a, &1.b})
   end
 
-  defp tag_pairs(tags) do
-    sorted = tags |> Enum.uniq() |> Enum.sort()
+  defp key_pairs(keys) do
+    sorted = keys |> Enum.uniq() |> Enum.sort()
 
     for {a, i} <- Enum.with_index(sorted), b <- Enum.drop(sorted, i + 1), do: {a, b}
   end

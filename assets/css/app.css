@@ -2946,15 +2946,22 @@
   opacity: 0.22;
 }
 
-.entity-web-node-hit {
+/* The visible node marks — silhouette carries the kind (NPC circle / location square / ICE
+   diamond), a neutral readout fill so only the focus and thread colors carry signal. */
+.entity-web-mark {
   fill: color-mix(in srgb, var(--cyan) 12%, #0a0e0d);
   stroke: var(--muted);
   stroke-width: 1.5;
-  cursor: pointer;
   transition: stroke 160ms ease, fill 160ms ease;
 }
 
-.entity-web-node:hover .entity-web-node-hit {
+/* A transparent, oversized click target over each mark. */
+.entity-web-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.entity-web-node:hover .entity-web-mark {
   stroke: var(--cyan);
 }
 
@@ -2967,7 +2974,7 @@
 }
 
 /* The focal entity sits at the center, lit — the thread you're currently pulling. */
-.entity-web-node--focus .entity-web-node-hit {
+.entity-web-node--focus .entity-web-mark {
   fill: var(--cyan);
   stroke: var(--cyan);
   filter: drop-shadow(0 0 7px color-mix(in srgb, var(--cyan) 70%, transparent));

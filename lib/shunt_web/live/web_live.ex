@@ -10,9 +10,9 @@ defmodule ShuntWeb.WebLive do
 
   @dev_routes Application.compile_env(:shunt, :dev_routes)
 
-  # Dev-only: a shunt9 rumor set seeded by [ SEED RUMORS ] so the network can be exercised without
-  # replaying the events that normally award these rumors.
-  @dev_seed_rumors ~w(juno_supplier missing_shipments vex_debts authority_involvement scrubbed_watchlist proxy_pipeline off_hours_passage)
+  # Dev-only: the shunt9 rumor set seeded by [ SEED RUMORS ] so the network — and its entity web —
+  # can be exercised without replaying the events that normally award these rumors.
+  @dev_seed_rumors ~w(juno_supplier missing_shipments vex_debts authority_involvement freight_tunnel_shipments vendor_squeeze protection_chits cook_supply_short)
 
   def mount(_params, _session, socket) do
     player_id = Players.get_player!().id
@@ -158,14 +158,14 @@ defmodule ShuntWeb.WebLive do
               <SignalWeb.signal_web graph={@entity_graph} focus={@entity_focus} />
               <div id="entity-rail" class="entity-rail">
                 <button
-                  :for={tag <- @entities}
-                  id={"entity-#{tag}"}
+                  :for={entity <- @entities}
+                  id={"entity-#{entity.key}"}
                   type="button"
-                  class={["entity-chip", @entity_focus == tag && "entity-chip--on"]}
+                  class={["entity-chip", @entity_focus == entity.key && "entity-chip--on"]}
                   phx-click="select_entity"
-                  phx-value-entity={tag}
+                  phx-value-entity={entity.key}
                 >
-                  {tag}
+                  {entity.name}
                 </button>
               </div>
               <div id="entity-detail" class="entity-detail">
@@ -273,7 +273,7 @@ defmodule ShuntWeb.WebLive do
   # Center the web on the player's selection while it's still a live entity, otherwise on the
   # highest-signal one so the view is never empty-handed.
   defp resolve_focus(graph, selected) do
-    if selected && Enum.any?(graph.nodes, &(&1.tag == selected)),
+    if selected && Enum.any?(graph.nodes, &(&1.key == selected)),
       do: selected,
       else: Web.default_focus(graph)
   end

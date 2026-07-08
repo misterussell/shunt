@@ -18,7 +18,7 @@ defmodule ShuntWeb.WebLiveTest do
         description: "First.",
         source: "npc",
         origin: "Overheard in the back-rows",
-        tags: ["juno"]
+        entities: [{:npc, "tw_juno"}]
       },
       %Rumor{
         id: "test_rumor_b",
@@ -78,11 +78,16 @@ defmodule ShuntWeb.WebLiveTest do
       on_complete: []
     }
 
+    # test_rumor_a names this NPC, so the entities view/web has a real entity to render.
+    juno = %{id: "tw_juno", name: "Juno"}
+
+    :ets.insert(:world_npcs, {juno.id, juno})
     :ets.insert(:rumors, Enum.map(rumors, &{&1.id, &1}))
     :ets.insert(:rumor_connections, {conn_data.id, conn_data})
     :ets.insert(:events, [{success_event.id, success_event}, {partial_event.id, partial_event}])
 
     on_exit(fn ->
+      :ets.delete(:world_npcs, juno.id)
       Enum.each(rumors, &:ets.delete(:rumors, &1.id))
       :ets.delete(:rumor_connections, conn_data.id)
       :ets.delete(:events, success_event.id)
@@ -291,7 +296,7 @@ defmodule ShuntWeb.WebLiveTest do
       view |> element("#view-entities") |> render_click()
 
       assert has_element?(view, "#entities-view")
-      assert has_element?(view, "#entity-juno")
+      assert has_element?(view, "#entity-npc-tw_juno")
       refute has_element?(view, "#signal-network")
     end
   end
@@ -306,7 +311,7 @@ defmodule ShuntWeb.WebLiveTest do
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
 
       view |> element("#view-entities") |> render_click()
-      view |> element("#entity-juno") |> render_click()
+      view |> element("#entity-npc-tw_juno") |> render_click()
 
       assert has_element?(view, "#entity-detail", "Intel A")
       assert has_element?(view, "#entity-detail #case-test_conn")
@@ -330,43 +335,59 @@ defmodule ShuntWeb.WebLiveTest do
 
   describe "signal web (entities view)" do
     setup do
-      # A two-hop chain: alpha–beta (web_ab) and beta–gamma (web_bc). alpha and gamma share no
-      # rumor, so the focal neighborhood is provably local — the web never draws the whole graph.
+      # A two-hop chain of real entities: Pax–Dock (web_ab) and Dock–Grid (web_bc). Pax and Grid
+      # share no rumor, so the focal neighborhood is provably local — the web never draws it all.
+      npc = %{id: "tw_pax", name: "Pax"}
+      loc = %{id: "tw_dock", name: "The Dock"}
+      ice = %{id: "tw_grid", name: "The Grid"}
+
       rumors = [
         %Rumor{
           id: "web_ab",
           title: "AB",
           description: "…",
           source: "npc",
-          tags: ["alpha", "beta"]
+          entities: [{:npc, "tw_pax"}, {:location, "tw_dock"}]
         },
         %Rumor{
           id: "web_bc",
           title: "BC",
           description: "…",
           source: "npc",
-          tags: ["beta", "gamma"]
+          entities: [{:location, "tw_dock"}, {:ice, "tw_grid"}]
         }
       ]
 
+      :ets.insert(:world_npcs, {npc.id, npc})
+      :ets.insert(:locations, {loc.id, loc})
+      :ets.insert(:ice_nodes, {ice.id, ice})
       :ets.insert(:rumors, Enum.map(rumors, &{&1.id, &1}))
-      on_exit(fn -> Enum.each(rumors, &:ets.delete(:rumors, &1.id)) end)
+
+      on_exit(fn ->
+        :ets.delete(:world_npcs, npc.id)
+        :ets.delete(:locations, loc.id)
+        :ets.delete(:ice_nodes, ice.id)
+        Enum.each(rumors, &:ets.delete(:rumors, &1.id))
+      end)
+
       :ok
     end
 
-    test "centers on the top-signal entity and shows its neighbors, with the chip-rail fallback",
-         %{conn: conn, player: player} do
+    test "centers on the top-signal entity and shows its neighbors, tagged by kind", %{
+      conn: conn,
+      player: player
+    } do
       give_player_rumors(player, ["web_ab", "web_bc"])
 
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
       view |> element("#view-entities") |> render_click()
 
-      # beta is the hub (weight 2) -> default focus; alpha and gamma are its neighbors.
+      # The Dock is the hub (named by both rumors) -> default focus; Pax and Grid are neighbors.
       assert has_element?(view, "#entity-web")
-      assert has_element?(view, "#web-node-beta")
-      assert has_element?(view, "#web-node-alpha")
-      assert has_element?(view, "#web-node-gamma")
-      assert has_element?(view, "#entity-rail #entity-beta")
+      assert has_element?(view, "#web-node-location-tw_dock[data-kind='location']")
+      assert has_element?(view, "#web-node-npc-tw_pax[data-kind='npc']")
+      assert has_element?(view, "#web-node-ice-tw_grid[data-kind='ice']")
+      assert has_element?(view, "#entity-rail #entity-location-tw_dock")
     end
 
     test "draws only the focal entity's neighborhood", %{conn: conn, player: player} do
@@ -374,11 +395,11 @@ defmodule ShuntWeb.WebLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
       view |> element("#view-entities") |> render_click()
-      view |> element("#web-node-alpha") |> render_click()
+      view |> element("#web-node-npc-tw_pax") |> render_click()
 
-      # Focused on alpha: beta is a neighbor; gamma (two hops away) is not drawn.
-      assert has_element?(view, "#web-node-beta")
-      refute has_element?(view, "#web-node-gamma")
+      # Focused on Pax: the Dock is a neighbor; the Grid (two hops away) is not drawn.
+      assert has_element?(view, "#web-node-location-tw_dock")
+      refute has_element?(view, "#web-node-ice-tw_grid")
     end
 
     test "clicking a node re-centers the web on it", %{conn: conn, player: player} do
@@ -386,11 +407,11 @@ defmodule ShuntWeb.WebLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
       view |> element("#view-entities") |> render_click()
-      view |> element("#web-node-alpha") |> render_click()
-      refute has_element?(view, "#web-node-gamma")
+      view |> element("#web-node-npc-tw_pax") |> render_click()
+      refute has_element?(view, "#web-node-ice-tw_grid")
 
-      view |> element("#web-node-beta") |> render_click()
-      assert has_element?(view, "#web-node-gamma")
+      view |> element("#web-node-location-tw_dock") |> render_click()
+      assert has_element?(view, "#web-node-ice-tw_grid")
     end
 
     test "threads carry a data-status attribute", %{conn: conn, player: player} do
