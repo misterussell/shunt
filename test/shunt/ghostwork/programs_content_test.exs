@@ -29,12 +29,22 @@ defmodule Shunt.Ghostwork.ProgramsContentTest do
       assert is_binary(program.id) and program.id != ""
       assert is_binary(program.name) and program.name != ""
       assert is_binary(program.text) and program.text != ""
-      # The Windlass gear pilot added the :overload / :cloak keys; both are guaranteed a program
-      # by the "at least one program for each subroutine key" test above.
-      assert program.action in [:spoof, :decrypt, :backdoor, :overload, :cloak]
       assert is_integer(program.progress) and program.progress > 0
       assert is_integer(program.trace) and program.trace >= 0
       assert is_integer(program.on_weakness.progress) and is_integer(program.on_weakness.trace)
+    end
+  end
+
+  test "every shipped program's verb has an identity in @verb_identities" do
+    # The reading system (Shunt.Ghostwork.verb_identity/1) is single-sourced off @verb_identities,
+    # and verb_identity/1 uses Map.fetch! — an authored program whose action verb has no identity
+    # would crash the Ghostwork rail at render time. This is the notice: add the verb to
+    # @verb_identities and it goes green. verb_legend/0 is the public read of the canon verb set.
+    known = Ghostwork.verb_legend() |> Enum.map(& &1.verb) |> MapSet.new()
+
+    for program <- Programs.all() do
+      assert program.action in known,
+             "program #{program.id}: verb #{inspect(program.action)} is missing from @verb_identities"
     end
   end
 
