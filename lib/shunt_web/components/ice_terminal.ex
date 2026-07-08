@@ -95,13 +95,14 @@ defmodule ShuntWeb.Components.IceTerminal do
               phx-value-subroutine={sub.id}
             >
               <span class={["ice-subroutine-threat", "ice-subroutine-threat--#{sub.threat}"]}>
+                <% affinity = Ghostwork.threat_affinity(sub.threat) %>
                 {threat_label(sub.threat)}
                 <span
-                  :if={Ghostwork.threat_affinity(sub.threat)}
+                  :if={affinity}
                   class="ice-subroutine-affinity"
                   title="rule of thumb — the real key can differ"
                 >
-                  usually ▷{Ghostwork.threat_affinity(sub.threat)}
+                  usually ▷{affinity}
                 </span>
               </span>
               <span class="ice-subroutine-key">

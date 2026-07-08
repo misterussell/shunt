@@ -1277,10 +1277,9 @@ defmodule Shunt.GhostworkTest do
   end
 
   describe "verb_identity/1 and verb_legend/0" do
-    test "each verb has a label and a tell" do
+    test "each verb has a tell" do
       for verb <- [:spoof, :cloak, :backdoor, :decrypt, :overload] do
         id = Ghostwork.verb_identity(verb)
-        assert id.label == verb |> to_string() |> String.upcase()
         assert is_binary(id.tell) and id.tell != ""
       end
     end
@@ -1289,7 +1288,7 @@ defmodule Shunt.GhostworkTest do
       legend = Ghostwork.verb_legend()
 
       assert Enum.map(legend, & &1.verb) == [:spoof, :cloak, :backdoor, :decrypt, :overload]
-      assert Enum.all?(legend, &match?(%{verb: _, label: _, tell: _}, &1))
+      assert Enum.all?(legend, &match?(%{verb: _, tell: _}, &1))
     end
   end
 

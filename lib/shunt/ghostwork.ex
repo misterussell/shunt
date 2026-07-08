@@ -151,20 +151,26 @@ defmodule Shunt.Ghostwork do
   @verb_order [:spoof, :cloak, :backdoor, :decrypt, :overload]
 
   @verb_identities %{
-    spoof: %{label: "SPOOF", tell: "walk past the gate"},
-    cloak: %{label: "CLOAK", tell: "silence the watcher"},
-    backdoor: %{label: "BACKDOOR", tell: "slip the lock clean"},
-    decrypt: %{label: "DECRYPT", tell: "saw through the cipher"},
-    overload: %{label: "OVERLOAD", tell: "brute the hardened lock"}
+    spoof: %{tell: "walk past the gate"},
+    cloak: %{tell: "silence the watcher"},
+    backdoor: %{tell: "slip the lock clean"},
+    decrypt: %{tell: "saw through the cipher"},
+    overload: %{tell: "brute the hardened lock"}
   }
 
-  @doc "An action verb's identity: its display `label` and one-line `tell`."
+  @doc "An action verb's identity: its one-line `tell`."
   def verb_identity(verb), do: Map.fetch!(@verb_identities, verb)
 
-  @doc "Every action verb in legend order, each as %{verb:, label:, tell:} — drives the codex legend."
+  @doc "Every action verb in legend order, each as %{verb:, tell:} — drives the codex legend."
   def verb_legend do
     Enum.map(@verb_order, fn verb -> Map.put(verb_identity(verb), :verb, verb) end)
   end
+
+  # Threat → the verb it usually wants: the one source for the affinity rule (mirrors @verb_identities
+  # for verbs) so threat_affinity/1 and the codex legend can't drift apart. @threat_order fixes the
+  # legend order, exactly as @verb_order does for verbs.
+  @threat_order [:barrier, :sentry, :trap]
+  @threat_verbs %{barrier: :spoof, sentry: :cloak, trap: :backdoor}
 
   @doc """
   The SOFT rule of thumb: the verb a threat type usually wants, readable off the always-visible
@@ -172,14 +178,11 @@ defmodule Shunt.Ghostwork do
   fogged until KEYS mastery); deviations are authored "exceptions" the player learns by reading a
   family. `nil` for `:vault` (a blind gamble) and any threat without an affinity.
   """
-  def threat_affinity(:barrier), do: :spoof
-  def threat_affinity(:sentry), do: :cloak
-  def threat_affinity(:trap), do: :backdoor
-  def threat_affinity(_threat), do: nil
+  def threat_affinity(threat), do: Map.get(@threat_verbs, threat)
 
   @doc "The threats that carry an affinity, in legend order, each as %{threat:, verb:}."
   def threat_affinities do
-    for threat <- [:barrier, :sentry, :trap], do: %{threat: threat, verb: threat_affinity(threat)}
+    for threat <- @threat_order, do: %{threat: threat, verb: Map.fetch!(@threat_verbs, threat)}
   end
 
   defp coverage_for(nodes, owned, family) do
