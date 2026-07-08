@@ -177,6 +177,12 @@
   --amber: #d9913e;
   --red: #ff4d5e;
   --green: #39ff6a;
+  --route-repair: #d9913e;
+  --route-tools: #8fb0c8;
+  --route-ghostwork: #3fe0c8;
+  --route-chrome_meat: #ff4d5e;
+  --route-web: #b18cff;
+  --route-fence: #e8c24a;
   --p1: #0c1217;
   --p2: #080c10;
   --sunk: #05090c;
@@ -197,6 +203,12 @@
   --amber: #f2b873;
   --red: #ff7186;
   --green: #6dffa0;
+  --route-repair: #f2b873;
+  --route-tools: #a9c6da;
+  --route-ghostwork: #63d9ff;
+  --route-chrome_meat: #ff7186;
+  --route-web: #c4a6ff;
+  --route-fence: #f2cf63;
   --p1: #243a4d;
   --p2: #1b2c3b;
   --sunk: #0f1e2a;
@@ -915,6 +927,83 @@
   letter-spacing: 0.14em;
   color: var(--amber);
   opacity: 0.8;
+}
+
+/* Street Alchemy Routing Filter — rail chips + per-row stamps. Each route element carries a
+   .route--<key> class; --route-c pulls that route's color token so the chip and stamp rules stay
+   route-agnostic. */
+.route--repair {
+  --route-c: var(--route-repair);
+}
+.route--tools {
+  --route-c: var(--route-tools);
+}
+.route--ghostwork {
+  --route-c: var(--route-ghostwork);
+}
+.route--chrome_meat {
+  --route-c: var(--route-chrome_meat);
+}
+.route--web {
+  --route-c: var(--route-web);
+}
+.route--fence {
+  --route-c: var(--route-fence);
+}
+
+.route-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+
+.route-gel {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  background: var(--p2);
+  color: var(--route-c);
+  border: 1px solid color-mix(in srgb, var(--route-c) 45%, var(--border-c));
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    box-shadow 0.12s,
+    color 0.12s;
+}
+
+.route-gel:hover {
+  border-color: color-mix(in srgb, var(--route-c) 70%, var(--border-c));
+}
+
+.route-gel.active {
+  background: var(--route-c);
+  border-color: var(--route-c);
+  color: #06080a;
+  font-weight: 600;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--route-c) 40%, transparent);
+}
+
+.route-gel-count {
+  margin-left: 6px;
+  font-size: 9px;
+  opacity: 0.6;
+}
+
+.recipe-stamps {
+  display: flex;
+  gap: 5px;
+}
+
+.recipe-stamp {
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  color: var(--route-c);
+  border: 1px solid color-mix(in srgb, var(--route-c) 55%, transparent);
+  background: rgba(0, 0, 0, 0.25);
 }
 
 /* Chrome & Meat: Chrome Load meter + augment list */

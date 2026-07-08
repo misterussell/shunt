@@ -20,6 +20,21 @@ defmodule Shunt.Crafting.RecipeCatalogTest do
     end
   end
 
+  describe "routes" do
+    test "every recipe carries a non-empty routes list of known route keys" do
+      valid_keys = MapSet.new(Shunt.Crafting.Routes.keys())
+
+      for recipe <- RecipeCatalog.recipes() do
+        assert is_list(recipe.routes) and recipe.routes != [],
+               "recipe #{recipe.id} is missing a non-empty routes list"
+
+        assert MapSet.subset?(MapSet.new(recipe.routes), valid_keys),
+               "recipe #{recipe.id} has unknown route(s): " <>
+                 inspect(recipe.routes -- Shunt.Crafting.Routes.keys())
+      end
+    end
+  end
+
   describe "fetch!/1" do
     test "returns the matching recipe" do
       recipe = RecipeCatalog.fetch!("patchwork_courier_drone")

@@ -1,5 +1,6 @@
 %{
   id: "standard_relay",
+  routes: [:repair],
   name: "Standard Relay",
   tier_required: 1,
   inputs: %{

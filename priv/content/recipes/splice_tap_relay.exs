@@ -1,5 +1,6 @@
 %{
   id: "splice_tap_relay",
+  routes: [:fence],
   name: "Splice-Tap Relay",
   tier_required: 1,
   inputs: %{"frayed_optic_cable" => 2, "stripped_copper_coil" => 1},

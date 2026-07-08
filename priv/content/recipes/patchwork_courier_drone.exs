@@ -1,5 +1,6 @@
 %{
   id: "patchwork_courier_drone",
+  routes: [:fence],
   name: "Patchwork Courier Drone",
   tier_required: 1,
   inputs: %{"junked_servo_motor" => 1, "cracked_chassis_plating" => 1},
