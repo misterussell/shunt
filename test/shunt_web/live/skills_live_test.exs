@@ -57,6 +57,16 @@ defmodule ShuntWeb.SkillsLiveTest do
 
       assert has_element?(view, "#recipe-improvised_relay .recipe-stamp")
     end
+
+    test "a tampered toggle_route param is ignored, not crashed on", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/street-alchemy")
+
+      render_click(view, "toggle_route", %{"route" => "bogus"})
+
+      # view survives and the full list is still shown (no filter applied).
+      assert has_element?(view, "#recipe-improvised_relay")
+      assert has_element?(view, "#recipe-patchwork_scalpel")
+    end
   end
 
   test "chrome_meat renders the Chrome Load meter and augments, not the dormant stub", %{

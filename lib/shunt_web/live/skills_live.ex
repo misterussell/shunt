@@ -42,15 +42,22 @@ defmodule ShuntWeb.SkillsLive do
   end
 
   def handle_event("toggle_route", %{"route" => route}, socket) do
-    route = String.to_existing_atom(route)
-    active = socket.assigns.active_routes
+    # route comes straight from the client; only toggle it if it names a real route, otherwise
+    # ignore the event rather than crash on String.to_existing_atom/1.
+    case Enum.find(Routes.keys(), &(Atom.to_string(&1) == route)) do
+      nil ->
+        {:noreply, socket}
 
-    active =
-      if MapSet.member?(active, route),
-        do: MapSet.delete(active, route),
-        else: MapSet.put(active, route)
+      route ->
+        active = socket.assigns.active_routes
 
-    {:noreply, assign(socket, :active_routes, active)}
+        active =
+          if MapSet.member?(active, route),
+            do: MapSet.delete(active, route),
+            else: MapSet.put(active, route)
+
+        {:noreply, assign(socket, :active_routes, active)}
+    end
   end
 
   def handle_event("assemble", %{"key" => recipe_key}, socket) do
@@ -170,7 +177,7 @@ defmodule ShuntWeb.SkillsLive do
               phx-click="toggle_route"
               phx-value-route={route.key}
             >
-              {route.label}<span class="route-gel-count">{route_count(@recipes, route.key)}</span>
+              {route.label}<span class="route-gel-count">{Map.get(@route_counts, route.key, 0)}</span>
             </button>
           </div>
           <div class="recipes-list">
@@ -184,11 +191,7 @@ defmodule ShuntWeb.SkillsLive do
                     T{recipe.tier_required}
                   </span>
                   <span class="recipe-redacted-name">█████ ███</span>
-                  <div class="recipe-stamps">
-                    <span :for={r <- recipe.routes} class={["recipe-stamp", "route--#{r}"]}>
-                      {Routes.label(r)}
-                    </span>
-                  </div>
+                  <.recipe_stamps routes={recipe.routes} />
                   <span class="recipe-encrypted-label">🔒 ENCRYPTED</span>
                 </div>
               <% else %>
@@ -203,11 +206,7 @@ defmodule ShuntWeb.SkillsLive do
                       end)}
                     </div>
                   </div>
-                  <div class="recipe-stamps">
-                    <span :for={r <- recipe.routes} class={["recipe-stamp", "route--#{r}"]}>
-                      {Routes.label(r)}
-                    </span>
-                  </div>
+                  <.recipe_stamps routes={recipe.routes} />
                   <span class="recipe-value">+{recipe.sell_value}cr</span>
                   <Chrome.btn
                     id={"assemble-#{recipe.id}-button"}
@@ -340,6 +339,19 @@ defmodule ShuntWeb.SkillsLive do
     """
   end
 
+  # The per-row routing stamps, shared by the locked and unlocked recipe rows.
+  attr :routes, :list, required: true
+
+  defp recipe_stamps(assigns) do
+    ~H"""
+    <div class="recipe-stamps">
+      <span :for={r <- @routes} class={["recipe-stamp", "route--#{r}"]}>
+        {Routes.label(r)}
+      </span>
+    </div>
+    """
+  end
+
   # Presentation-only filter: intersect each recipe's content route tags with the patched-in
   # routes. Empty selection = no filter = show all.
   defp filter_recipes(recipes, active_routes) do
@@ -352,25 +364,33 @@ defmodule ShuntWeb.SkillsLive do
     end
   end
 
-  # Total recipes on a route, locked and unlocked, so the rail chip advertises what's still coming.
-  defp route_count(recipes, key) do
-    Enum.count(recipes, &(key in &1.routes))
+  # Total recipes per route, locked and unlocked, so each rail chip advertises what's still coming.
+  # Computed once per recipe set (not per chip, per render) — counts never depend on @active_routes.
+  defp route_counts(recipes) do
+    Enum.reduce(recipes, %{}, fn recipe, acc ->
+      Enum.reduce(recipe.routes, acc, fn key, acc -> Map.update(acc, key, 1, &(&1 + 1)) end)
+    end)
   end
 
   defp assign_player(socket, player) do
     tree = socket.assigns.tree
+    known_routes = Routes.keys()
 
+    # Normalize routes to the known set (missing field -> [], drop unknown atoms) so the rail and
+    # per-row stamps can't crash on a recipe authored without a valid routes: field.
     recipes =
-      Enum.map(
-        RecipeCatalog.recipes(),
-        &Map.put(&1, :craftable?, Crafting.craftable?(player, &1))
-      )
+      Enum.map(RecipeCatalog.recipes(), fn recipe ->
+        recipe
+        |> Map.put(:craftable?, Crafting.craftable?(player, recipe))
+        |> Map.update(:routes, [], &Enum.filter(&1, fn r -> r in known_routes end))
+      end)
 
     socket
     |> assign(:player, player)
     |> assign(:current_tier, SkillsCatalog.current_tier(player, tree))
     |> assign(:raws, RawCatalog.items())
     |> assign(:recipes, recipes)
+    |> assign(:route_counts, route_counts(recipes))
     |> assign_chrome(player, tree)
   end
 
