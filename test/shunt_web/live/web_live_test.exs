@@ -20,7 +20,13 @@ defmodule ShuntWeb.WebLiveTest do
         origin: "Overheard in the back-rows",
         tags: ["juno"]
       },
-      %Rumor{id: "test_rumor_b", title: "Intel B", description: "Second.", source: "npc", tags: []},
+      %Rumor{
+        id: "test_rumor_b",
+        title: "Intel B",
+        description: "Second.",
+        source: "npc",
+        tags: []
+      },
       %Rumor{
         id: "test_rumor_c",
         title: "Intel C",
@@ -29,7 +35,13 @@ defmodule ShuntWeb.WebLiveTest do
         origin: "Whispered in the stacks",
         tags: []
       },
-      %Rumor{id: "test_rumor_d", title: "Intel D", description: "Unrelated.", source: "npc", tags: []}
+      %Rumor{
+        id: "test_rumor_d",
+        title: "Intel D",
+        description: "Unrelated.",
+        source: "npc",
+        tags: []
+      }
     ]
 
     conn_data = %RumorConnection{
@@ -176,7 +188,10 @@ defmodule ShuntWeb.WebLiveTest do
       assert Shunt.Players.get_player!().heat == 5
     end
 
-    test "FOLLOW LEAD opens the partial event and charges lead_heat", %{conn: conn, player: player} do
+    test "FOLLOW LEAD opens the partial event and charges lead_heat", %{
+      conn: conn,
+      player: player
+    } do
       give_player_rumors(player, ["test_rumor_a", "test_rumor_b"])
 
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
