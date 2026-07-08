@@ -3,27 +3,103 @@ defmodule ShuntWeb.Components.SignalWeb do
 
   use Phoenix.Component
 
-  # TODO: render the entity-to-entity signal web as a deterministic SVG node-link graph, modeled
-  #   on ShuntWeb.Components.MapGraph (an SVG with a viewBox and a <g> world, an edge partial and
-  #   a node partial, MapGraph-style framing). Input: the %{nodes, edges} map from
-  #   Shunt.Web.entity_graph/1 plus the selected_entity tag (or nil).
-  #   - Edges drawn first as <line> using each edge's a/b node positions: stroke-width scaled by
-  #     edge weight, data-status={status} so CSS colors them by the case status accents
-  #     (crackable/lead/forming/solved; :unaffiliated renders dim/muted).
-  #   - Nodes drawn on top: <circle> with r scaled by node weight plus a <text> label. Each node
-  #     is clickable via phx-click="select_entity" phx-value-entity={tag} (reuses WebLive's
-  #     existing handler) and carries a stable id={"web-node-#{tag}"}.
-  #   - When selected_entity is set, stamp --active / --dim classes computed HERE from the edge
-  #     list: the selected node + its incident edges + immediate-neighbor nodes get --active,
-  #     everything else --dim. This is pure presentation off already-derived edges, not a domain
-  #     recompute (stays within the LiveView presentation boundary).
-  #   - Guard: render an empty placeholder when nodes == [].
+  @size 440
+  @radius 170
+
+  @doc """
+  Renders `Shunt.Web.entity_graph/1` as an SVG node-link "signal web": entity nodes sized by
+  signal, threads between co-occurring entities colored by the status of the case that produces
+  them. Selecting an entity lights its neighborhood and dims the rest. Positions come pre-computed
+  and normalized from the domain; this component only projects them into the viewport and draws.
+  """
   attr :graph, :map, required: true
   attr :selected_entity, :string, default: nil
 
   def signal_web(assigns) do
+    positions = Map.new(assigns.graph.nodes, &{&1.tag, project(&1)})
+
+    assigns =
+      assigns
+      |> assign(:positions, positions)
+      |> assign(:neighbors, neighbors(assigns.graph.edges, assigns.selected_entity))
+      |> assign(:view_box, "0 0 #{@size} #{@size}")
+
     ~H"""
-    <div id="entity-web" class="entity-web"></div>
+    <svg id="entity-web" class="entity-web" viewBox={@view_box} role="presentation">
+      <g class="entity-web-threads">
+        <line
+          :for={edge <- @graph.edges}
+          class={thread_class(edge, @selected_entity)}
+          data-status={edge.status}
+          x1={x(@positions[edge.a])}
+          y1={y(@positions[edge.a])}
+          x2={x(@positions[edge.b])}
+          y2={y(@positions[edge.b])}
+          stroke-width={thread_width(edge.weight)}
+        />
+      </g>
+      <g class="entity-web-nodes">
+        <g :for={node <- @graph.nodes} class={node_class(node, @selected_entity, @neighbors)}>
+          <circle
+            id={"web-node-#{node.tag}"}
+            class="entity-web-node-hit"
+            cx={x(@positions[node.tag])}
+            cy={y(@positions[node.tag])}
+            r={node_radius(node.weight)}
+            phx-click="select_entity"
+            phx-value-entity={node.tag}
+          />
+          <text
+            class="entity-web-label"
+            x={x(@positions[node.tag])}
+            y={y(@positions[node.tag]) + node_radius(node.weight) + 12}
+            text-anchor="middle"
+          >
+            {node.tag}
+          </text>
+        </g>
+      </g>
+    </svg>
     """
   end
+
+  # Normalized unit-circle coords -> viewport pixels, centered.
+  defp project(node), do: {@size / 2 + node.x * @radius, @size / 2 + node.y * @radius}
+  defp x({x, _y}), do: x
+  defp y({_x, y}), do: y
+
+  # The selected entity plus every entity directly threaded to it.
+  defp neighbors(_edges, nil), do: MapSet.new()
+
+  defp neighbors(edges, selected) do
+    edges
+    |> Enum.flat_map(fn
+      %{a: ^selected, b: b} -> [b]
+      %{a: a, b: ^selected} -> [a]
+      _ -> []
+    end)
+    |> MapSet.new()
+    |> MapSet.put(selected)
+  end
+
+  defp node_class(_node, nil, _neighbors), do: "entity-web-node"
+
+  defp node_class(node, selected, neighbors) do
+    cond do
+      node.tag == selected -> "entity-web-node entity-web-node--selected"
+      MapSet.member?(neighbors, node.tag) -> "entity-web-node entity-web-node--active"
+      true -> "entity-web-node entity-web-node--dim"
+    end
+  end
+
+  defp thread_class(_edge, nil), do: "entity-web-thread"
+
+  defp thread_class(edge, selected) do
+    if edge.a == selected or edge.b == selected,
+      do: "entity-web-thread entity-web-thread--active",
+      else: "entity-web-thread entity-web-thread--dim"
+  end
+
+  defp node_radius(weight), do: 5 + 2 * weight
+  defp thread_width(weight), do: 1 + weight
 end

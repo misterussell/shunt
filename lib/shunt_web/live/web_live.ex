@@ -6,6 +6,7 @@ defmodule ShuntWeb.WebLive do
   alias Shunt.Web
   alias Shunt.Web.Rumor
   alias ShuntWeb.Chrome
+  alias ShuntWeb.Components.SignalWeb
 
   @dev_routes Application.compile_env(:shunt, :dev_routes)
 
@@ -154,13 +155,7 @@ defmodule ShuntWeb.WebLive do
 
           <%= if @view == :entities do %>
             <div id="entities-view" class="entities-view">
-              <%!-- TODO: render the signal web as the PRIMARY entities visual: alias
-                    ShuntWeb.Components.SignalWeb and place
-                    <SignalWeb.signal_web graph={@entity_graph} selected_entity={@selected_entity} />
-                    as a wide canvas at the top of #entities-view, above the chip rail. Keep the
-                    #entity-rail below it as the compact fallback / secondary nav (accessibility,
-                    reduced-motion, discoverability) and keep #entity-detail. Rework .entities-view
-                    CSS from rail+detail to canvas + (chips + detail). --%>
+              <SignalWeb.signal_web graph={@entity_graph} selected_entity={@selected_entity} />
               <div id="entity-rail" class="entity-rail">
                 <button
                   :for={tag <- @entities}
@@ -268,11 +263,10 @@ defmodule ShuntWeb.WebLive do
           {view.rumors, Enum.map(view.cases, &enrich/1)}
       end
 
-    # TODO: also assign :entity_graph, Web.entity_graph(player) so the entities view can render
-    #   the signal web. Keep :entities as well — the chip-list fallback still consumes it.
     socket
     |> assign(:network, player |> Web.network() |> Enum.map(&enrich/1))
     |> assign(:entities, Web.entities(player))
+    |> assign(:entity_graph, Web.entity_graph(player))
     |> assign(:entity_rumors, entity_rumors)
     |> assign(:entity_cases, entity_cases)
   end

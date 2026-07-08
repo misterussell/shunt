@@ -326,15 +326,60 @@ defmodule ShuntWeb.WebLiveTest do
     end
   end
 
-  # TODO: describe "signal web (entities view)" — after giving the player rumors and clicking
-  #   #view-entities, assert:
-  #   - the web renders: has_element?(view, "#entity-web") and node elements
-  #     "#web-node-<tag>" exist for held tags
-  #   - clicking a node ("#web-node-<tag>" |> render_click()) selects that entity: the
-  #     #entity-detail panel populates (its held-rumor list / case cards), same outcome as a chip
-  #   - threads carry a data-status attribute (assert a [data-status] element inside #entity-web)
-  #   - the chip rail (#entity-rail) still renders as the fallback alongside the web
-  #   Test outcomes via element/2 + has_element?/2, not raw HTML or content counts.
+  describe "signal web (entities view)" do
+    setup do
+      # A multi-tag rumor so the web has co-occurring tags to thread together.
+      web_rumor = %Rumor{
+        id: "web_juno_corp",
+        title: "Juno & Corp",
+        description: "Two threads.",
+        source: "npc",
+        tags: ["juno", "corp"]
+      }
+
+      :ets.insert(:rumors, [{web_rumor.id, web_rumor}])
+      on_exit(fn -> :ets.delete(:rumors, web_rumor.id) end)
+      :ok
+    end
+
+    test "renders the web with a node per held tag, alongside the chip-rail fallback", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "web_juno_corp"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+      view |> element("#view-entities") |> render_click()
+
+      assert has_element?(view, "#entity-web")
+      assert has_element?(view, "#web-node-juno")
+      assert has_element?(view, "#web-node-corp")
+      assert has_element?(view, "#entity-rail #entity-juno")
+    end
+
+    test "threads carry a data-status attribute", %{conn: conn, player: player} do
+      give_player_rumors(player, ["web_juno_corp"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+      view |> element("#view-entities") |> render_click()
+
+      assert has_element?(view, "#entity-web [data-status]")
+    end
+
+    test "clicking a node selects that entity, same as clicking its chip", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a", "web_juno_corp"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+      view |> element("#view-entities") |> render_click()
+      view |> element("#web-node-juno") |> render_click()
+
+      assert has_element?(view, "#entity-detail", "Intel A")
+      assert has_element?(view, "#entity-detail #case-test_conn")
+    end
+  end
 
   defp give_player_rumors(player, rumor_ids) do
     Shunt.Players.dispatch(player.id, fn _p ->
