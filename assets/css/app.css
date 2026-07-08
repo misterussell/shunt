@@ -2719,6 +2719,13 @@
   }
 }
 
+/* TODO: [assets-css] Replace this whole board block (everything from .rumor-card through the
+   .resonance-eyebrow rules, ending just before "── The Hideout") with signal-network styling for
+   the new Cases/Entities views — case rows with progress meters, redacted missing slots, heat-cost
+   action buttons, and the entity facet rail. Reuse the existing --token palette + panel/bracket
+   idioms (no new identity); use the frontend-design skill. Remove every rule the new markup no
+   longer references: .web-grid/.web-board/.wire-*/.intake-*/.board-*/.dossier-*/.leads-*/
+   .resonance-*/.rumor-stamp/.wire-port/.board-hint. */
 /* ── The Web — Investigation Board (lib/shunt_web/live/web_live.ex) ─────────── */
 
 .rumor-card {

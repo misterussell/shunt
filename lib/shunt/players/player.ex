@@ -25,6 +25,10 @@ defmodule Shunt.Players.Player do
     # Investigation board layout. `positions` maps rumor_id => %{"x" => f, "y" => f} (fractional
     # 0–1 board coords); `wires` is a list of sorted [id_a, id_b] string pairs. A rumor is "on the
     # board" iff it has a positions entry; everything else in player.rumors is intake.
+    # TODO: [schema] Remove this web_board field and add a migration dropping the web_board column —
+    # the signal-network rework derives everything from :rumors and stores nothing here. Purge
+    # web_board from any remaining test fixtures (web_board_test/web_warmth_test are deleted;
+    # web_live_test still seeds it).
     field :web_board, :map, default: %{"positions" => %{}, "wires" => []}
 
     field :ghostwork_state, :map, default: %{}

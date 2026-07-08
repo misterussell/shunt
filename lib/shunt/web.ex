@@ -3,6 +3,42 @@ defmodule Shunt.Web do
 
   alias Shunt.Web.RumorConnection
 
+  # TODO: [domain-network] Replace this whole board/graph module with data-driven correlation.
+  # Rumors are no longer arranged by hand — a case's state is pure set math on player.rumors.
+  # Add `network(player)`: for every RumorConnection the player holds >=1 rumor of, return
+  #   %{connection: conn, held: [ids], missing: [ids], total: length(conn.rumors), status: status}
+  # sorted by status priority (:crackable, :lead, :forming, :solved) then connection id, where
+  # (checked in this order):
+  #   solved?(player, conn)                     -> :solved
+  #   held == MapSet.new(conn.rumors)           -> :crackable
+  #   held_count >= conn.partial_threshold      -> :lead
+  #   held_count >= 1                            -> :forming
+  # held_count == 0 -> the case is absent from the list (hidden). Keep/adapt `solved?/2`.
+  # DELETE the entire wire/board layer: @empty_board, wipe_board, place_rumor, connect,
+  # disconnect, return_to_intake, intake, placed, wires, clusters, matched_clusters,
+  # resonant_clusters, solved_clusters, warm_clusters, rumor_status/2+/5, locked_rumor_ids,
+  # best_partial_connection, resonant_rumor_ids, locked?/locked_either?, board, reachable.
+  # Delete the now-obsolete test/shunt/web_board_test.exs and test/shunt/web_warmth_test.exs;
+  # cover network/1's status transitions in a new test/shunt/web_network_test.exs.
+
+  # TODO: [domain-pursue] Add `pursue(player, connection_id, mode)` where mode is :lead | :crack.
+  # Server-authoritative — the client can't be trusted to have earned the intel:
+  #   :crack requires held == MapSet.new(conn.rumors); :lead requires held_count >= partial_threshold.
+  #   Both require not solved?/2; :lead additionally requires conn.partial_event_id not already in
+  #   player.completed_events (a spent non-repeatable partial can't be re-followed).
+  # On success return {:ok, [{:heat, heat} | event_effects], %{event_id: event_id}} where
+  #   event_id/heat = success_event_id/crack_heat for :crack, partial_event_id/lead_heat for :lead,
+  #   and event_effects come from Events.start(player, event_id) (drop its meta). On failure return
+  #   {:error, reason}. Mirrors the effect-list contract other contexts use (chrome_meat, fencing)
+  #   so WebLive dispatches it in one call and reads meta.event_id. Cover in web_network_test.exs
+  #   (heat applied, event started, unqualified :crack and :lead both rejected).
+
+  # TODO: [domain-entities] Add the browse-by-entity axis, derived from rumor tags (no new content).
+  #   `entities(player)` -> sorted distinct tags across the player's HELD rumors.
+  #   `entity_view(player, tag)` -> %{rumors: [held rumors carrying tag],
+  #      cases: [network/1 entries whose connection includes a held rumor carrying tag]}.
+  # Grounds the "social network" view in intel actually collected. Cover in web_network_test.exs.
+
   @empty_board %{"positions" => %{}, "wires" => []}
 
   @doc "Clears all positions and wires. Leaves player.rumors untouched (cards return to intake)."

@@ -7,6 +7,29 @@ defmodule ShuntWeb.WebLive do
   alias Shunt.Web.Rumor
   alias ShuntWeb.Chrome
 
+  # TODO: [liveview-cases] Rebuild this LiveView as the data-driven "signal network" — no board.
+  # Remove every board handler + helper: place_rumor/move_rumor, connect, disconnect,
+  # return_to_intake, connect_theory, follow_lead (old), wipe_board, inspect_rumor, close_dossier,
+  # board_assigns, assign_inspected, dispatch_board, cluster_ids, lead_key, clamp_unit, parse_float,
+  # status_label, and the intake/board/wire/dossier markup. KEEP event_choice + the #active-event
+  # panel + humanize_source. Add a network_assigns/1 that assigns Web.network(@player).
+  # Cases view: for each case render a progress meter (held/total), its held rumor titles, and each
+  # MISSING rumor as a redacted slot "▓▓▓ — <hint>" using the missing rumor's origin (fall back to
+  # humanize_source(source)) so it points back into the world without spoiling the text. Action
+  # button carries its authored heat cost: [ FOLLOW LEAD · +N HEAT ] when status == :lead,
+  # [ CRACK · +N HEAT ] when :crackable, from conn.lead_heat/crack_heat; :forming shows no button;
+  # :solved renders stamped/locked. The button dispatches Web.pursue(player, conn.id, mode) via
+  # Players.dispatch and, on {:ok, player, %{event_id: id}}, sets active_event_id (block re-fire
+  # while an event is open, like the old connect_theory did). Keep a dev-only [ SEED RUMORS ]
+  # control (grants @dev_seed_rumors); drop [ WIPE BOARD ]. Keep the NO RUMORS empty state. Rewrite
+  # test/shunt_web/live/web_live_test.exs against the new element ids.
+
+  # TODO: [liveview-entities] Add the Entities browse axis + a Cases/Entities view toggle.
+  # A facet rail lists Web.entities(@player) (tags); selecting one assigns the chosen tag and shows
+  # Web.entity_view(@player, tag) — its held rumors and the cases touching it (reuse the Cases-view
+  # case component). Track the active view (:cases | :entities) and the selected entity in assigns;
+  # default :cases. Cover the toggle + entity selection in web_live_test.exs by element id.
+
   @dev_routes Application.compile_env(:shunt, :dev_routes)
 
   # Dev-only: the shunt9 rumor set seeded by the [ SEED RUMORS ] control so the board can be

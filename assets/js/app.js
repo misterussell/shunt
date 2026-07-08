@@ -27,6 +27,8 @@ import topbar from "../vendor/topbar"
 import Clock from "./hooks/clock"
 import EventTerminal from "./hooks/event_terminal"
 import LatticeCarrier from "./hooks/lattice_carrier"
+// TODO: [assets-js] Delete the WebBoard hook — the drag/wire board is gone. Remove this import,
+// drop WebBoard from the hooks map below, and delete assets/js/hooks/web_board.js.
 import WebBoard from "./hooks/web_board"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
