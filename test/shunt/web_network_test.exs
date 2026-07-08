@@ -149,6 +149,10 @@ defmodule Shunt.WebNetworkTest do
       p = player(["n_a", "n_b"], ["net_trio_partial"])
       assert {:error, _} = Web.pursue(p, "net_trio", :lead)
     end
+
+    test "an unknown connection id is rejected, not raised" do
+      assert {:error, :not_found} = Web.pursue(player(["n_a"]), "no_such_connection", :crack)
+    end
   end
 
   describe "entities/1 and entity_view/2" do

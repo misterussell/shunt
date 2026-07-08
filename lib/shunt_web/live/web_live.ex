@@ -7,34 +7,17 @@ defmodule ShuntWeb.WebLive do
   alias Shunt.Web.Rumor
   alias ShuntWeb.Chrome
 
-  # TODO: [liveview-cases] Rebuild this LiveView as the data-driven "signal network" — no board.
-  # Remove every board handler + helper: place_rumor/move_rumor, connect, disconnect,
-  # return_to_intake, connect_theory, follow_lead (old), wipe_board, inspect_rumor, close_dossier,
-  # board_assigns, assign_inspected, dispatch_board, cluster_ids, lead_key, clamp_unit, parse_float,
-  # status_label, and the intake/board/wire/dossier markup. KEEP event_choice + the #active-event
-  # panel + humanize_source. Add a network_assigns/1 that assigns Web.network(@player).
-  # Cases view: for each case render a progress meter (held/total), its held rumor titles, and each
-  # MISSING rumor as a redacted slot "▓▓▓ — <hint>" using the missing rumor's origin (fall back to
-  # humanize_source(source)) so it points back into the world without spoiling the text. Action
-  # button carries its authored heat cost: [ FOLLOW LEAD · +N HEAT ] when status == :lead,
-  # [ CRACK · +N HEAT ] when :crackable, from conn.lead_heat/crack_heat; :forming shows no button;
-  # :solved renders stamped/locked. The button dispatches Web.pursue(player, conn.id, mode) via
-  # Players.dispatch and, on {:ok, player, %{event_id: id}}, sets active_event_id (block re-fire
-  # while an event is open, like the old connect_theory did). Keep a dev-only [ SEED RUMORS ]
-  # control (grants @dev_seed_rumors); drop [ WIPE BOARD ]. Keep the NO RUMORS empty state. Rewrite
-  # test/shunt_web/live/web_live_test.exs against the new element ids.
+  @dev_routes Application.compile_env(:shunt, :dev_routes)
+
+  # Dev-only: a shunt9 rumor set seeded by [ SEED RUMORS ] so the network can be exercised without
+  # replaying the events that normally award these rumors.
+  @dev_seed_rumors ~w(juno_supplier missing_shipments vex_debts authority_involvement scrubbed_watchlist proxy_pipeline off_hours_passage)
 
   # TODO: [liveview-entities] Add the Entities browse axis + a Cases/Entities view toggle.
   # A facet rail lists Web.entities(@player) (tags); selecting one assigns the chosen tag and shows
-  # Web.entity_view(@player, tag) — its held rumors and the cases touching it (reuse the Cases-view
-  # case component). Track the active view (:cases | :entities) and the selected entity in assigns;
-  # default :cases. Cover the toggle + entity selection in web_live_test.exs by element id.
-
-  @dev_routes Application.compile_env(:shunt, :dev_routes)
-
-  # Dev-only: the shunt9 rumor set seeded by the [ SEED RUMORS ] control so the board can be
-  # exercised without replaying the events that normally award these rumors.
-  @dev_seed_rumors ~w(juno_supplier missing_shipments vex_debts authority_involvement freight_tunnel_shipments scrubbed_watchlist proxy_pipeline off_hours_passage cargo_discrepancy checkpoint_pressure)
+  # Web.entity_view(@player, tag) — its held rumors and the cases touching it (reuse the case_card
+  # component). Track the active view (:cases | :entities) + selected entity in assigns; default
+  # :cases. Cover the toggle + entity selection in web_live_test.exs by element id.
 
   def mount(_params, _session, socket) do
     player_id = Players.get_player!().id
@@ -45,54 +28,26 @@ defmodule ShuntWeb.WebLive do
      |> assign(:player_id, player_id)
      |> assign(:player, player)
      |> assign(:active_event_id, nil)
-     # Ephemeral id of the rumor whose dossier is open in #board-dossier (nil = none). Resets on
-     # navigate-away, like the working theory; board_assigns/1 derives the rumor + status from it.
-     |> assign(:inspected_rumor_id, nil)
      |> assign(:dev?, @dev_routes)
-     |> board_assigns()}
+     |> network_assigns()}
   end
 
-  # Board interactions pushed by the WebBoard hook. x/y arrive as strings from JS; clamp_unit/1
-  # parses them to floats in 0.0..1.0. place_rumor (intake -> board) and move_rumor (reposition)
-  # are the same op — both just set positions[id].
-  def handle_event(event, %{"id" => id, "x" => x, "y" => y}, socket)
-      when event in ["place_rumor", "move_rumor"] do
-    dispatch_board(socket, &Web.place_rumor(&1, id, clamp_unit(x), clamp_unit(y)))
-  end
-
-  def handle_event("connect", %{"a" => a, "b" => b}, socket) do
-    dispatch_board(socket, &Web.connect(&1, a, b))
-  end
-
-  def handle_event("disconnect", %{"a" => a, "b" => b}, socket) do
-    dispatch_board(socket, &Web.disconnect(&1, a, b))
-  end
-
-  def handle_event("return_to_intake", %{"id" => id}, socket) do
-    dispatch_board(socket, &Web.return_to_intake(&1, id))
-  end
-
-  # Fired by the inline [ CONNECT ] on a resonant cluster. Ignored when an event is already open
-  # (re-clicking must not restart an in-progress event via Events.start) or when the cluster is no
-  # longer resonant for this connection_id (a stale/duplicate client click — Enum.find would
-  # otherwise return nil and crash the match).
-  def handle_event("connect_theory", %{"connection_id" => connection_id}, socket) do
-    resonant_conn =
-      Enum.find(socket.assigns.resonant, fn {_cluster, conn} -> conn.id == connection_id end)
-
-    case {socket.assigns.active_event_id, resonant_conn} do
-      {nil, {_cluster, conn}} ->
-        {:ok, player, _meta} =
-          Players.dispatch(socket.assigns.player_id, &Events.start(&1, conn.success_event_id))
-
-        {:noreply,
-         socket
-         |> assign(:player, player)
-         |> assign(:active_event_id, conn.success_event_id)
-         |> board_assigns()}
-
-      _ ->
-        {:noreply, socket}
+  # Follows a lead (:lead -> partial_event) or cracks a case (:crack -> success_event). Web.pursue/3
+  # is server-authoritative and prices the action in heat; we just dispatch it and open the event it
+  # started. Ignored when an event is already open, the mode is unrecognized, or the player doesn't
+  # qualify (a stale/duplicate click, or a forming case whose button isn't even rendered).
+  def handle_event("pursue", %{"connection_id" => id, "mode" => mode}, socket) do
+    with nil <- socket.assigns.active_event_id,
+         {:ok, mode_atom} <- parse_mode(mode),
+         {:ok, player, %{event_id: event_id}} <-
+           Players.dispatch(socket.assigns.player_id, &Web.pursue(&1, id, mode_atom)) do
+      {:noreply,
+       socket
+       |> assign(:player, player)
+       |> assign(:active_event_id, event_id)
+       |> network_assigns()}
+    else
+      _ -> {:noreply, socket}
     end
   end
 
@@ -101,7 +56,7 @@ defmodule ShuntWeb.WebLive do
       {:ok, player, _meta} ->
         completed? = not Map.has_key?(player.event_state, event_id)
 
-        socket = socket |> assign(:player, player) |> board_assigns()
+        socket = socket |> assign(:player, player) |> network_assigns()
         socket = if(completed?, do: assign(socket, :active_event_id, nil), else: socket)
 
         {:noreply, socket}
@@ -112,69 +67,25 @@ defmodule ShuntWeb.WebLive do
   end
 
   def handle_event("seed_rumors", _params, %{assigns: %{dev?: true}} = socket) do
-    dispatch_board(socket, fn _p -> {:ok, Enum.map(@dev_seed_rumors, &{:rumor, &1})} end)
+    {:ok, player, _meta} =
+      Players.dispatch(socket.assigns.player_id, fn _p ->
+        {:ok, Enum.map(@dev_seed_rumors, &{:rumor, &1})}
+      end)
+
+    {:noreply, socket |> assign(:player, player) |> network_assigns()}
   end
 
-  def handle_event("wipe_board", _params, %{assigns: %{dev?: true}} = socket) do
-    dispatch_board(socket, &Web.wipe_board/1)
-  end
-
-  # The dev seed/wipe controls are hidden outside dev, but the channel still accepts the event;
-  # ignore it server-side so it can't run in production.
-  def handle_event(event, _params, socket) when event in ["seed_rumors", "wipe_board"] do
-    {:noreply, socket}
-  end
-
-  # Opens the dossier for a held rumor. Ids the player doesn't hold are ignored (the client could
-  # push any id; the board only recalls intel actually collected).
-  def handle_event("inspect_rumor", %{"id" => id}, socket) do
-    if id in socket.assigns.player.rumors do
-      {:noreply, socket |> assign(:inspected_rumor_id, id) |> assign_inspected()}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_event("close_dossier", _params, socket) do
-    {:noreply, socket |> assign(:inspected_rumor_id, nil) |> assign_inspected()}
-  end
-
-  # Fired by [ FOLLOW LEAD ] on a lead-ready warm cluster. The lead is keyed on its cluster, not
-  # the connection, since two warm sub-clusters can point at the same connection. Like
-  # connect_theory/2 it ignores the click when an event is already open or when the named cluster
-  # is no longer a lead-ready lead (stale/duplicate click, or a non-repeatable partial already
-  # followed — warm_clusters drops lead_ready? once that partial is completed, so a re-click can't
-  # reopen the finished event into a soft-lock).
-  def handle_event("follow_lead", %{"lead_id" => lead_id}, socket) do
-    lead = Enum.find(socket.assigns.warm, &(&1.key == lead_id))
-
-    case {socket.assigns.active_event_id, lead} do
-      {nil, %{lead_ready?: true, connection: conn}} ->
-        {:ok, player, _meta} =
-          Players.dispatch(socket.assigns.player_id, &Events.start(&1, conn.partial_event_id))
-
-        {:noreply,
-         socket
-         |> assign(:player, player)
-         |> assign(:active_event_id, conn.partial_event_id)
-         |> board_assigns()}
-
-      _ ->
-        {:noreply, socket}
-    end
-  end
+  # Hidden outside dev, but the channel still accepts the event; ignore it server-side.
+  def handle_event("seed_rumors", _params, socket), do: {:noreply, socket}
 
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} player={@player} active={:web}>
-      <Chrome.section_header>INVESTIGATION BOARD</Chrome.section_header>
+      <Chrome.section_header>THE WEB</Chrome.section_header>
 
       <div :if={@dev?} id="dev-controls" class="dev-controls">
         <Chrome.btn id="seed-rumors-button" variant={:ghost} phx-click="seed_rumors">
           [ SEED RUMORS ]
-        </Chrome.btn>
-        <Chrome.btn id="wipe-board-button" variant={:ghost} phx-click="wipe_board">
-          [ WIPE BOARD ]
         </Chrome.btn>
       </div>
 
@@ -204,279 +115,88 @@ defmodule ShuntWeb.WebLive do
         </Chrome.panel>
       <% end %>
 
-      <%= if @rumors == [] do %>
-        <Chrome.panel id="board-empty">
-          <p class="board-empty-text">
-            NO RUMORS COLLECTED · explore, talk, and hack to gather intelligence
+      <%= if @network == [] do %>
+        <Chrome.panel id="web-empty">
+          <p class="web-empty-text">
+            NO SIGNAL YET · gather intel out in the world and the network surfaces its cases
           </p>
         </Chrome.panel>
       <% else %>
-        <div id="web-grid" class="web-grid">
-          <div id="intake-rail" class="intake-rail">
-            <div
-              :for={rumor <- @intake}
-              id={"intake-#{rumor.id}"}
-              class="rumor-card intake-card"
-              data-rumor-id={rumor.id}
-            >
-              <button
-                type="button"
-                class="inspect-glyph"
-                data-inspect="true"
-                phx-click="inspect_rumor"
-                phx-value-id={rumor.id}
-                aria-label="Inspect rumor"
-              >
-                ⓘ
-              </button>
-              <p class="rumor-title">{rumor.title}</p>
-              <p class="rumor-source">{rumor.source}</p>
-            </div>
-          </div>
-
-          <div
-            id="web-board"
-            class="web-board"
-            phx-hook="WebBoard"
-            data-wires={Jason.encode!(@wires)}
-          >
-            <%!-- JS-owned wire layer: ignored so morphdom leaves the hook's drawn paths alone. --%>
-            <svg id="wire-layer" class="wire-layer" phx-update="ignore"></svg>
-            <p :if={@placed == []} class="board-hint">
-              DRAG RUMORS HERE TO INVESTIGATE
-            </p>
-            <div
-              :for={card <- @placed}
-              id={"rumor-#{card.rumor.id}"}
-              class="rumor-card board-card"
-              data-rumor-id={card.rumor.id}
-              data-x={card.x}
-              data-y={card.y}
-              data-resonant={to_string(card.resonant)}
-              data-warm={to_string(card.warm)}
-              data-solved={to_string(card.solved)}
-            >
-              <button
-                type="button"
-                class="inspect-glyph"
-                data-inspect="true"
-                phx-click="inspect_rumor"
-                phx-value-id={card.rumor.id}
-                aria-label="Inspect rumor"
-              >
-                ⓘ
-              </button>
-              <p class="rumor-title">{card.rumor.title}</p>
-              <p class="rumor-source">{card.rumor.source}</p>
-              <div :if={card.rumor.tags != []} class="rumor-tags">
-                <span :for={tag <- card.rumor.tags} class="rumor-tag">{tag}</span>
-              </div>
-              <span :if={card.solved} class="rumor-stamp">SOLVED</span>
-              <div :if={not card.solved} class="wire-port" data-port="true"></div>
-            </div>
-          </div>
-
-          <div id="board-rail" class="board-rail">
-            <div id="board-signals" class="board-signals">
-              <div
-                :if={@resonant != [] and is_nil(@active_event_id)}
-                id="resonance-controls"
-                class="resonance-controls"
-              >
-                <span class="resonance-eyebrow">Resonance</span>
-                <Chrome.btn
-                  :for={{_cluster, conn} <- @resonant}
-                  id={"connect-#{conn.id}"}
-                  variant={:primary}
-                  phx-click="connect_theory"
-                  phx-value-connection_id={conn.id}
-                >
-                  [ CONNECT ]
-                </Chrome.btn>
-              </div>
-              <div
-                :if={@warm != [] and is_nil(@active_event_id)}
-                id="leads-controls"
-                class="leads-controls"
-              >
-                <span class="leads-eyebrow">Leads</span>
-                <div :for={lead <- @warm} id={"lead-#{lead.key}"} class="lead">
-                  <div class="leads-meter">
-                    <span
-                      :for={i <- 1..lead.total}
-                      class={["leads-dot", i <= lead.matched && "leads-dot--on"]}
-                    >
-                    </span>
-                    <span class="leads-count">{lead.matched}/{lead.total}</span>
-                    <span class="leads-short">{lead.short} short</span>
-                  </div>
-                  <Chrome.btn
-                    :if={lead.lead_ready?}
-                    id={"follow-lead-#{lead.key}"}
-                    variant={:ghost}
-                    phx-click="follow_lead"
-                    phx-value-lead_id={lead.key}
-                  >
-                    [ FOLLOW LEAD ]
-                  </Chrome.btn>
-                </div>
-              </div>
-            </div>
-
-            <div id="board-dossier" class="board-dossier">
-              <%= if @inspected do %>
-                <div class="dossier">
-                  <div class="dossier-head">
-                    <p class="dossier-title">{@inspected.title}</p>
-                    <button
-                      type="button"
-                      class="dossier-close"
-                      phx-click="close_dossier"
-                      aria-label="Close dossier"
-                    >
-                      [ × ]
-                    </button>
-                  </div>
-                  <div class="dossier-row">
-                    <span class="dossier-eyebrow">Where</span>
-                    <p class="dossier-text">
-                      {@inspected.origin || humanize_source(@inspected.source)}
-                    </p>
-                  </div>
-                  <div class="dossier-row">
-                    <span class="dossier-eyebrow">What</span>
-                    <p class="dossier-text">{@inspected.description}</p>
-                  </div>
-                  <div :if={@inspected.tags != []} class="dossier-row">
-                    <span class="dossier-eyebrow">Tags</span>
-                    <div class="rumor-tags">
-                      <span :for={tag <- @inspected.tags} class="rumor-tag">{tag}</span>
-                    </div>
-                  </div>
-                  <div class="dossier-row">
-                    <span class="dossier-eyebrow">In play</span>
-                    <p class="dossier-text">{status_label(@inspected_status)}</p>
-                  </div>
-                </div>
-              <% else %>
-                <p class="dossier-empty">SELECT ⓘ ON A RUMOR TO RECALL IT</p>
-              <% end %>
-            </div>
-          </div>
+        <div id="signal-network" class="signal-network">
+          <.case_card :for={entry <- @network} entry={entry} event_open?={not is_nil(@active_event_id)} />
         </div>
       <% end %>
     </Layouts.app>
     """
   end
 
-  # Recomputes every board-derived assign from the current player so each handle_event refreshes
-  # in one call.
-  defp board_assigns(socket) do
-    player = socket.assigns.player
+  # One case in the network: progress, the intel you hold, redacted slots for what's missing, and
+  # the heat-priced action (or a SOLVED stamp).
+  attr :entry, :map, required: true
+  attr :event_open?, :boolean, required: true
 
-    {solved, resonant} =
-      player
-      |> Web.matched_clusters()
-      |> Enum.split_with(fn {_cluster, conn} -> Web.solved?(player, conn) end)
+  defp case_card(assigns) do
+    ~H"""
+    <div id={"case-#{@entry.connection.id}"} class="case-card" data-status={@entry.status}>
+      <div class="case-head">
+        <span class="case-title">{humanize_id(@entry.connection.id)}</span>
+        <span class="case-progress">{length(@entry.held)}/{@entry.total}</span>
+        <span :if={@entry.status == :solved} class="case-stamp">SOLVED</span>
+      </div>
 
-    resonant_ids = cluster_ids(Enum.map(resonant, fn {cluster, _conn} -> cluster end))
-    solved_ids = cluster_ids(Enum.map(solved, fn {cluster, _conn} -> cluster end))
+      <ul :if={@entry.held_rumors != []} class="case-held">
+        <li :for={rumor <- @entry.held_rumors} class="case-held-item">{rumor.title}</li>
+      </ul>
 
-    # Each warm lead is keyed on its cluster (sorted rumor ids), not the connection: two warm
-    # sub-clusters can point at the same connection, so connection.id is not unique among leads.
-    warm =
-      player
-      |> Web.warm_clusters()
-      |> Enum.map(&Map.put(&1, :key, lead_key(&1.cluster)))
+      <ul :if={@entry.missing_hints != []} class="case-missing">
+        <li :for={hint <- @entry.missing_hints} class="case-missing-item">
+          <span class="case-redacted">▓▓▓▓</span>
+          <span class="case-hint">{hint}</span>
+        </li>
+      </ul>
 
-    warm_ids = cluster_ids(Enum.map(warm, & &1.cluster))
+      <div :if={not @event_open?} class="case-actions">
+        <Chrome.btn
+          :if={@entry.status == :lead}
+          id={"lead-#{@entry.connection.id}"}
+          variant={:ghost}
+          phx-click="pursue"
+          phx-value-connection_id={@entry.connection.id}
+          phx-value-mode="lead"
+        >
+          [ FOLLOW LEAD · +{@entry.connection.lead_heat} HEAT ]
+        </Chrome.btn>
+        <Chrome.btn
+          :if={@entry.status == :crackable}
+          id={"crack-#{@entry.connection.id}"}
+          variant={:primary}
+          phx-click="pursue"
+          phx-value-connection_id={@entry.connection.id}
+          phx-value-mode="crack"
+        >
+          [ CRACK · +{@entry.connection.crack_heat} HEAT ]
+        </Chrome.btn>
+      </div>
+    </div>
+    """
+  end
 
-    placed =
-      Enum.flat_map(Web.placed(player), fn {id, x, y} ->
-        case Rumor.fetch(id) do
-          {:ok, rumor} ->
-            [
-              %{
-                rumor: rumor,
-                x: x,
-                y: y,
-                resonant: MapSet.member?(resonant_ids, id),
-                warm: MapSet.member?(warm_ids, id),
-                solved: MapSet.member?(solved_ids, id)
-              }
-            ]
-
-          :error ->
-            []
-        end
+  # Decorates each network entry with the display data the case card needs: the held rumors as
+  # structs (for titles) and an origin hint per missing rumor (where to go looking), skipping any
+  # id whose content no longer resolves.
+  defp network_assigns(socket) do
+    network =
+      socket.assigns.player
+      |> Web.network()
+      |> Enum.map(fn entry ->
+        entry
+        |> Map.put(:held_rumors, Enum.flat_map(entry.held, &fetch_rumor/1))
+        |> Map.put(:missing_hints, Enum.flat_map(entry.missing, &missing_hint/1))
       end)
 
-    socket
-    |> assign(:rumors, player.rumors)
-    |> assign(:intake, Enum.flat_map(Web.intake(player), &fetch_rumor/1))
-    |> assign(:placed, placed)
-    |> assign(:wires, Web.wires(player))
-    |> assign(:resonant, resonant)
-    |> assign(:warm, warm)
-    |> assign(:solved_ids, solved_ids)
-    |> assign(:resonant_ids, resonant_ids)
-    |> assign_inspected()
+    assign(socket, :network, network)
   end
 
-  # The dossier rumor + its live status, derived from the open id so the IN PLAY line tracks the
-  # board while a dossier stays open. nil id (or removed content) falls back to the empty state.
-  # Reads the board breakdown board_assigns already stored in assigns, so a dossier-only toggle
-  # (inspect/close) refreshes the status without re-walking the board graph.
-  defp assign_inspected(socket) do
-    player = socket.assigns.player
-
-    inspected =
-      case socket.assigns[:inspected_rumor_id] do
-        nil -> nil
-        id -> fetch_rumor(id) |> List.first()
-      end
-
-    inspected_status =
-      inspected &&
-        Web.rumor_status(
-          player,
-          inspected.id,
-          socket.assigns.solved_ids,
-          socket.assigns.resonant_ids,
-          socket.assigns.warm
-        )
-
-    socket
-    |> assign(:inspected, inspected)
-    |> assign(:inspected_status, inspected_status)
-  end
-
-  defp status_label(:not_placed), do: "Not placed"
-  defp status_label(:on_board), do: "On the board"
-  defp status_label({:forming, matched, total}), do: "Forming · #{matched}/#{total}"
-  defp status_label(:resonant), do: "Resonant"
-  defp status_label(:solved), do: "Solved"
-  defp status_label(nil), do: ""
-
-  defp humanize_source("npc"), do: "From a contact"
-  defp humanize_source("latticework"), do: "Off the latticework"
-  defp humanize_source("street"), do: "Word on the street"
-  defp humanize_source(source) when is_binary(source), do: source
-  defp humanize_source(_), do: "Source unknown"
-
-  defp dispatch_board(socket, fun) do
-    {:ok, player, _meta} = Players.dispatch(socket.assigns.player_id, fun)
-    {:noreply, socket |> assign(:player, player) |> board_assigns()}
-  end
-
-  defp cluster_ids(clusters), do: Enum.reduce(clusters, MapSet.new(), &MapSet.union(&2, &1))
-
-  # Disjoint clusters → the sorted member ids uniquely and stably identify each warm lead, so the
-  # leads strip's DOM id (and follow_lead's handle) stay distinct even when two warm sub-clusters
-  # target the same connection.
-  defp lead_key(cluster), do: cluster |> Enum.sort() |> Enum.join("--")
-
-  # Skips ids that no longer resolve to a rumor (renamed/removed content) instead of crashing.
   defp fetch_rumor(id) do
     case Rumor.fetch(id) do
       {:ok, rumor} -> [rumor]
@@ -484,14 +204,24 @@ defmodule ShuntWeb.WebLive do
     end
   end
 
-  defp clamp_unit(value), do: value |> parse_float() |> max(0.0) |> min(1.0)
-
-  defp parse_float(value) when is_float(value), do: value
-
-  defp parse_float(value) when is_binary(value) do
-    case Float.parse(value) do
-      {float, _rest} -> float
-      :error -> 0.0
+  # The "where to look" line for a rumor you don't hold yet — its authored origin, or a humanized
+  # source. Skipped entirely if the content is gone, so a stale id leaves no empty slot.
+  defp missing_hint(id) do
+    case Rumor.fetch(id) do
+      {:ok, rumor} -> [rumor.origin || humanize_source(rumor.source)]
+      :error -> []
     end
   end
+
+  defp humanize_id(id), do: id |> String.split("_") |> Enum.map_join(" ", &String.capitalize/1)
+
+  defp humanize_source("npc"), do: "From a contact"
+  defp humanize_source("latticework"), do: "Off the latticework"
+  defp humanize_source("street"), do: "Word on the street"
+  defp humanize_source(source) when is_binary(source), do: source
+  defp humanize_source(_), do: "Source unknown"
+
+  defp parse_mode("crack"), do: {:ok, :crack}
+  defp parse_mode("lead"), do: {:ok, :lead}
+  defp parse_mode(_), do: :error
 end

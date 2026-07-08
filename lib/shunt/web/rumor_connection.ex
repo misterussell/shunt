@@ -35,5 +35,7 @@ defmodule Shunt.Web.RumorConnection do
 
   def fetch!(id), do: Content.fetch!(:rumor_connections, id)
 
+  def fetch(id), do: Content.fetch(:rumor_connections, id)
+
   def all, do: Content.all(:rumor_connections)
 end

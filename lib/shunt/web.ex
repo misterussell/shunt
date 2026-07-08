@@ -73,12 +73,14 @@ defmodule Shunt.Web do
   doesn't qualify (`:solved`, `:insufficient_intel`, or `:lead_spent`).
   """
   def pursue(player, connection_id, mode) do
-    conn = RumorConnection.fetch!(connection_id)
-
-    with :ok <- validate_pursuit(player, conn, mode) do
+    with {:ok, conn} <- RumorConnection.fetch(connection_id),
+         :ok <- validate_pursuit(player, conn, mode) do
       {event_id, heat} = pursuit_target(conn, mode)
       {:ok, event_effects, _meta} = Events.start(player, event_id)
       {:ok, [{:heat, heat} | event_effects], %{event_id: event_id}}
+    else
+      :error -> {:error, :not_found}
+      {:error, reason} -> {:error, reason}
     end
   end
 
