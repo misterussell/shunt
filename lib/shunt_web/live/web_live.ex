@@ -13,12 +13,6 @@ defmodule ShuntWeb.WebLive do
   # replaying the events that normally award these rumors.
   @dev_seed_rumors ~w(juno_supplier missing_shipments vex_debts authority_involvement scrubbed_watchlist proxy_pipeline off_hours_passage)
 
-  # TODO: [liveview-entities] Add the Entities browse axis + a Cases/Entities view toggle.
-  # A facet rail lists Web.entities(@player) (tags); selecting one assigns the chosen tag and shows
-  # Web.entity_view(@player, tag) — its held rumors and the cases touching it (reuse the case_card
-  # component). Track the active view (:cases | :entities) + selected entity in assigns; default
-  # :cases. Cover the toggle + entity selection in web_live_test.exs by element id.
-
   def mount(_params, _session, socket) do
     player_id = Players.get_player!().id
     player = Players.current(player_id)
@@ -28,8 +22,22 @@ defmodule ShuntWeb.WebLive do
      |> assign(:player_id, player_id)
      |> assign(:player, player)
      |> assign(:active_event_id, nil)
+     |> assign(:view, :cases)
+     |> assign(:selected_entity, nil)
      |> assign(:dev?, @dev_routes)
-     |> network_assigns()}
+     |> view_assigns()}
+  end
+
+  def handle_event("set_view", %{"view" => view}, socket) do
+    {:noreply, assign(socket, :view, parse_view(view))}
+  end
+
+  def handle_event("select_entity", %{"entity" => tag}, socket) do
+    {:noreply,
+     socket
+     |> assign(:selected_entity, tag)
+     |> assign(:view, :entities)
+     |> view_assigns()}
   end
 
   # Follows a lead (:lead -> partial_event) or cracks a case (:crack -> success_event). Web.pursue/3
@@ -45,7 +53,7 @@ defmodule ShuntWeb.WebLive do
        socket
        |> assign(:player, player)
        |> assign(:active_event_id, event_id)
-       |> network_assigns()}
+       |> view_assigns()}
     else
       _ -> {:noreply, socket}
     end
@@ -56,7 +64,7 @@ defmodule ShuntWeb.WebLive do
       {:ok, player, _meta} ->
         completed? = not Map.has_key?(player.event_state, event_id)
 
-        socket = socket |> assign(:player, player) |> network_assigns()
+        socket = socket |> assign(:player, player) |> view_assigns()
         socket = if(completed?, do: assign(socket, :active_event_id, nil), else: socket)
 
         {:noreply, socket}
@@ -72,7 +80,7 @@ defmodule ShuntWeb.WebLive do
         {:ok, Enum.map(@dev_seed_rumors, &{:rumor, &1})}
       end)
 
-    {:noreply, socket |> assign(:player, player) |> network_assigns()}
+    {:noreply, socket |> assign(:player, player) |> view_assigns()}
   end
 
   # Hidden outside dev, but the channel still accepts the event; ignore it server-side.
@@ -115,16 +123,73 @@ defmodule ShuntWeb.WebLive do
         </Chrome.panel>
       <% end %>
 
-      <%= if @network == [] do %>
-        <Chrome.panel id="web-empty">
-          <p class="web-empty-text">
-            NO SIGNAL YET · gather intel out in the world and the network surfaces its cases
-          </p>
-        </Chrome.panel>
-      <% else %>
-        <div id="signal-network" class="signal-network">
-          <.case_card :for={entry <- @network} entry={entry} event_open?={not is_nil(@active_event_id)} />
-        </div>
+      <%= cond do %>
+        <% @network == [] and @entities == [] -> %>
+          <Chrome.panel id="web-empty">
+            <p class="web-empty-text">
+              NO SIGNAL YET · gather intel out in the world and the network surfaces its cases
+            </p>
+          </Chrome.panel>
+        <% true -> %>
+          <div id="web-views" class="web-views">
+            <button
+              id="view-cases"
+              type="button"
+              class={["web-view-tab", @view == :cases && "web-view-tab--on"]}
+              phx-click="set_view"
+              phx-value-view="cases"
+            >
+              [ CASES ]
+            </button>
+            <button
+              id="view-entities"
+              type="button"
+              class={["web-view-tab", @view == :entities && "web-view-tab--on"]}
+              phx-click="set_view"
+              phx-value-view="entities"
+            >
+              [ ENTITIES ]
+            </button>
+          </div>
+
+          <%= if @view == :entities do %>
+            <div id="entities-view" class="entities-view">
+              <div id="entity-rail" class="entity-rail">
+                <button
+                  :for={tag <- @entities}
+                  id={"entity-#{tag}"}
+                  type="button"
+                  class={["entity-chip", @selected_entity == tag && "entity-chip--on"]}
+                  phx-click="select_entity"
+                  phx-value-entity={tag}
+                >
+                  {tag}
+                </button>
+              </div>
+              <div id="entity-detail" class="entity-detail">
+                <%= if @selected_entity do %>
+                  <ul :if={@entity_rumors != []} class="entity-rumors">
+                    <li :for={rumor <- @entity_rumors} class="entity-rumor">{rumor.title}</li>
+                  </ul>
+                  <.case_card
+                    :for={entry <- @entity_cases}
+                    entry={entry}
+                    event_open?={not is_nil(@active_event_id)}
+                  />
+                <% else %>
+                  <p class="entity-empty">SELECT AN ENTITY TO TRACE ITS NETWORK</p>
+                <% end %>
+              </div>
+            </div>
+          <% else %>
+            <div id="signal-network" class="signal-network">
+              <.case_card
+                :for={entry <- @network}
+                entry={entry}
+                event_open?={not is_nil(@active_event_id)}
+              />
+            </div>
+          <% end %>
       <% end %>
     </Layouts.app>
     """
@@ -181,20 +246,35 @@ defmodule ShuntWeb.WebLive do
     """
   end
 
-  # Decorates each network entry with the display data the case card needs: the held rumors as
-  # structs (for titles) and an origin hint per missing rumor (where to go looking), skipping any
-  # id whose content no longer resolves.
-  defp network_assigns(socket) do
-    network =
-      socket.assigns.player
-      |> Web.network()
-      |> Enum.map(fn entry ->
-        entry
-        |> Map.put(:held_rumors, Enum.flat_map(entry.held, &fetch_rumor/1))
-        |> Map.put(:missing_hints, Enum.flat_map(entry.missing, &missing_hint/1))
-      end)
+  # Rebuilds every view-derived assign from the current player: the cases list, the entity facets,
+  # and (when an entity is selected) that entity's held rumors and the cases it touches.
+  defp view_assigns(socket) do
+    player = socket.assigns.player
 
-    assign(socket, :network, network)
+    {entity_rumors, entity_cases} =
+      case socket.assigns.selected_entity do
+        nil ->
+          {[], []}
+
+        tag ->
+          view = Web.entity_view(player, tag)
+          {view.rumors, Enum.map(view.cases, &enrich/1)}
+      end
+
+    socket
+    |> assign(:network, player |> Web.network() |> Enum.map(&enrich/1))
+    |> assign(:entities, Web.entities(player))
+    |> assign(:entity_rumors, entity_rumors)
+    |> assign(:entity_cases, entity_cases)
+  end
+
+  # Decorates a network entry with the display data the case card needs: the held rumors as structs
+  # (for titles) and an origin hint per missing rumor (where to go looking), skipping any id whose
+  # content no longer resolves.
+  defp enrich(entry) do
+    entry
+    |> Map.put(:held_rumors, Enum.flat_map(entry.held, &fetch_rumor/1))
+    |> Map.put(:missing_hints, Enum.flat_map(entry.missing, &missing_hint/1))
   end
 
   defp fetch_rumor(id) do
@@ -224,4 +304,7 @@ defmodule ShuntWeb.WebLive do
   defp parse_mode("crack"), do: {:ok, :crack}
   defp parse_mode("lead"), do: {:ok, :lead}
   defp parse_mode(_), do: :error
+
+  defp parse_view("entities"), do: :entities
+  defp parse_view(_), do: :cases
 end

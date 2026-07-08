@@ -250,6 +250,67 @@ defmodule ShuntWeb.WebLiveTest do
     end
   end
 
+  describe "cases / entities toggle" do
+    test "defaults to the cases view with both toggle controls present", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      assert has_element?(view, "#view-cases")
+      assert has_element?(view, "#view-entities")
+      assert has_element?(view, "#signal-network")
+      refute has_element?(view, "#entities-view")
+    end
+
+    test "switching to entities shows the facet rail and hides the cases list", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      view |> element("#view-entities") |> render_click()
+
+      assert has_element?(view, "#entities-view")
+      assert has_element?(view, "#entity-juno")
+      refute has_element?(view, "#signal-network")
+    end
+  end
+
+  describe "entities view" do
+    test "selecting an entity shows its held rumors and the cases it touches", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      view |> element("#view-entities") |> render_click()
+      view |> element("#entity-juno") |> render_click()
+
+      assert has_element?(view, "#entity-detail", "Intel A")
+      assert has_element?(view, "#entity-detail #case-test_conn")
+    end
+
+    test "the entity detail starts with a prompt before any entity is chosen", %{
+      conn: conn,
+      player: player
+    } do
+      give_player_rumors(player, ["test_rumor_a"])
+
+      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
+
+      view |> element("#view-entities") |> render_click()
+
+      assert has_element?(view, "#entity-detail .entity-empty")
+    end
+  end
+
   defp give_player_rumors(player, rumor_ids) do
     Shunt.Players.dispatch(player.id, fn _p ->
       {:ok, Enum.map(rumor_ids, &{:rumor, &1}), %{}}
