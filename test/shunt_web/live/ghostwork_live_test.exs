@@ -572,4 +572,85 @@ defmodule ShuntWeb.GhostworkLiveTest do
       refute has_element?(view, "#ice-program-ghostkey")
     end
   end
+
+  describe "the program/ICE reading system" do
+    setup %{player_id: player_id} do
+      node = %IceNode{
+        id: "gw_read_node",
+        name: "Reading Node",
+        family: "ice_corp",
+        location_id: "gw_test_loc",
+        requirements: [{:knows, "gw_read_found"}],
+        cool_threshold: 60,
+        layers: [
+          %{
+            id: "board",
+            name: "Board",
+            trace_multiplier: 1.0,
+            reward: [{:knowledge, "gw_read_cracked"}],
+            subroutines: [
+              %{id: "gate", key: :spoof, threat: :barrier, progress_required: 10},
+              %{id: "watch", key: :decrypt, threat: :sentry, progress_required: 10},
+              %{
+                id: "safe",
+                key: :decrypt,
+                threat: :vault,
+                progress_required: 10,
+                reward: [{:knowledge, "gw_read_loot"}]
+              }
+            ]
+          }
+        ]
+      }
+
+      :ets.insert(:ice_nodes, {node.id, node})
+      on_exit(fn -> :ets.delete(:ice_nodes, "gw_read_node") end)
+
+      Players.dispatch(player_id, fn _player ->
+        {:ok,
+         [
+           {:inventory, "maskchip", 1},
+           {:inventory, "shard_reader", 1},
+           {:ghostwork_loadout, ["maskchip", "shard_reader"]},
+           {:knowledge, "gw_read_found"}
+         ], %{}}
+      end)
+
+      :ok
+    end
+
+    test "the codex legend teaches the verb tells and threat affinities", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+
+      assert has_element?(view, "#codex-legend")
+      assert has_element?(view, "#codex-legend", "walk past the gate")
+      assert has_element?(view, "#codex-legend", "silence the watcher")
+      assert has_element?(view, "#codex-legend .ghostwork-legend-affinity", "▷cloak")
+    end
+
+    test "the loadout row names each program's verb", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+
+      assert has_element?(view, "#program-maskchip .ghostwork-program-action", "▷spoof")
+      assert has_element?(view, "#program-shard_reader .ghostwork-program-action", "▷decrypt")
+    end
+
+    test "program buttons name their verb at the moment of action", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+      view |> element("#break-gw_read_node") |> render_click()
+
+      assert has_element?(view, "#ice-program-maskchip", "▷spoof")
+      assert has_element?(view, "#ice-program-shard_reader", "▷decrypt")
+    end
+
+    test "each threat whispers its affinity off its label, and the vault whispers nothing",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/skills/ghostwork")
+      view |> element("#break-gw_read_node") |> render_click()
+
+      assert has_element?(view, "#ice-sub-gate .ice-subroutine-affinity", "▷spoof")
+      assert has_element?(view, "#ice-sub-watch .ice-subroutine-affinity", "▷cloak")
+      refute has_element?(view, "#ice-sub-safe .ice-subroutine-affinity")
+    end
+  end
 end

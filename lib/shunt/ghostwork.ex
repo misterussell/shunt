@@ -145,6 +145,46 @@ defmodule Shunt.Ghostwork do
   @doc "The single rule: whether a program's action counters a subroutine key."
   def counters?(program, key), do: program.action == key
 
+  # The Ghostwork "reading system": one place that names what each program verb IS and which verb
+  # a threat type usually wants, so UI labels and canon can't drift (same spirit as counters?/2
+  # being the one match rule). Canon: docs/SHUNT_LEXICON.md, docs/SHUNT_TERMINOLOGY.md.
+  @verb_order [:spoof, :cloak, :backdoor, :decrypt, :overload]
+
+  @verb_identities %{
+    spoof: %{tell: "walk past the gate"},
+    cloak: %{tell: "silence the watcher"},
+    backdoor: %{tell: "slip the lock clean"},
+    decrypt: %{tell: "saw through the cipher"},
+    overload: %{tell: "brute the hardened lock"}
+  }
+
+  @doc "An action verb's identity: its one-line `tell`."
+  def verb_identity(verb), do: Map.fetch!(@verb_identities, verb)
+
+  @doc "Every action verb in legend order, each as %{verb:, tell:} — drives the codex legend."
+  def verb_legend do
+    Enum.map(@verb_order, fn verb -> Map.put(verb_identity(verb), :verb, verb) end)
+  end
+
+  # Threat → the verb it usually wants: the one source for the affinity rule (mirrors @verb_identities
+  # for verbs) so threat_affinity/1 and the codex legend can't drift apart. @threat_order fixes the
+  # legend order, exactly as @verb_order does for verbs.
+  @threat_order [:barrier, :sentry, :trap]
+  @threat_verbs %{barrier: :spoof, sentry: :cloak, trap: :backdoor}
+
+  @doc """
+  The SOFT rule of thumb: the verb a threat type usually wants, readable off the always-visible
+  threat label. A guess, NOT authoritative — the per-subroutine `key` stays the truth (and stays
+  fogged until KEYS mastery); deviations are authored "exceptions" the player learns by reading a
+  family. `nil` for `:vault` (a blind gamble) and any threat without an affinity.
+  """
+  def threat_affinity(threat), do: Map.get(@threat_verbs, threat)
+
+  @doc "The threats that carry an affinity, in legend order, each as %{threat:, verb:}."
+  def threat_affinities do
+    for threat <- @threat_order, do: %{threat: threat, verb: Map.fetch!(@threat_verbs, threat)}
+  end
+
   defp coverage_for(nodes, owned, family) do
     nodes
     |> Enum.filter(&(&1.family == family))

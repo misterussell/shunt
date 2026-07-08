@@ -146,6 +146,36 @@ Dampener
 Nullsleeve
 Fitworks-Cut Deck
 
+### Program verbs (the reading system)
+
+Every program runs one **action verb** — the program's identity, read off the deck, never from
+memory:
+
+| Verb | Tell | Programs |
+| --- | --- | --- |
+| **▷Spoof** | walk past the gate — forged credentials, waved through | Maskchip |
+| **▷Cloak** | silence the watcher — go dark before a sentry bleeds you | Dampener, Nullsleeve |
+| **▷Backdoor** | slip the lock clean — a real key for a door that shouldn't open | Ghostkey |
+| **▷Decrypt** | saw through the cipher — broadly demanded, loud; the hedge key | Signal Knife, Shard Reader, Tracebreaker |
+| **▷Overload** | brute the hardened lock — loud on purpose; firepower | Powerspike, Arc Driver |
+
+### Threat affinities (a rule of thumb, not a law)
+
+A subroutine's threat label is always legible, so it carries a *usual* verb — a starting guess
+before you've read the ICE:
+
+| Threat | Usually wants |
+| --- | --- |
+| **Barrier** | ▷Spoof |
+| **Sentry** | ▷Cloak |
+| **Trap** | ▷Backdoor |
+| **Vault** | — (blind gamble; read the key or drill and pray) |
+
+This is a **tendency, not a guarantee**. A subroutine's true `key` is the authority, and it stays
+fogged until you read the family to KEYS mastery. Authored exceptions (a Barrier that wants
+▷Decrypt) are exactly what mastery teaches — the affinity gets you started; reading the ICE gets
+you right.
+
 ## Chrome & Meat
 
 * **chrome / meat** — slang for cyberware and the flesh it goes into; "chrome & meat work" is

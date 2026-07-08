@@ -95,7 +95,15 @@ defmodule ShuntWeb.Components.IceTerminal do
               phx-value-subroutine={sub.id}
             >
               <span class={["ice-subroutine-threat", "ice-subroutine-threat--#{sub.threat}"]}>
+                <% affinity = Ghostwork.threat_affinity(sub.threat) %>
                 {threat_label(sub.threat)}
+                <span
+                  :if={affinity}
+                  class="ice-subroutine-affinity"
+                  title="rule of thumb — the real key can differ"
+                >
+                  usually ▷{affinity}
+                </span>
               </span>
               <span class="ice-subroutine-key">
                 <%= if @weakness_known? do %>
@@ -165,7 +173,9 @@ defmodule ShuntWeb.Components.IceTerminal do
                   phx-value-action={"program:" <> prog.id}
                   phx-value-subroutine={@program_target}
                 >
-                  <span class="ice-action-name">{prog.name}</span>
+                  <span class="ice-action-name">
+                    {prog.name}<span class="ice-action-verb">▷{prog.action}</span>
+                  </span>
                   <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
                 </button>
               <% end %>
@@ -179,7 +189,9 @@ defmodule ShuntWeb.Components.IceTerminal do
                   phx-value-action={"program:" <> prog.id}
                   phx-value-subroutine={@drill_target}
                 >
-                  <span class="ice-action-name">DRILL · {prog.name}</span>
+                  <span class="ice-action-name">
+                    DRILL · {prog.name}<span class="ice-action-verb">▷{prog.action}</span>
+                  </span>
                   <.cost known={@numbers_known?} progress={prog.progress} trace={prog.trace} />
                 </button>
               </div>

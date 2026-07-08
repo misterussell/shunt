@@ -68,6 +68,14 @@ Includes:
 * ICE-breaking
 * Data recovery
 
+### Reading the ICE
+
+Programs are **verbs** (Spoof, Cloak, Backdoor, Decrypt, Overload); ICE subroutines carry a
+**threat** (Barrier, Sentry, Trap, Vault). Each threat has a *usual* verb the player reads off
+the always-visible threat label — Barrier→Spoof, Sentry→Cloak, Trap→Backdoor; Vault is a blind
+gamble. The subroutine's true key is authoritative and stays fogged until family mastery, so the
+affinity is guidance, not law. Full table in SHUNT_LEXICON.md.
+
 ---
 
 ## The Web

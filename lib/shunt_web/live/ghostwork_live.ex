@@ -306,7 +306,12 @@ defmodule ShuntWeb.GhostworkLive do
               ]}
             >
               <span class="ghostwork-program-name">{prog.name}</span>
-              <span class="ghostwork-program-action">{prog.action}</span>
+              <span
+                class="ghostwork-program-action"
+                title={Ghostwork.verb_identity(prog.action).tell}
+              >
+                ▷{prog.action}
+              </span>
               <span class="ghostwork-program-stats">P{prog.progress} / T{prog.trace}</span>
               <%= if prog.id in @loadout do %>
                 <button
@@ -333,6 +338,25 @@ defmodule ShuntWeb.GhostworkLive do
 
           <Chrome.section_header>CODEX</Chrome.section_header>
           <Chrome.panel id="codex-panel">
+            <div id="codex-legend" class="ghostwork-legend">
+              <p class="ghostwork-legend-head">PROGRAMS</p>
+              <ul class="ghostwork-legend-verbs">
+                <li :for={v <- Ghostwork.verb_legend()} class="ghostwork-legend-verb">
+                  <span class="ghostwork-legend-glyph">▷{v.verb}</span>
+                  <span class="ghostwork-legend-tell">{v.tell}</span>
+                </li>
+              </ul>
+              <p class="ghostwork-legend-head">ICE USUALLY WANTS</p>
+              <ul class="ghostwork-legend-affinities">
+                <li :for={a <- Ghostwork.threat_affinities()} class="ghostwork-legend-affinity">
+                  <span class="ghostwork-legend-threat">{a.threat}</span>
+                  <span class="ghostwork-legend-glyph">▷{a.verb}</span>
+                </li>
+              </ul>
+              <p class="ghostwork-legend-note">
+                a rule of thumb — the real key can differ; read the ICE
+              </p>
+            </div>
             <div class="ghostwork-codex-mastery">
               <p :if={@mastery == []} class="ghostwork-empty">NO ICE READ YET</p>
               <div :for={m <- @mastery} id={"mastery-#{m.family}"} class="ghostwork-mastery-row">
