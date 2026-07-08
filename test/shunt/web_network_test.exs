@@ -201,5 +201,90 @@ defmodule Shunt.WebNetworkTest do
     end
   end
 
+  describe "entity_graph/1" do
+    setup do
+      rumors = [
+        rumor("gr_a", ["corp", "smug", "juno"]),
+        rumor("gr_b", ["corp", "smug", "freight"]),
+        rumor("gr_c", ["corp", "vex"]),
+        rumor("gr_orphan", ["ghost", "wire"])
+      ]
+
+      connections = [
+        conn("gcase", ["gr_a", "gr_b", "gr_c"], 2),
+        # Shares gr_a but stays forming (gp_b/gp_c never held) — exercises "best status wins".
+        conn("gcase_partial", ["gr_a", "gp_b", "gp_c"], 2)
+      ]
+
+      :ets.insert(:rumors, Enum.map(rumors, &{&1.id, &1}))
+      Enum.each(connections, &:ets.insert(:rumor_connections, {&1.id, &1}))
+
+      on_exit(fn ->
+        Enum.each(rumors, &:ets.delete(:rumors, &1.id))
+        Enum.each(connections, &:ets.delete(:rumor_connections, &1.id))
+      end)
+
+      :ok
+    end
+
+    defp pair(edge), do: Enum.sort([edge.a, edge.b])
+    defp find_edge(edges, a, b), do: Enum.find(edges, &(pair(&1) == Enum.sort([a, b])))
+
+    test "nodes: one per distinct held tag, weight = held rumors touching it" do
+      %{nodes: nodes} = Web.entity_graph(player(["gr_a", "gr_b", "gr_c"]))
+      weights = Map.new(nodes, &{&1.tag, &1.weight})
+
+      assert weights["corp"] == 3
+      assert weights["smug"] == 2
+      assert weights["juno"] == 1
+      assert weights["vex"] == 1
+    end
+
+    test "edges: one deduped edge per co-occurring pair, weight = held rumors carrying both" do
+      %{edges: edges} = Web.entity_graph(player(["gr_a", "gr_b", "gr_c"]))
+
+      assert [%{weight: 2}] = Enum.filter(edges, &(pair(&1) == ["corp", "smug"]))
+      assert find_edge(edges, "corp", "vex").weight == 1
+    end
+
+    test "edge status is the producing case's status, crackable when fully held" do
+      %{edges: edges} = Web.entity_graph(player(["gr_a", "gr_b", "gr_c"]))
+      assert Enum.all?(edges, &(&1.status == :crackable))
+    end
+
+    test "edge status reflects a lead-level case, and the best status wins" do
+      # gcase holds 2/3 -> :lead; gcase_partial holds only gr_a -> :forming. corp-smug touches both.
+      %{edges: edges} = Web.entity_graph(player(["gr_a", "gr_b"]))
+      assert find_edge(edges, "corp", "smug").status == :lead
+    end
+
+    test "a co-occurrence in no held case is :unaffiliated" do
+      %{edges: edges} = Web.entity_graph(player(["gr_orphan"]))
+      assert find_edge(edges, "ghost", "wire").status == :unaffiliated
+    end
+
+    test "each node's cluster is the highest-status case touching it (or :unaffiliated)" do
+      %{nodes: nodes} = Web.entity_graph(player(["gr_a", "gr_b", "gr_c", "gr_orphan"]))
+      by_tag = Map.new(nodes, &{&1.tag, &1})
+
+      assert by_tag["vex"].cluster == "gcase"
+      assert by_tag["ghost"].cluster == :unaffiliated
+      # corp is in gcase (crackable) and gcase_partial (forming) — crackable wins.
+      assert by_tag["corp"].cluster == "gcase"
+    end
+
+    test "no held rumors yields an empty graph" do
+      assert Web.entity_graph(player([])) == %{nodes: [], edges: []}
+    end
+
+    test "every node has numeric coordinates and the layout is deterministic" do
+      p = player(["gr_a", "gr_b", "gr_c", "gr_orphan"])
+      %{nodes: nodes} = graph = Web.entity_graph(p)
+
+      assert Enum.all?(nodes, &(is_float(&1.x) and is_float(&1.y)))
+      assert Web.entity_graph(p) == graph
+    end
+  end
+
   defp rumor(id, tags), do: %Rumor{id: id, title: id, description: "…", tags: tags}
 end
