@@ -57,7 +57,9 @@ defmodule ShuntWeb.WebLiveTest do
       partial_threshold: 2,
       success_event_id: "test_web_success",
       partial_event_id: "test_web_partial",
-      failure_event_id: "test_web_failure"
+      failure_event_id: "test_web_failure",
+      lead_heat: 2,
+      crack_heat: 5
     }
 
     success_event = %Event{

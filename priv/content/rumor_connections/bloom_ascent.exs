@@ -15,5 +15,7 @@
   partial_threshold: 4,
   success_event_id: "bloom_ascent_success",
   partial_event_id: "bloom_ascent_partial",
-  failure_event_id: "bloom_ascent_failure"
+  failure_event_id: "bloom_ascent_failure",
+  lead_heat: 5,
+  crack_heat: 10
 }

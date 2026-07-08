@@ -9,18 +9,18 @@ defmodule Shunt.Web.RumorConnection do
   # don't drop them as dead code. (`partial_threshold` and `partial_event_id` are now live: the
   # warmth/leads strip reads the threshold, and [ FOLLOW LEAD ] starts the partial event — which
   # for supplier_conspiracy in turn awards the authority_involvement rumor.)
-  # TODO: [data-model] Add authored, shown-up-front heat costs for acting on a case:
-  #   :lead_heat (following a lead / partial_event) and :crack_heat (cracking / success_event).
-  # Add both to defstruct and @enforce_keys (ints), then populate every file in
-  # priv/content/rumor_connections/*.exs (all 7) with values — enforce means nothing loads until
-  # they're all set. Assert the fields load in test/shunt/web/rumor_connection_test.exs.
+  # `lead_heat`/`crack_heat` are the authored, shown-up-front heat the player takes on for acting on
+  # a case: following a lead (partial_event) vs cracking it outright (success_event). Probing the
+  # hidden network exposes you — cracking is the bigger commitment, so it costs more heat.
   @enforce_keys [
     :id,
     :rumors,
     :partial_threshold,
     :success_event_id,
     :partial_event_id,
-    :failure_event_id
+    :failure_event_id,
+    :lead_heat,
+    :crack_heat
   ]
   defstruct [
     :id,
@@ -28,7 +28,9 @@ defmodule Shunt.Web.RumorConnection do
     :partial_threshold,
     :success_event_id,
     :partial_event_id,
-    :failure_event_id
+    :failure_event_id,
+    :lead_heat,
+    :crack_heat
   ]
 
   def fetch!(id), do: Content.fetch!(:rumor_connections, id)

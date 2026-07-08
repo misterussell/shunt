@@ -4,5 +4,7 @@
   partial_threshold: 2,
   success_event_id: "market_squeeze_success",
   partial_event_id: "market_squeeze_partial",
-  failure_event_id: "market_squeeze_failure"
+  failure_event_id: "market_squeeze_failure",
+  lead_heat: 2,
+  crack_heat: 5
 }

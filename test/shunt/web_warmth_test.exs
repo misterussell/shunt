@@ -13,7 +13,9 @@ defmodule Shunt.WebWarmthTest do
       partial_threshold: 2,
       success_event_id: "ww_trio_success",
       partial_event_id: "ww_trio_partial",
-      failure_event_id: "ww_trio_failure"
+      failure_event_id: "ww_trio_failure",
+      lead_heat: 2,
+      crack_heat: 5
     }
 
     quint = %RumorConnection{
@@ -22,7 +24,9 @@ defmodule Shunt.WebWarmthTest do
       partial_threshold: 3,
       success_event_id: "ww_quint_success",
       partial_event_id: "ww_quint_partial",
-      failure_event_id: "ww_quint_failure"
+      failure_event_id: "ww_quint_failure",
+      lead_heat: 3,
+      crack_heat: 6
     }
 
     :ets.insert(:rumor_connections, [{trio.id, trio}, {quint.id, quint}])

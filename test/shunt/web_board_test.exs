@@ -144,7 +144,9 @@ defmodule Shunt.WebBoardTest do
         partial_threshold: 1,
         success_event_id: "win",
         partial_event_id: "p",
-        failure_event_id: "f"
+        failure_event_id: "f",
+        lead_heat: 1,
+        crack_heat: 2
       }
 
       assert Web.solved?(%Player{completed_events: ["win"]}, conn)
