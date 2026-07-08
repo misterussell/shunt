@@ -1,5 +1,6 @@
 %{
   id: "patchwork_scalpel",
+  routes: [:chrome_meat],
   name: "Patchwork Scalpel",
   tier_required: 0,
   inputs: %{"sterile_suture_kit" => 1, "subdermal_wiring_bundle" => 1},

@@ -1,5 +1,6 @@
 %{
   id: "forgers_stub",
+  routes: [:web],
   name: "Forger's Stub",
   tier_required: 0,
   inputs: %{"forged_credential_stub" => 1, "cracked_datachip" => 1},

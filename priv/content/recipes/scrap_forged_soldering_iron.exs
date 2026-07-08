@@ -1,5 +1,6 @@
 %{
   id: "scrap_forged_soldering_iron",
+  routes: [:tools],
   name: "Scrap-Forged Soldering Iron",
   tier_required: 0,
   inputs: %{"flux_paste_tin" => 1, "scrap_heating_coil" => 1},

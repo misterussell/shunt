@@ -1,5 +1,6 @@
 %{
   id: "diagnostic_probe",
+  routes: [:tools],
   name: "Diagnostic Probe",
   tier_required: 1,
   inputs: %{"cracked_datachip" => 1, "frayed_optic_cable" => 1},

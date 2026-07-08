@@ -5,6 +5,7 @@ defmodule ShuntWeb.SkillsLive do
   alias Shunt.Crafting
   alias Shunt.Crafting.RawCatalog
   alias Shunt.Crafting.RecipeCatalog
+  alias Shunt.Crafting.Routes
   alias Shunt.Implants
   alias Shunt.Players
   alias Shunt.Skills.Catalog, as: SkillsCatalog
@@ -15,11 +16,15 @@ defmodule ShuntWeb.SkillsLive do
     player = Players.current(player_id)
     tree = SkillsCatalog.fetch!(Atom.to_string(socket.assigns.live_action))
 
+    # :active_routes holds the route keys currently patched in on the RECIPES rail. Empty = no
+    # filter = show all. It is pure UI state and lives here (not in assign_player/2, which reruns
+    # on every scavenge/assemble/sell) so a bench action never clears the player's filter.
     {:ok,
      socket
      |> assign(player_id: player_id)
      |> assign(:status, nil)
      |> assign(:tree, tree)
+     |> assign(:active_routes, MapSet.new())
      |> assign_player(player)}
   end
 
@@ -34,6 +39,25 @@ defmodule ShuntWeb.SkillsLive do
      |> assign(:status, status)
      |> flash_heat_event(meta.heat_event)
      |> assign_player(player)}
+  end
+
+  def handle_event("toggle_route", %{"route" => route}, socket) do
+    # route comes straight from the client; only toggle it if it names a real route, otherwise
+    # ignore the event rather than crash on String.to_existing_atom/1.
+    case Enum.find(Routes.keys(), &(Atom.to_string(&1) == route)) do
+      nil ->
+        {:noreply, socket}
+
+      route ->
+        active = socket.assigns.active_routes
+
+        active =
+          if MapSet.member?(active, route),
+            do: MapSet.delete(active, route),
+            else: MapSet.put(active, route)
+
+        {:noreply, assign(socket, :active_routes, active)}
+    end
   end
 
   def handle_event("assemble", %{"key" => recipe_key}, socket) do
@@ -140,14 +164,34 @@ defmodule ShuntWeb.SkillsLive do
           </Chrome.panel>
 
           <Chrome.section_header secondary="DECRYPTED BY TIER">RECIPES</Chrome.section_header>
+          <div class="route-rail">
+            <button
+              :for={route <- Routes.all()}
+              id={"route-#{route.key}"}
+              type="button"
+              class={[
+                "route-gel",
+                "route--#{route.key}",
+                MapSet.member?(@active_routes, route.key) && "active"
+              ]}
+              phx-click="toggle_route"
+              phx-value-route={route.key}
+            >
+              {route.label}<span class="route-gel-count">{Map.get(@route_counts, route.key, 0)}</span>
+            </button>
+          </div>
           <div class="recipes-list">
-            <div :for={recipe <- @recipes} id={"recipe-#{recipe.id}"}>
+            <div
+              :for={recipe <- filter_recipes(@recipes, @active_routes)}
+              id={"recipe-#{recipe.id}"}
+            >
               <%= if @current_tier < recipe.tier_required do %>
                 <div class="recipe-row recipe-row--locked">
                   <span class="recipe-tier-chip recipe-tier-chip--locked">
                     T{recipe.tier_required}
                   </span>
                   <span class="recipe-redacted-name">█████ ███</span>
+                  <.recipe_stamps routes={recipe.routes} />
                   <span class="recipe-encrypted-label">🔒 ENCRYPTED</span>
                 </div>
               <% else %>
@@ -162,6 +206,7 @@ defmodule ShuntWeb.SkillsLive do
                       end)}
                     </div>
                   </div>
+                  <.recipe_stamps routes={recipe.routes} />
                   <span class="recipe-value">+{recipe.sell_value}cr</span>
                   <Chrome.btn
                     id={"assemble-#{recipe.id}-button"}
@@ -294,20 +339,58 @@ defmodule ShuntWeb.SkillsLive do
     """
   end
 
+  # The per-row routing stamps, shared by the locked and unlocked recipe rows.
+  attr :routes, :list, required: true
+
+  defp recipe_stamps(assigns) do
+    ~H"""
+    <div class="recipe-stamps">
+      <span :for={r <- @routes} class={["recipe-stamp", "route--#{r}"]}>
+        {Routes.label(r)}
+      </span>
+    </div>
+    """
+  end
+
+  # Presentation-only filter: intersect each recipe's content route tags with the patched-in
+  # routes. Empty selection = no filter = show all.
+  defp filter_recipes(recipes, active_routes) do
+    if MapSet.size(active_routes) == 0 do
+      recipes
+    else
+      Enum.filter(recipes, fn recipe ->
+        Enum.any?(recipe.routes, &MapSet.member?(active_routes, &1))
+      end)
+    end
+  end
+
+  # Total recipes per route, locked and unlocked, so each rail chip advertises what's still coming.
+  # Computed once per recipe set (not per chip, per render) — counts never depend on @active_routes.
+  defp route_counts(recipes) do
+    Enum.reduce(recipes, %{}, fn recipe, acc ->
+      Enum.reduce(recipe.routes, acc, fn key, acc -> Map.update(acc, key, 1, &(&1 + 1)) end)
+    end)
+  end
+
   defp assign_player(socket, player) do
     tree = socket.assigns.tree
+    known_routes = Routes.keys()
 
+    # Normalize routes to the known set (missing field -> [], drop unknown atoms) so the rail and
+    # per-row stamps can't crash on a recipe authored without a valid routes: field.
     recipes =
-      Enum.map(
-        RecipeCatalog.recipes(),
-        &Map.put(&1, :craftable?, Crafting.craftable?(player, &1))
-      )
+      Enum.map(RecipeCatalog.recipes(), fn recipe ->
+        recipe
+        |> Map.put(:craftable?, Crafting.craftable?(player, recipe))
+        |> Map.update(:routes, [], &Enum.filter(&1, fn r -> r in known_routes end))
+      end)
 
     socket
     |> assign(:player, player)
     |> assign(:current_tier, SkillsCatalog.current_tier(player, tree))
     |> assign(:raws, RawCatalog.items())
     |> assign(:recipes, recipes)
+    |> assign(:route_counts, route_counts(recipes))
     |> assign_chrome(player, tree)
   end
 

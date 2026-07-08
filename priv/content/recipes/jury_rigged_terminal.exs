@@ -1,5 +1,6 @@
 %{
   id: "jury_rigged_terminal",
+  routes: [:ghostwork],
   name: "Jury-Rigged Terminal",
   tier_required: 0,
   inputs: %{"cracked_datachip" => 1, "salvaged_fiber_spool" => 1},

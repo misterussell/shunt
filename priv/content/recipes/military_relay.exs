@@ -1,5 +1,6 @@
 %{
   id: "military_relay",
+  routes: [:repair],
   name: "Military Relay",
   tier_required: 1,
   inputs: %{
