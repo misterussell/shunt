@@ -100,7 +100,9 @@ defmodule ShuntWeb.Components.IceTerminal do
                   :if={Ghostwork.threat_affinity(sub.threat)}
                   class="ice-subroutine-affinity"
                   title="rule of thumb — the real key can differ"
-                >usually ▷{Ghostwork.threat_affinity(sub.threat)}</span>
+                >
+                  usually ▷{Ghostwork.threat_affinity(sub.threat)}
+                </span>
               </span>
               <span class="ice-subroutine-key">
                 <%= if @weakness_known? do %>

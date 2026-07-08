@@ -353,7 +353,9 @@ defmodule ShuntWeb.GhostworkLive do
                   <span class="ghostwork-legend-glyph">▷{a.verb}</span>
                 </li>
               </ul>
-              <p class="ghostwork-legend-note">a rule of thumb — the real key can differ; read the ICE</p>
+              <p class="ghostwork-legend-note">
+                a rule of thumb — the real key can differ; read the ICE
+              </p>
             </div>
             <div class="ghostwork-codex-mastery">
               <p :if={@mastery == []} class="ghostwork-empty">NO ICE READ YET</p>
