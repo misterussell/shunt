@@ -1,43 +1,141 @@
 defmodule Shunt.Web do
   @moduledoc false
 
+  alias Shunt.Events
+  alias Shunt.Web.Rumor
   alias Shunt.Web.RumorConnection
 
-  # TODO: [domain-network] Replace this whole board/graph module with data-driven correlation.
-  # Rumors are no longer arranged by hand — a case's state is pure set math on player.rumors.
-  # Add `network(player)`: for every RumorConnection the player holds >=1 rumor of, return
-  #   %{connection: conn, held: [ids], missing: [ids], total: length(conn.rumors), status: status}
-  # sorted by status priority (:crackable, :lead, :forming, :solved) then connection id, where
-  # (checked in this order):
-  #   solved?(player, conn)                     -> :solved
-  #   held == MapSet.new(conn.rumors)           -> :crackable
-  #   held_count >= conn.partial_threshold      -> :lead
-  #   held_count >= 1                            -> :forming
-  # held_count == 0 -> the case is absent from the list (hidden). Keep/adapt `solved?/2`.
-  # DELETE the entire wire/board layer: @empty_board, wipe_board, place_rumor, connect,
-  # disconnect, return_to_intake, intake, placed, wires, clusters, matched_clusters,
-  # resonant_clusters, solved_clusters, warm_clusters, rumor_status/2+/5, locked_rumor_ids,
-  # best_partial_connection, resonant_rumor_ids, locked?/locked_either?, board, reachable.
-  # Delete the now-obsolete test/shunt/web_board_test.exs and test/shunt/web_warmth_test.exs;
-  # cover network/1's status transitions in a new test/shunt/web_network_test.exs.
+  # TODO: [domain-network-cleanup] Once WebLive no longer calls the old board API, DELETE the entire
+  # wire/board layer below `pursue`: @empty_board, wipe_board, place_rumor, connect, disconnect,
+  # return_to_intake, intake, placed, wires, clusters, matched_clusters, resonant_clusters,
+  # solved_clusters, warm_clusters, rumor_status/2+/5, locked_rumor_ids, best_partial_connection,
+  # resonant_rumor_ids, locked?/locked_either?, board, reachable — and delete the now-obsolete
+  # test/shunt/web_board_test.exs and test/shunt/web_warmth_test.exs. network/1, pursue/3,
+  # entities/1, entity_view/2 (covered in web_network_test.exs) replace all of it.
 
-  # TODO: [domain-pursue] Add `pursue(player, connection_id, mode)` where mode is :lead | :crack.
-  # Server-authoritative — the client can't be trusted to have earned the intel:
-  #   :crack requires held == MapSet.new(conn.rumors); :lead requires held_count >= partial_threshold.
-  #   Both require not solved?/2; :lead additionally requires conn.partial_event_id not already in
-  #   player.completed_events (a spent non-repeatable partial can't be re-followed).
-  # On success return {:ok, [{:heat, heat} | event_effects], %{event_id: event_id}} where
-  #   event_id/heat = success_event_id/crack_heat for :crack, partial_event_id/lead_heat for :lead,
-  #   and event_effects come from Events.start(player, event_id) (drop its meta). On failure return
-  #   {:error, reason}. Mirrors the effect-list contract other contexts use (chrome_meat, fencing)
-  #   so WebLive dispatches it in one call and reads meta.event_id. Cover in web_network_test.exs
-  #   (heat applied, event started, unqualified :crack and :lead both rejected).
+  @status_order %{crackable: 0, lead: 1, forming: 2, solved: 3}
 
-  # TODO: [domain-entities] Add the browse-by-entity axis, derived from rumor tags (no new content).
-  #   `entities(player)` -> sorted distinct tags across the player's HELD rumors.
-  #   `entity_view(player, tag)` -> %{rumors: [held rumors carrying tag],
-  #      cases: [network/1 entries whose connection includes a held rumor carrying tag]}.
-  # Grounds the "social network" view in intel actually collected. Cover in web_network_test.exs.
+  @doc """
+  The player's signal network: every RumorConnection they hold at least one rumor of, decorated
+  with what they hold, what they're missing, the total, and the case's status. Cases the player
+  holds no rumor of are omitted (hidden). `held`/`missing` preserve the connection's authored rumor
+  order. Sorted by status (crackable, then lead, then forming, then solved) and then connection id.
+
+    status ordering (first match wins):
+      solved?/2                            -> :solved
+      holds every rumor in the set         -> :crackable
+      holds >= conn.partial_threshold      -> :lead
+      holds >= 1                           -> :forming
+  """
+  def network(player) do
+    held_set = MapSet.new(player.rumors)
+
+    RumorConnection.all()
+    |> Enum.flat_map(fn conn ->
+      case Enum.filter(conn.rumors, &MapSet.member?(held_set, &1)) do
+        [] ->
+          []
+
+        held ->
+          [
+            %{
+              connection: conn,
+              held: held,
+              missing: Enum.reject(conn.rumors, &MapSet.member?(held_set, &1)),
+              total: length(conn.rumors),
+              status: status(player, conn, length(held))
+            }
+          ]
+      end
+    end)
+    |> Enum.sort_by(fn %{connection: conn, status: status} ->
+      {Map.fetch!(@status_order, status), conn.id}
+    end)
+  end
+
+  defp status(player, conn, held_count) do
+    cond do
+      solved?(player, conn) -> :solved
+      held_count == length(conn.rumors) -> :crackable
+      held_count >= conn.partial_threshold -> :lead
+      true -> :forming
+    end
+  end
+
+  @doc """
+  Acts on a case. `:crack` plays its success event; `:lead` plays its partial event. This is
+  server-authoritative — the player must actually hold the required intel, since the client can't
+  be trusted to have earned it. Probing the network is a commitment: the case's authored heat cost
+  (`crack_heat`/`lead_heat`) rides along with the started event.
+
+  Returns `{:ok, [{:heat, cost} | event_effects], %{event_id: event_id}}` so the caller can dispatch
+  it in one shot and read the started event id from the meta, or `{:error, reason}` when the player
+  doesn't qualify (`:solved`, `:insufficient_intel`, or `:lead_spent`).
+  """
+  def pursue(player, connection_id, mode) do
+    conn = RumorConnection.fetch!(connection_id)
+
+    with :ok <- validate_pursuit(player, conn, mode) do
+      {event_id, heat} = pursuit_target(conn, mode)
+      {:ok, event_effects, _meta} = Events.start(player, event_id)
+      {:ok, [{:heat, heat} | event_effects], %{event_id: event_id}}
+    end
+  end
+
+  defp pursuit_target(conn, :crack), do: {conn.success_event_id, conn.crack_heat}
+  defp pursuit_target(conn, :lead), do: {conn.partial_event_id, conn.lead_heat}
+
+  @doc """
+  The browse-by-entity axis: the sorted, distinct tags across the rumors the player actually holds.
+  Grounds the network in intel collected, not in cases they haven't touched.
+  """
+  def entities(player) do
+    player
+    |> held_rumors()
+    |> Enum.flat_map(& &1.tags)
+    |> Enum.uniq()
+    |> Enum.sort()
+  end
+
+  @doc """
+  Everything the network shows for one entity (tag): the held rumors carrying it (in held order),
+  and the `network/1` cases those rumors touch. `%{rumors: [...], cases: [...]}`.
+  """
+  def entity_view(player, tag) do
+    tagged = player |> held_rumors() |> Enum.filter(&(tag in &1.tags))
+    tagged_ids = MapSet.new(tagged, & &1.id)
+
+    cases =
+      player
+      |> network()
+      |> Enum.filter(fn %{connection: conn} ->
+        Enum.any?(conn.rumors, &MapSet.member?(tagged_ids, &1))
+      end)
+
+    %{rumors: tagged, cases: cases}
+  end
+
+  defp held_rumors(player) do
+    Enum.flat_map(player.rumors, fn id ->
+      case Rumor.fetch(id) do
+        {:ok, rumor} -> [rumor]
+        :error -> []
+      end
+    end)
+  end
+
+  defp validate_pursuit(player, conn, mode) do
+    held_count =
+      MapSet.intersection(MapSet.new(player.rumors), MapSet.new(conn.rumors)) |> MapSet.size()
+
+    cond do
+      solved?(player, conn) -> {:error, :solved}
+      mode == :crack and held_count < length(conn.rumors) -> {:error, :insufficient_intel}
+      mode == :lead and held_count < conn.partial_threshold -> {:error, :insufficient_intel}
+      mode == :lead and conn.partial_event_id in player.completed_events -> {:error, :lead_spent}
+      true -> :ok
+    end
+  end
 
   @empty_board %{"positions" => %{}, "wires" => []}
 
