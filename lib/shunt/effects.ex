@@ -109,6 +109,15 @@ defmodule Shunt.Effects do
     do_apply(rest, player, Map.put(acc, field, value), meta)
   end
 
+  # Advance world time by pushing :last_collected backward, so the income reservoir accrues that
+  # many more hours (up to each module's cap) on the next collect. See SHUNT_laying_low_v2.md — the
+  # only time model in the game is the offline-income reservoir. A nil :last_collected is a no-op.
+  defp do_apply([{:advance_time, hours} | rest], player, acc, meta) do
+    current = Map.get(acc, :last_collected, player.last_collected)
+    new = if current, do: DateTime.add(current, -hours * 3600), else: current
+    do_apply(rest, player, Map.put(acc, :last_collected, new), meta)
+  end
+
   defp do_apply([{:chrome_load, delta} | rest], player, acc, meta) do
     new_value = ChromeMeat.clamp(Map.get(acc, :chrome_load, player.chrome_load) + delta)
     do_apply(rest, player, Map.put(acc, :chrome_load, new_value), meta)

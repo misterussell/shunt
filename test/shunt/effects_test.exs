@@ -588,4 +588,34 @@ defmodule Shunt.EffectsTest do
       assert changes.implants == %{"reflex_spur" => %{}}
     end
   end
+
+  describe "apply/2 - :advance_time" do
+    test "pushes last_collected backward by the given hours" do
+      player = %Player{last_collected: ~U[2026-07-09 12:00:00Z]}
+
+      {changes, _meta} = Effects.apply(player, [{:advance_time, 6}])
+
+      assert changes.last_collected == ~U[2026-07-09 06:00:00Z]
+    end
+
+    test "a nil last_collected is a no-op" do
+      player = %Player{last_collected: nil}
+
+      {changes, _meta} = Effects.apply(player, [{:advance_time, 6}])
+
+      assert changes.last_collected == nil
+    end
+
+    test "threads through a prior :set of last_collected in the same effect list" do
+      player = %Player{last_collected: ~U[2026-07-09 12:00:00Z]}
+
+      {changes, _meta} =
+        Effects.apply(player, [
+          {:set, :last_collected, ~U[2026-07-10 00:00:00Z]},
+          {:advance_time, 4}
+        ])
+
+      assert changes.last_collected == ~U[2026-07-09 20:00:00Z]
+    end
+  end
 end

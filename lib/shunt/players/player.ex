@@ -54,6 +54,10 @@ defmodule Shunt.Players.Player do
     field :completed_events, {:array, :string}, default: []
     field :event_state, :map, default: %{}
 
+    # Character mode (see priv/docs/SHUNT_laying_low_v2.md). nil = normal; "laying_low" = the mode.
+    # A temporary player-chosen state that layers an alternate interaction loop over the game.
+    field :mode, :string
+
     timestamps()
   end
 end
