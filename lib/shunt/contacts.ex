@@ -194,8 +194,4 @@ defmodule Shunt.Contacts do
 
   defp affordable?(:settle_the_books, player, ck, %{cost_cred: base_cost}),
     do: player.cred >= ceil(base_cost * Loyalty.cost_multiplier(player, ck))
-
-  # TODO (docs): document the world-NPC `contact_key` field and the `services` list shape
-  # (key/name/description/requirements/params), the best-unlocked-tier rule, and the unlock-flag
-  # convention in docs/SHUNT_DISTRICT_AUTHORING.md, alongside story_arcs/conditional_events.
 end

@@ -1,16 +1,17 @@
 # Nine-Iron: the retired `nine_iron` Hub contact, folded in at the Watch Office
 # (liftworks_watch_office) — the Authority's room at the first ascent checkpoint. contact_key
 # "nine_iron" preserves the loyalty key.
-# TODO (Nine-Iron content pass): author an intro event granting {:knowledge, "nine_iron_intro"}
-# + two task events granting "nine_iron_task1" / "nine_iron_task2", wire this NPC into
-# liftworks_watch_office's :npcs list, and delete priv/content/npcs/nine_iron.exs.
 %Shunt.World.NPC{
   id: "liftworks_nine_iron",
   name: "Nine-Iron",
   contact_key: "nine_iron",
   faction: :kaspav_authority,
   location_id: "liftworks_watch_office",
-  story_arcs: [],
+  story_arcs: [
+    "liftworks_nine_iron_intro",
+    "liftworks_nine_iron_task1",
+    "liftworks_nine_iron_task2"
+  ],
   services: [
     %{
       key: :look_the_other_way,

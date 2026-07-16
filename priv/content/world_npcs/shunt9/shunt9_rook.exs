@@ -1,16 +1,13 @@
 # Rook: the retired `rook` Hub contact, folded in at his existing desk (shunt9_rooks_desk).
 # Rook is already known via the Nickel referral that grants {:knows, "rook"} (which also gates the
 # desk), so his BASIC tier reuses that flag — no separate "rook_intro".
-# TODO (Rook content pass): author two task events granting {:knowledge, "rook_task1"} /
-# "rook_task2" for the mid/best tiers, wire this NPC into shunt9_rooks_desk's :npcs list, and
-# delete priv/content/npcs/rook.exs.
 %Shunt.World.NPC{
   id: "shunt9_rook",
   name: "Rook",
   contact_key: "rook",
   faction: :syndicate_of_closed_hands,
   location_id: "shunt9_rooks_desk",
-  story_arcs: [],
+  story_arcs: ["shunt9_rook_task1", "shunt9_rook_task2"],
   services: [
     %{
       key: :move_goods,

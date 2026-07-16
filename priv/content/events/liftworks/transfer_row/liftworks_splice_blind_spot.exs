@@ -4,6 +4,7 @@
 
   on_complete: [
     {:knowledge, "scan_arch_found"},
+    {:knowledge, "splice_intro"},
     {:npc_progression, "liftworks_splice", 1}
   ],
 

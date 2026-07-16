@@ -4,8 +4,20 @@ defmodule Shunt.ContactsTest do
   use ExUnit.Case, async: true
 
   alias Shunt.Contacts
+  alias Shunt.Effects
+  alias Shunt.Events
   alias Shunt.Fencing.Catalog
   alias Shunt.Players.Player
+  alias Shunt.World
+
+  # Faithfully apply an event's completion (its on_complete + the completed_events tracking effect,
+  # exactly as Shunt.Events.complete_event does) to a plain Player struct.
+  defp complete(player, event_id) do
+    event = Events.get!(event_id)
+    tracking = [{:set, :completed_events, Enum.uniq([event_id | player.completed_events])}]
+    {changes, _meta} = Effects.apply(player, event.on_complete ++ tracking)
+    struct(player, changes)
+  end
 
   # Knowledge flags that unlock each contact's basic (intro) tier.
   defp met, do: ["mother_graft_intro", "nine_iron_intro", "splice_intro", "tally_intro", "rook"]
@@ -185,5 +197,34 @@ defmodule Shunt.ContactsTest do
     test "falls back to the raw key for an unknown contact" do
       assert Contacts.name("nobody") == "nobody"
     end
+  end
+
+  describe "story-arc -> Hub integration (drives the real runtime)" do
+    test "completing Mother Graft's arc reveals her on the Hub and upgrades her tier by tier" do
+      npc = "crossgate_mother_graft"
+
+      p0 = %Player{}
+      assert World.Npcs.current_event(p0, npc) == "crossgate_mother_graft_intro"
+      refute Enum.any?(Contacts.list_for_player(p0), &(&1.npc.contact_key == "mother_graft"))
+
+      p1 = complete(p0, "crossgate_mother_graft_intro")
+      assert World.Npcs.current_event(p1, npc) == "crossgate_mother_graft_task1"
+      assert [%{name: "Flesh Tithe"}] = services_for(p1, "mother_graft")
+
+      p2 = complete(p1, "crossgate_mother_graft_task1")
+      assert World.Npcs.current_event(p2, npc) == "crossgate_mother_graft_task2"
+      assert [%{name: "Clean Cut"}] = services_for(p2, "mother_graft")
+
+      p3 = complete(p2, "crossgate_mother_graft_task2")
+      assert World.Npcs.current_event(p3, npc) == nil
+      assert [%{name: "Fleshless Favor"}] = services_for(p3, "mother_graft")
+    end
+  end
+
+  defp services_for(player, contact_key) do
+    player
+    |> Contacts.list_for_player()
+    |> Enum.find(&(&1.npc.contact_key == contact_key))
+    |> Map.fetch!(:services)
   end
 end

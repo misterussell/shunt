@@ -1,8 +1,7 @@
 # Splice: the retired `splice` Hub contact, folded into this existing world NPC. contact_key
-# "splice" preserves the loyalty key; the struct id stays district-prefixed.
-# TODO (Splice content pass): author the arc that grants the service unlock flags — reuse
-# liftworks_splice_blind_spot as the intro (its on_complete grants {:knowledge, "splice_intro"}),
-# then add two task events granting "splice_task1" / "splice_task2". Delete priv/content/npcs/splice.exs.
+# "splice" preserves the loyalty key; the struct id stays district-prefixed. The story arc gates
+# the Data Drop service tiers: blind_spot grants "splice_intro" (basic), then the two task events
+# grant "splice_task1"/"splice_task2" (mid/best).
 %Shunt.World.NPC{
   id: "liftworks_splice",
   name: "Splice",
@@ -10,7 +9,9 @@
   faction: :latticework_collective,
   location_id: "liftworks_transfer_row",
   story_arcs: [
-    "liftworks_splice_blind_spot"
+    "liftworks_splice_blind_spot",
+    "liftworks_splice_task1",
+    "liftworks_splice_task2"
   ],
   services: [
     %{

@@ -323,7 +323,7 @@ defmodule ShuntWeb.HubLive do
             />
           </div>
           <div :for={service <- c.services}>
-            <p class="npc-action-text"><span>{service.name}</span> — {service.description}</p>
+            <p class="npc-action-text">{service.description}</p>
             <Chrome.btn
               id={"service-#{c.npc.contact_key}-#{service.key}"}
               variant={
@@ -414,6 +414,7 @@ defmodule ShuntWeb.HubLive do
   defp faction_color(:latticework_collective), do: "green"
   defp faction_color(:syndicate_of_closed_hands), do: "amber"
   defp faction_color(:kaspav_authority), do: "cyan"
+  defp faction_color(_), do: "amber"
 
   defp loyalty_word(loyalty), do: Loyalty.band_for(loyalty) |> band_word()
 

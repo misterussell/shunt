@@ -1,12 +1,6 @@
 defmodule Shunt.ContentIntegrityTest do
   use ExUnit.Case, async: true
 
-  # TODO (Contacts fold-in): add a test "every contact service unlock flag has a granting event".
-  # Collect every {:knows, k} from all world_npcs' services[].requirements and assert each k is in
-  # granted_knowledge (event on_complete {:knowledge, k} ++ ice rewards), reusing the collection
-  # below. This keeps every tiered service reachable (no service the player can never unlock).
-  # Follow the no-count-assertion rule — assert subset membership, not counts/id-sets.
-
   alias Shunt.Content
   alias Shunt.Events
 
@@ -50,5 +44,23 @@ defmodule Shunt.ContentIntegrityTest do
 
     assert MapSet.subset?(required_items, quest_item_ids),
            "has_item keys not in quest_items catalog: #{inspect(MapSet.difference(required_items, quest_item_ids) |> MapSet.to_list())}"
+  end
+
+  test "every contact service unlock flag is granted by some event" do
+    # A contact's tiered services gate on {:knows, "<key>"} flags (see Shunt.Contacts). Every such
+    # flag must be granted somewhere, or that tier is unreachable — the player could never unlock it.
+    granted_knowledge =
+      Events.all()
+      |> Enum.flat_map(& &1.on_complete)
+      |> then(fn effects -> MapSet.new(for {:knowledge, k} <- effects, do: k) end)
+
+    service_flags =
+      Content.all(:world_npcs)
+      |> Enum.flat_map(& &1.services)
+      |> Enum.flat_map(& &1.requirements)
+      |> then(fn reqs -> MapSet.new(for {:knows, k} <- reqs, do: k) end)
+
+    assert MapSet.subset?(service_flags, granted_knowledge),
+           "service unlock flags with no granting event: #{inspect(MapSet.difference(service_flags, granted_knowledge) |> MapSet.to_list())}"
   end
 end
