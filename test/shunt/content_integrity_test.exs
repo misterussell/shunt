@@ -46,6 +46,19 @@ defmodule Shunt.ContentIntegrityTest do
            "has_item keys not in quest_items catalog: #{inspect(MapSet.difference(required_items, quest_item_ids) |> MapSet.to_list())}"
   end
 
+  test "every contact (NPC with services) has a contact_key" do
+    # Loyalty and the Hub's deal buttons are keyed by contact_key (see Shunt.Contacts). A contact
+    # authored with services but no contact_key would surface a dead deal button — its click posts
+    # an empty contact and resolves to {:error, :unknown_contact}. Guard against that here.
+    contacts_without_key =
+      Content.all(:world_npcs)
+      |> Enum.filter(&(&1.services != [] and is_nil(&1.contact_key)))
+      |> Enum.map(& &1.name)
+
+    assert contacts_without_key == [],
+           "contact NPCs with services but no contact_key: #{inspect(contacts_without_key)}"
+  end
+
   test "every contact service unlock flag is granted by some event" do
     # A contact's tiered services gate on {:knows, "<key>"} flags (see Shunt.Contacts). Every such
     # flag must be granted somewhere, or that tier is unreachable — the player could never unlock it.

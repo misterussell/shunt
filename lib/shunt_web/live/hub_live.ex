@@ -18,20 +18,28 @@ defmodule ShuntWeb.HubLive do
   end
 
   def handle_info({:npc_met, npc_key}, socket) do
-    {:noreply, put_flash(socket, :info, "You've met #{Contacts.name(npc_key)}.")}
+    if Contacts.contact?(npc_key) do
+      {:noreply, put_flash(socket, :info, "You've met #{Contacts.name(npc_key)}.")}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_info({:loyalty_band_changed, npc_key, _old_band, new_band}, socket) do
-    name = Contacts.name(npc_key)
+    if Contacts.contact?(npc_key) do
+      name = Contacts.name(npc_key)
 
-    message =
-      case new_band do
-        :favored -> "#{name} has come to trust you."
-        :hostile -> "#{name} no longer trusts you."
-        :neutral -> "#{name}'s trust in you has steadied."
-      end
+      message =
+        case new_band do
+          :favored -> "#{name} has come to trust you."
+          :hostile -> "#{name} no longer trusts you."
+          :neutral -> "#{name}'s trust in you has steadied."
+        end
 
-    {:noreply, put_flash(socket, :info, message)}
+      {:noreply, put_flash(socket, :info, message)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("enter", _params, socket) do
@@ -326,12 +334,7 @@ defmodule ShuntWeb.HubLive do
             <p class="npc-action-text">{service.description}</p>
             <Chrome.btn
               id={"service-#{c.npc.contact_key}-#{service.key}"}
-              variant={
-                if(Contacts.can_afford?(@player, c.npc.contact_key, to_string(service.key)),
-                  do: :primary,
-                  else: :dead
-                )
-              }
+              variant={if(service.affordable?, do: :primary, else: :dead)}
               phx-click="invoke_service"
               phx-value-contact={c.npc.contact_key}
               phx-value-service={service.key}
@@ -414,7 +417,6 @@ defmodule ShuntWeb.HubLive do
   defp faction_color(:latticework_collective), do: "green"
   defp faction_color(:syndicate_of_closed_hands), do: "amber"
   defp faction_color(:kaspav_authority), do: "cyan"
-  defp faction_color(_), do: "amber"
 
   defp loyalty_word(loyalty), do: Loyalty.band_for(loyalty) |> band_word()
 

@@ -66,6 +66,23 @@ defmodule Shunt.ContactsTest do
 
       assert Enum.any?(results, &(&1 == {:error, :npc_unreliable}))
     end
+
+    test "a hostile-loyalty player still receives at least 1 cred (never pays for a zero payout)" do
+      # gain_cred is 1 at the basic tier and floor(1 * 0.8) rounds to 0 — a paid-for deal must
+      # still hand back at least 1 cred. The hostile band's roll can fail, so retry to a success.
+      player = %Player{scrip: 25, knowledge: ["splice_intro"], npc_loyalty: %{"splice" => 0}}
+
+      effects =
+        Enum.find_value(1..500, fn _ ->
+          case Contacts.resolve_service(player, "splice", "data_drop") do
+            {:ok, effects} -> effects
+            _ -> nil
+          end
+        end)
+
+      assert {:scrip, -25} in effects
+      assert {:cred, 1} in effects
+    end
   end
 
   describe "resolve_service/3 — the other four basic deals" do
@@ -175,17 +192,17 @@ defmodule Shunt.ContactsTest do
     end
   end
 
-  describe "can_afford?/3" do
-    test "true when the player can pay the best-unlocked tier" do
+  describe "list_for_player/1 affordability decoration" do
+    test "marks the best-unlocked service affordable when the player can pay" do
       player = %Player{scrip: 20, knowledge: ["nine_iron_intro"]}
 
-      assert Contacts.can_afford?(player, "nine_iron", "look_the_other_way")
+      assert affordable?(player, "nine_iron", :look_the_other_way)
     end
 
-    test "false when the player cannot pay" do
+    test "marks it unaffordable when the player cannot pay" do
       player = %Player{scrip: 19, knowledge: ["nine_iron_intro"]}
 
-      refute Contacts.can_afford?(player, "nine_iron", "look_the_other_way")
+      refute affordable?(player, "nine_iron", :look_the_other_way)
     end
   end
 
@@ -196,6 +213,67 @@ defmodule Shunt.ContactsTest do
 
     test "falls back to the raw key for an unknown contact" do
       assert Contacts.name("nobody") == "nobody"
+    end
+  end
+
+  # Restores the hostile-band coverage lost when the retired npcs_test was deleted: every deal must
+  # still route its cost/gain through Loyalty.cost_multiplier/price_multiplier for a hostile player
+  # (data_drop's hostile cost is asserted in its own describe block above). The hostile band's roll
+  # can fail, so we retry to a success to inspect the payout.
+  describe "resolve_service/3 — hostile-band loyalty scaling (worse cost & gain)" do
+    test "look_the_other_way costs more scrip" do
+      player = %Player{
+        scrip: 25,
+        knowledge: ["nine_iron_intro"],
+        npc_loyalty: %{"nine_iron" => 0}
+      }
+
+      effects = resolve_until_ok(player, "nine_iron", "look_the_other_way")
+      assert {:scrip, -ceil(20 * 1.25)} in effects
+      assert {:heat, -15} in effects
+    end
+
+    test "settle_the_books costs more cred and pays less scrip" do
+      player = %Player{cred: 2, knowledge: ["tally_intro"], npc_loyalty: %{"tally" => 0}}
+
+      effects = resolve_until_ok(player, "tally", "settle_the_books")
+      assert {:cred, -ceil(1 * 1.25)} in effects
+      assert {:scrip, floor(10 * 0.8)} in effects
+    end
+
+    test "move_goods pays less scrip" do
+      item = Catalog.fetch!("scrap_dermal_plating")
+      player = %Player{held_item_key: item.id, knowledge: ["rook"], npc_loyalty: %{"rook" => 0}}
+
+      effects = resolve_until_ok(player, "rook", "move_goods")
+      assert {:scrip, floor(item.sell_value * 0.5 * 0.8)} in effects
+    end
+
+    test "flesh_tithe pays less scrip" do
+      player = %Player{
+        inventory: %{"cracked_bone_plate" => 1},
+        knowledge: ["mother_graft_intro"],
+        npc_loyalty: %{"mother_graft" => 0}
+      }
+
+      effects = resolve_until_ok(player, "mother_graft", "flesh_tithe")
+      assert {:scrip, floor(15 * 0.8)} in effects
+      assert {:inventory, "cracked_bone_plate", -1} in effects
+    end
+
+    test "a non-data_drop deal exercises the reliability roll too (can be unreliable)" do
+      player = %Player{
+        scrip: 25,
+        knowledge: ["nine_iron_intro"],
+        npc_loyalty: %{"nine_iron" => 0}
+      }
+
+      results =
+        Enum.map(1..200, fn _ ->
+          Contacts.resolve_service(player, "nine_iron", "look_the_other_way")
+        end)
+
+      assert Enum.any?(results, &(&1 == {:error, :npc_unreliable}))
     end
   end
 
@@ -226,5 +304,23 @@ defmodule Shunt.ContactsTest do
     |> Contacts.list_for_player()
     |> Enum.find(&(&1.npc.contact_key == contact_key))
     |> Map.fetch!(:services)
+  end
+
+  # The decorated :affordable? flag on a contact's best-unlocked service (button styling source).
+  defp affordable?(player, contact_key, service_key) do
+    player
+    |> services_for(contact_key)
+    |> Enum.find(&(&1.key == service_key))
+    |> Map.fetch!(:affordable?)
+  end
+
+  # Drive a deal past the hostile band's unreliable rolls to a success, returning its effects.
+  defp resolve_until_ok(player, contact_key, service_key) do
+    Enum.find_value(1..500, fn _ ->
+      case Contacts.resolve_service(player, contact_key, service_key) do
+        {:ok, effects} -> effects
+        _ -> nil
+      end
+    end)
   end
 end

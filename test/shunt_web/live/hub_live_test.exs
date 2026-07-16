@@ -500,4 +500,26 @@ defmodule ShuntWeb.HubLiveTest do
     view |> element("#service-mother_graft-flesh_tithe") |> render_click()
     assert render(view) =~ "trust you"
   end
+
+  test "a contact's loyalty signal flashes its display name", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    Shunt.Npcs.Signals.npc_met("splice")
+
+    # render/1 forces a round trip, so the async :npc_met info is handled first (same mailbox, FIFO)
+    assert render(view) =~ "You&#39;ve met Splice"
+  end
+
+  test "a non-contact NPC's loyalty signal does not flash its raw id on the Hub", %{conn: conn} do
+    # Signals broadcast on one global topic, so the Hub hears loyalty events for every world NPC,
+    # not just its five contacts. A non-contact key must be ignored, never surfaced as a raw id.
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    Shunt.Npcs.Signals.npc_met("grayline_quire")
+    Shunt.Npcs.Signals.loyalty_band_changed("grayline_quire", :neutral, :favored)
+
+    html = render(view)
+    refute html =~ "grayline_quire"
+    refute html =~ "You&#39;ve met"
+  end
 end

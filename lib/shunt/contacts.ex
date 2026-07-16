@@ -26,7 +26,8 @@ defmodule Shunt.Contacts do
   @doc """
   Known contacts for the Hub: every world NPC with >= 1 currently-unlocked service, each carrying
   its loyalty value and only its unlocked services (one per deal key, at the best-unlocked tier).
-  Sorted by name.
+  Each service is decorated with `:affordable?` (button styling) so the Hub renders straight from
+  this list without re-resolving tiers. Sorted by name.
   """
   def list_for_player(%Player{} = player) do
     Content.all(:world_npcs)
@@ -35,11 +36,15 @@ defmodule Shunt.Contacts do
       %{
         npc: npc,
         loyalty: Loyalty.value(player, npc.contact_key),
-        services: unlocked(player, npc)
+        services: player |> unlocked(npc) |> Enum.map(&decorate(&1, player, npc.contact_key))
       }
     end)
     |> Enum.reject(&(&1.services == []))
     |> Enum.sort_by(& &1.npc.name)
+  end
+
+  defp decorate(service, player, contact_key) do
+    Map.put(service, :affordable?, affordable?(service.key, player, contact_key, service.params))
   end
 
   @doc """
@@ -55,19 +60,6 @@ defmodule Shunt.Contacts do
     end
   end
 
-  @doc """
-  Whether the player can currently pay for the best-unlocked tier of a deal — for Hub button
-  styling only (never runs the deal). False for a locked or unknown deal.
-  """
-  def can_afford?(%Player{} = player, contact_key, service_key) do
-    with {:ok, npc} <- fetch_contact(contact_key),
-         {:ok, service} <- best_unlocked(player, npc, service_key) do
-      affordable?(service.key, player, contact_key, service.params)
-    else
-      _ -> false
-    end
-  end
-
   @doc "Display name for a contact_key (used by the Hub loyalty-signal flashes); the key itself if unknown."
   def name(contact_key) do
     case fetch_contact(contact_key) do
@@ -75,6 +67,12 @@ defmodule Shunt.Contacts do
       _ -> contact_key
     end
   end
+
+  @doc """
+  Whether `contact_key` belongs to a known contact NPC. The Hub subscribes to a single global
+  loyalty topic and hears events for every world NPC, so it uses this to flash only its contacts.
+  """
+  def contact?(contact_key), do: match?({:ok, _}, fetch_contact(contact_key))
 
   defp fetch_contact(contact_key) do
     case Enum.find(Content.all(:world_npcs), &(&1.contact_key == contact_key)) do
@@ -159,7 +157,8 @@ defmodule Shunt.Contacts do
 
   defp run(:data_drop, player, ck, %{cost: base_cost, gain_cred: gain_cred}) do
     cost = ceil(base_cost * Loyalty.cost_multiplier(player, ck))
-    gain = floor(gain_cred * Loyalty.price_multiplier(player, ck))
+    # A paid-for drop must always hand back cred; at hostile loyalty floor(1 * 0.8) would be 0.
+    gain = max(1, floor(gain_cred * Loyalty.price_multiplier(player, ck)))
 
     cond do
       player.scrip < cost -> {:error, :insufficient_scrip}
