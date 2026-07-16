@@ -1,22 +1,36 @@
-# TODO (Nine-Iron fold-in): new world-NPC record for the retired `nine_iron` Hub contact, placed
-# at the Watch Office (liftworks_watch_office) — the Authority's room at the first ascent checkpoint.
-# Fill in the skeleton:
-#   - description: short in-world blurb (docs/SHUNT_STYLE_GUIDE.md).
-#   - story_arcs: intro event granting {:knowledge, "nine_iron_intro"} + two task events granting
-#     {:knowledge, "nine_iron_task1"} / "nine_iron_task2".
-#   - services (see lib/shunt/contacts.ex), key :look_the_other_way, contact_key "nine_iron":
-#       basic requirements [{:knows, "nine_iron_intro"}], params %{cost: 20, heat_reduction: 15}  (today's deal)
-#       mid   requirements [{:knows, "nine_iron_task1"}], params %{cost: 18, heat_reduction: 22}
-#       best  requirements [{:knows, "nine_iron_task2"}], params %{cost: 15, heat_reduction: 30}
-#     (tune during content pass; basic == today's numbers.)
-#   - Wire into liftworks_watch_office's :npcs list (see that location's TODO).
-#   - Delete priv/content/npcs/nine_iron.exs.
-# NOTE: contact_key is intentionally omitted below until the struct field is added (see the
-# world/npc.ex TODO). Add `contact_key: "nine_iron"` in the same pass that adds the field.
+# Nine-Iron: the retired `nine_iron` Hub contact, folded in at the Watch Office
+# (liftworks_watch_office) — the Authority's room at the first ascent checkpoint. contact_key
+# "nine_iron" preserves the loyalty key.
+# TODO (Nine-Iron content pass): author an intro event granting {:knowledge, "nine_iron_intro"}
+# + two task events granting "nine_iron_task1" / "nine_iron_task2", wire this NPC into
+# liftworks_watch_office's :npcs list, and delete priv/content/npcs/nine_iron.exs.
 %Shunt.World.NPC{
   id: "liftworks_nine_iron",
   name: "Nine-Iron",
+  contact_key: "nine_iron",
   location_id: "liftworks_watch_office",
   story_arcs: [],
-  services: []
+  services: [
+    %{
+      key: :look_the_other_way,
+      name: "Look the Other Way",
+      description: "Nine-Iron keeps the KA off your back, for a price.",
+      requirements: [{:knows, "nine_iron_intro"}],
+      params: %{cost: 20, heat_reduction: 15}
+    },
+    %{
+      key: :look_the_other_way,
+      name: "Lost Report",
+      description: "A report that never quite gets filed — deeper heat wipe, lower price.",
+      requirements: [{:knows, "nine_iron_task1"}],
+      params: %{cost: 18, heat_reduction: 22}
+    },
+    %{
+      key: :look_the_other_way,
+      name: "Off the Ledger",
+      description: "Nine-Iron scrubs you off the Authority's ledger entirely.",
+      requirements: [{:knows, "nine_iron_task2"}],
+      params: %{cost: 15, heat_reduction: 30}
+    }
+  ]
 }

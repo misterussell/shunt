@@ -1,20 +1,175 @@
 defmodule Shunt.ContactsTest do
-  # NOTE: keep async: true only if every test reads the REAL loaded world_npcs content. If any
-  # test seeds/overrides the global content :ets tables (e.g. injects a fixture contact with
-  # services), switch to `async: false` — mutating shared content ETS across async tests flakes.
+  # Reads the real loaded world_npcs content; tests build their own Player state and never mutate
+  # the shared content :ets tables, so async is safe.
   use ExUnit.Case, async: true
 
-  # TODO: port the deal-resolver assertions from test/shunt/npcs_test.exs onto
-  # Shunt.Contacts.resolve_service/3 (param-driven), covering for each service key:
-  #   - happy path effects match the params (scrip/cred/heat/inventory + {:npc_loyalty, contact_key, 5})
-  #   - loyalty price/cost multipliers applied at hostile/neutral/favored bands
-  #   - roll_reliable? gate -> {:error, :npc_unreliable} when hostile-fail
-  #   - insufficient-resource / no-held-item error reasons unchanged
-  #   - a locked service (requirements not met) -> {:error, :service_locked}
+  alias Shunt.Contacts
+  alias Shunt.Fencing.Catalog
+  alias Shunt.Players.Player
 
-  # TODO: test list_for_player/1:
-  #   - a contact with NO unlocked service is omitted (known-only)
-  #   - once the intro flag is granted, the contact appears with only its basic service
-  #   - granting a task flag reveals the next tier; locked tiers are absent (hide locked)
-  #   - loyalty value on each entry == Loyalty.value(player, contact_key)
+  # Knowledge flags that unlock each contact's basic (intro) tier.
+  defp met, do: ["mother_graft_intro", "nine_iron_intro", "splice_intro", "tally_intro", "rook"]
+
+  describe "resolve_service/3 — data_drop (Splice)" do
+    test "basic tier returns the retired deal's exact effects, keyed by contact_key" do
+      player = %Player{scrip: 20, knowledge: ["splice_intro"]}
+
+      assert Contacts.resolve_service(player, "splice", "data_drop") ==
+               {:ok, [{:scrip, -20}, {:cred, 1}, {:npc_loyalty, "splice", 5}]}
+    end
+
+    test "a locked service (no unlock flag) returns {:error, :service_locked}" do
+      player = %Player{scrip: 20, knowledge: []}
+
+      assert Contacts.resolve_service(player, "splice", "data_drop") ==
+               {:error, :service_locked}
+    end
+
+    test "returns {:error, :insufficient_scrip} when scrip is below cost" do
+      player = %Player{scrip: 19, knowledge: ["splice_intro"]}
+
+      assert Contacts.resolve_service(player, "splice", "data_drop") ==
+               {:error, :insufficient_scrip}
+    end
+
+    test "the best unlocked tier's params win (task2 -> Blind-Spot Feed)" do
+      player = %Player{scrip: 20, knowledge: ["splice_intro", "splice_task1", "splice_task2"]}
+
+      assert Contacts.resolve_service(player, "splice", "data_drop") ==
+               {:ok, [{:scrip, -15}, {:cred, 3}, {:npc_loyalty, "splice", 5}]}
+    end
+
+    test "a favored-loyalty player gets a scaled (cheaper) scrip cost" do
+      player = %Player{scrip: 20, knowledge: ["splice_intro"], npc_loyalty: %{"splice" => 80}}
+
+      assert {:ok, effects} = Contacts.resolve_service(player, "splice", "data_drop")
+      assert {:scrip, -ceil(20 * 0.8)} in effects
+    end
+
+    test "a hostile-loyalty player can be unreliable" do
+      player = %Player{scrip: 25, knowledge: ["splice_intro"], npc_loyalty: %{"splice" => 0}}
+
+      results = Enum.map(1..200, fn _ -> Contacts.resolve_service(player, "splice", "data_drop") end)
+      assert Enum.any?(results, &(&1 == {:error, :npc_unreliable}))
+    end
+  end
+
+  describe "resolve_service/3 — the other four basic deals" do
+    test "flesh_tithe (Mother Graft)" do
+      player = %Player{inventory: %{"cracked_bone_plate" => 1}, knowledge: ["mother_graft_intro"]}
+
+      assert Contacts.resolve_service(player, "mother_graft", "flesh_tithe") ==
+               {:ok,
+                [
+                  {:inventory, "cracked_bone_plate", -1},
+                  {:heat, 3},
+                  {:scrip, 15},
+                  {:npc_loyalty, "mother_graft", 5}
+                ]}
+    end
+
+    test "flesh_tithe returns {:error, :insufficient_materials} without the input" do
+      player = %Player{inventory: %{}, knowledge: ["mother_graft_intro"]}
+
+      assert Contacts.resolve_service(player, "mother_graft", "flesh_tithe") ==
+               {:error, :insufficient_materials}
+    end
+
+    test "move_goods (Rook) pays 50% of the held item's sell_value at the basic tier" do
+      item = Catalog.fetch!("scrap_dermal_plating")
+      player = %Player{held_item_key: item.id, knowledge: ["rook"]}
+
+      assert Contacts.resolve_service(player, "rook", "move_goods") ==
+               {:ok,
+                [
+                  {:scrip, floor(item.sell_value * 0.5)},
+                  {:set, :held_item_key, nil},
+                  {:npc_loyalty, "rook", 5}
+                ]}
+    end
+
+    test "move_goods returns {:error, :no_held_item} when holding nothing" do
+      player = %Player{held_item_key: nil, knowledge: ["rook"]}
+
+      assert Contacts.resolve_service(player, "rook", "move_goods") == {:error, :no_held_item}
+    end
+
+    test "look_the_other_way (Nine-Iron)" do
+      player = %Player{scrip: 20, knowledge: ["nine_iron_intro"]}
+
+      assert Contacts.resolve_service(player, "nine_iron", "look_the_other_way") ==
+               {:ok, [{:scrip, -20}, {:heat, -15}, {:npc_loyalty, "nine_iron", 5}]}
+    end
+
+    test "settle_the_books (Tally)" do
+      player = %Player{cred: 1, knowledge: ["tally_intro"]}
+
+      assert Contacts.resolve_service(player, "tally", "settle_the_books") ==
+               {:ok, [{:cred, -1}, {:scrip, 10}, {:npc_loyalty, "tally", 5}]}
+    end
+
+    test "settle_the_books returns {:error, :insufficient_cred} when cred is 0" do
+      player = %Player{cred: 0, knowledge: ["tally_intro"]}
+
+      assert Contacts.resolve_service(player, "tally", "settle_the_books") ==
+               {:error, :insufficient_cred}
+    end
+  end
+
+  describe "list_for_player/1" do
+    test "omits a contact with no unlocked service (known-only)" do
+      player = %Player{knowledge: []}
+
+      refute Enum.any?(Contacts.list_for_player(player), &(&1.npc.contact_key == "splice"))
+    end
+
+    test "includes a contact once its intro flag is granted, with only its basic service" do
+      player = %Player{knowledge: ["splice_intro"]}
+
+      entry = Enum.find(Contacts.list_for_player(player), &(&1.npc.contact_key == "splice"))
+      assert [%{key: :data_drop, name: "Data Drop"}] = entry.services
+    end
+
+    test "reveals the best-unlocked tier as the single service (collapse, hide locked)" do
+      player = %Player{knowledge: ["splice_intro", "splice_task1"]}
+
+      entry = Enum.find(Contacts.list_for_player(player), &(&1.npc.contact_key == "splice"))
+      assert [%{key: :data_drop, name: "Deep Cache", params: %{cost: 15, gain_cred: 2}}] =
+               entry.services
+    end
+
+    test "carries the contact's loyalty value" do
+      player = %Player{knowledge: ["tally_intro"], npc_loyalty: %{"tally" => 73}}
+
+      entry = Enum.find(Contacts.list_for_player(player), &(&1.npc.contact_key == "tally"))
+      assert entry.loyalty == 73
+    end
+
+    test "is sorted by contact name" do
+      player = %Player{knowledge: met()}
+
+      names = Enum.map(Contacts.list_for_player(player), & &1.npc.name)
+      assert names == Enum.sort(names)
+    end
+  end
+
+  describe "can_afford?/3" do
+    test "true when the player can pay the best-unlocked tier" do
+      player = %Player{scrip: 20, knowledge: ["nine_iron_intro"]}
+
+      assert Contacts.can_afford?(player, "nine_iron", "look_the_other_way")
+    end
+
+    test "false when the player cannot pay" do
+      player = %Player{scrip: 19, knowledge: ["nine_iron_intro"]}
+
+      refute Contacts.can_afford?(player, "nine_iron", "look_the_other_way")
+    end
+  end
+
+  describe "name/1" do
+    test "returns the contact's display name for its contact_key" do
+      assert Contacts.name("mother_graft") == "Mother Graft"
+    end
+  end
 end

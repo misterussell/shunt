@@ -1,23 +1,36 @@
-# TODO (Rook fold-in): new world-NPC record for the retired `rook` Hub contact, placed at his
-# existing desk (shunt9_rooks_desk). Fill in the skeleton below:
-#   - description: short in-world blurb (follow docs/SHUNT_STYLE_GUIDE.md).
-#   - story_arcs: an intro event + two task events. Rook is ALREADY known via the Nickel referral
-#     that grants {:knows, "rook"} (also gates shunt9_rooks_desk), so his BASIC tier reuses that
-#     existing flag — no separate "rook_intro" needed. The two task events grant
-#     {:knowledge, "rook_task1"} / {:knowledge, "rook_task2"} for the mid/best tiers.
-#   - services (see lib/shunt/contacts.ex for shape), key :move_goods, contact_key "rook":
-#       basic  requirements [{:knows, "rook"}],       params %{sell_fraction: 0.5}   (today's deal)
-#       mid    requirements [{:knows, "rook_task1"}], params %{sell_fraction: 0.65}
-#       best   requirements [{:knows, "rook_task2"}], params %{sell_fraction: 0.8}
-#     (tune during content pass; basic == today's 0.5 cut.)
-#   - Wire this NPC into shunt9_rooks_desk's :npcs list (see that location's TODO).
-#   - Delete priv/content/npcs/rook.exs.
-# NOTE: contact_key is intentionally omitted below until the struct field is added (see the
-# world/npc.ex TODO). Add `contact_key: "rook"` in the same pass that adds the field.
+# Rook: the retired `rook` Hub contact, folded in at his existing desk (shunt9_rooks_desk).
+# Rook is already known via the Nickel referral that grants {:knows, "rook"} (which also gates the
+# desk), so his BASIC tier reuses that flag — no separate "rook_intro".
+# TODO (Rook content pass): author two task events granting {:knowledge, "rook_task1"} /
+# "rook_task2" for the mid/best tiers, wire this NPC into shunt9_rooks_desk's :npcs list, and
+# delete priv/content/npcs/rook.exs.
 %Shunt.World.NPC{
   id: "shunt9_rook",
   name: "Rook",
+  contact_key: "rook",
   location_id: "shunt9_rooks_desk",
   story_arcs: [],
-  services: []
+  services: [
+    %{
+      key: :move_goods,
+      name: "Move Goods",
+      description: "Rook fences whatever you can't unload yourself, for a cut.",
+      requirements: [{:knows, "rook"}],
+      params: %{sell_fraction: 0.5}
+    },
+    %{
+      key: :move_goods,
+      name: "Quiet Channel",
+      description: "Rook moves your goods through quieter channels for a better cut.",
+      requirements: [{:knows, "rook_task1"}],
+      params: %{sell_fraction: 0.65}
+    },
+    %{
+      key: :move_goods,
+      name: "Closed-Hands Rate",
+      description: "The Syndicate rate — Rook barely takes a cut anymore.",
+      requirements: [{:knows, "rook_task2"}],
+      params: %{sell_fraction: 0.8}
+    }
+  ]
 }
