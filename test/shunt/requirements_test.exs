@@ -300,4 +300,22 @@ defmodule Shunt.RequirementsTest do
       refute Requirements.met?(%Player{chrome_load: 30}, [{:chrome_load_below, 30}])
     end
   end
+
+  describe "met?/2 with {:mode, m}" do
+    test "met when the player's mode matches (atom target)" do
+      assert Requirements.met?(%Player{mode: "laying_low"}, [{:mode, :laying_low}])
+    end
+
+    test "met when the player's mode matches (string target)" do
+      assert Requirements.met?(%Player{mode: "laying_low"}, [{:mode, "laying_low"}])
+    end
+
+    test "unmet for a different mode" do
+      refute Requirements.met?(%Player{mode: "on_the_run"}, [{:mode, :laying_low}])
+    end
+
+    test "unmet when the player has no mode" do
+      refute Requirements.met?(%Player{mode: nil}, [{:mode, :laying_low}])
+    end
+  end
 end

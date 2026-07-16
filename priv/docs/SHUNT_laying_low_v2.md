@@ -1,323 +1,267 @@
-# Sprint Passoff: Character Mode System (Laying Low v1)
+# SHUNT — Character Mode System (Laying Low v1)
 
 ## Objective
 
-Implement the first iteration of a generalized **Character Mode System** using **Laying Low** as the initial production feature.
+Implement the first iteration of a generalized **Character Mode System**, using **Laying Low**
+as the initial production mode.
 
-This sprint is intended to establish the underlying architecture for temporary gameplay states that modify player interaction without requiring separate game systems or locations.
+A "mode" is a temporary, player-chosen character state that layers an alternate interaction
+loop over the existing game without a separate location, screen, or parallel gameplay
+architecture. Future modes (hospitalized, incarcerated, on the run, …) should be a *content*
+problem, not an architectural one.
 
-Future modes (hospitalized, incarcerated, on the run, etc.) should be able to build upon the same framework.
+Laying Low represents a player intentionally avoiding attention after generating excessive Heat:
+high-risk activity gives way to a small loop of low-profile activities that advance time, bleed
+Heat down, and occasionally trigger narrative interruptions.
 
----
-
-# First Task: Review the Existing Codebase
-
-Before implementing anything, perform a thorough review of the existing systems to understand how they currently interact.
-
-Pay particular attention to:
-
-* Character state management
-* Action generation and filtering
-* Event resolution
-* World state progression
-* Time advancement
-* Heat (or equivalent wanted/suspicion mechanics)
-* Node/location architecture
-* Content loading and registration
-* Existing reward/effect pipelines
-* UI rendering for available actions
-
-The implementation should integrate with the current architecture instead of introducing duplicate concepts.
-
-If an existing system already solves part of this problem, extend it rather than replacing it.
+> **Naming note:** the original version of this doc was written as an abstract spec before this
+> audit. This revision grounds every concept in the real modules and records four scope decisions
+> made with the project owner (see *Resolved Decisions*). Treat it as a design target, not a rigid
+> spec — where the codebase offers a cleaner extension point than described here, prefer it.
 
 ---
 
-# Sprint Goals
+# Codebase Grounding (audited 2026-07-09)
 
-The completed sprint should introduce a reusable Mode System capable of:
+Confirmed against the current code before writing this revision — not assumed. Every abstract
+concept in the sprint brief maps to something that already exists.
 
-* Tracking temporary character gameplay modes.
-* Altering available player actions.
-* Providing mode-specific event pools.
-* Supporting action-driven time advancement.
-* Supporting action-driven Heat reduction.
-* Remaining compatible with the existing data-driven architecture.
-
-The goal is not simply to implement Laying Low, but to establish a reusable framework that future gameplay modes can leverage.
-
----
-
-# Design Principles
-
-The implementation should strive for the following characteristics:
-
-* Character-centric rather than location-centric.
-* Data-driven where practical.
-* Easily extensible.
-* Compatible with existing action/event systems.
-* Minimal special-case logic.
-* Avoid introducing parallel gameplay architectures.
-
-Laying Low should feel like an alternate interaction state layered over the existing game rather than an entirely separate gameplay mode.
+| Doc concept | Reality in the code |
+|---|---|
+| Player state store | `Shunt.Players.Server` — `lib/shunt/players/server.ex`. GenServer per player, started lazily by `Shunt.Players.lookup_or_start/1`. State is a `%Shunt.Players.Player{}` (`lib/shunt/players/player.ex`). |
+| Mutation pipeline | `Shunt.Players.dispatch(player_id, resolver_fun)` (`lib/shunt/players.ex:32-36`). The resolver returns `{:ok, effects}` / `{:ok, effects, extra_meta}` / `{:error, reason}`. `Server.dispatch_effects/3` (`server.ex:36-47`) applies them via `Effects.apply/2` and persists with `Repo.update`. |
+| Effect engine | `Shunt.Effects.apply(player, effects) :: {changes, meta}` (`lib/shunt/effects.ex:10-14`). One clause per effect tuple. New effect types are new clauses here, not a new module. |
+| Effects vocabulary (existing) | `{:scrip,n}` `{:cred,n}` `{:heat,n}` `{:inventory,k,n}` `{:rumor,k}` `{:contact,k}` `{:knowledge,k}` `{:npc_loyalty,k,n}` `{:discover_location,k}` `{:set,field,value}` … — every Laying Low reward maps onto existing effects. |
+| Heat | **Partially built.** `Shunt.Heat` (`lib/shunt/heat.ex`) has bands (`@low 30`, `@medium 60`, `@high 85`), `clamp/1`, and `resolve/2` which fires a random escalation event on an *upward* band crossing (`heat.ex:19-29`). Pool: `priv/content/heat_events/*.exs`, drawn by `Shunt.Heat.Catalog.events_for_band/1`. **There is no passive decay** — reduction is already purely action-driven, which matches this mode's philosophy. |
+| Requirements gating | `Shunt.Requirements.met?/2` (`lib/shunt/requirements.ex:11-13`) is the *universal* filter — exits, POI events, NPCs, atmosphere tiers, lattice leads, district facts, modules all funnel through it. Predicate clauses are `check/2` (`requirements.ex:28-72`). |
+| Action availability | Location-sourced. `Shunt.World` collects exits / POI-events / NPCs / repairables, each requirements-filtered, assembled in `movement_live.ex:317-324`. **There is no character-centric action source today** — every action comes from a location. |
+| Events | `%Shunt.Events.Event{id, title, description, steps, requirements, on_complete, repeatable}` (`lib/shunt/events/event.ex`). Resolved by `Shunt.Events` (`start`/`current_step`/`choose`). Rewards live only in `on_complete` (choices carry no effects — content-integrity enforced). Events are **location-scoped**; the only global random-pool event system is Heat. |
+| Content loading | `Shunt.Content.Store` (`lib/shunt/content/store.ex`) — `@sources` `{table, dir}` list → one ETS table each, at boot. Adding a content type is one line + `.exs` files. Read via `Shunt.Content.all/1` / `fetch!/2`. |
+| Existing "Lay Low" | `Shunt.Players.lay_low/1` (`players.ex:46-52`) — a one-shot `{:cred, -10}, {:heat, -20}`, wired to a hub button (`hub_live.ex:36-40, 256-263`). This is the **seed** this mode absorbs and expands. |
+| Territory / relocation | `Shunt.Territory.relocate/2` (`territory.ex:181-192`) already exists — an *upgrade-only* premises progression move. See *Resolved Decisions* #3. |
+| Income reservoir (time) | `Shunt.Territory` accrues offline income as `rate * min((now - last_collected)/3600, cap_hours)` (`territory.ex:92-99, 127-128`). **This is the only time model in the codebase — there is no game clock, turn counter, or day/hour field.** See *Resolved Decisions* #1. |
+| LiveView boundary | Presentation-only (AGENTS.md). Activities must be resolved by a context module that returns effects; the LiveView only dispatches and renders. |
 
 ---
 
-# Evaluate Existing Architecture
+# Resolved Decisions
 
-During implementation planning, determine whether existing systems already provide suitable extension points for:
+Four scope decisions made with the project owner. They shape everything below.
 
-## Character State
+### 1. "Advance time" maps onto the income reservoir
 
-Is there already a generalized mechanism capable of tracking temporary player states?
+There is no game clock to advance. The only time model is the offline-income reservoir, whose
+size is a function of `now - last_collected`. So an activity that "advances N hours" pushes
+`last_collected` **backward** by N hours, which makes the reservoir accrue N more hours of income
+(up to its cap) on the next collect. Downtime becomes economically real — laying low quietly
+banks passive income.
 
-If so, determine whether it can be extended rather than introducing a dedicated mode implementation.
+This is a single new effect clause, mirroring how movement added `{:discover_location}`:
 
----
+```elixir
+{:advance_time, hours}
+# last_collected = DateTime.add(player.last_collected, -hours * 3600)
+```
 
-## Action Availability
+`Shunt.Effects` stays mode-agnostic; only this one clause is added. Tuning notes:
 
-Review how player actions are currently collected and presented.
+- Accrual is **capped** at each income module's `cap_hours` — advancing past the cap yields no
+  extra scrip (correct "you can't bank forever" semantics).
+- A player with no income modules still passes time narratively but earns nothing.
+- Guard `nil` `last_collected` (schema allows it) — treat as a no-op.
 
-Determine the cleanest point for introducing mode-aware filtering or augmentation.
+### 2. Character mode is a stored field + a requirements predicate
 
-Avoid hardcoding Laying Low checks throughout the action system.
+Add a single field to `Player` and a single predicate to `Shunt.Requirements`:
 
----
+```elixir
+# lib/shunt/players/player.ex
+field :mode, :string, default: nil        # nil / "none" = normal; "laying_low" = the mode
 
-## Event Pools
+# lib/shunt/requirements.ex — new check/2 clause
+def check(%Player{mode: mode}, {:mode, m}), do: mode == to_string(m)
+```
 
-Review how random events are currently selected.
+Because *every* content surface routes through `Requirements.met?/2`, this one predicate makes
+the whole content graph mode-gateable with no changes to `World` or the LiveView. Store `mode`
+as a bounded string; **never** `String.to_atom/1` on input (AGENTS.md). Entering/leaving the mode
+is a `{:set, :mode, "laying_low"}` / `{:set, :mode, nil}` effect — no new effect type needed.
 
-Investigate whether event selection can become mode-aware without significantly increasing complexity.
+### 3. Relocate Safehouse is cut from v1
 
-The preferred solution should allow future modes to contribute their own event pools.
+The brief's "Relocate Safehouse" collides with the existing `Shunt.Territory.relocate/2`, which
+is an upgrade-only progression move (relocate *up* a premises class, gated + paid). A
+heat-shedding "ditch the compromised safehouse" verb is a different concept and would conflate
+progression with hiding. **Deferred:** ship the mode without it; revisit once the framework is
+proven and the two relocation semantics can be designed together.
 
----
+### 4. UI surface stays an open question (see below)
 
-## Time Progression
-
-Review how time currently advances throughout gameplay.
-
-Laying Low actions should integrate into whatever progression model already exists.
-
-Avoid implementing an isolated timing system.
-
----
-
-## Heat
-
-Review how Heat currently exists within the project.
-
-If Heat has not yet been fully implemented, design the Mode System so that Heat integration remains straightforward when completed.
-
----
-
-# Laying Low (Version 1)
-
-The first production mode should represent a player intentionally avoiding attention after generating excessive Heat.
-
-While in this mode:
-
-* High-risk activities should be restricted.
-* Low-profile activities become available.
-* Time continues advancing.
-* Heat gradually decreases.
-* New narrative opportunities become available.
-
-The player should remain engaged instead of waiting for passive timers.
+Where the activity loop renders is deliberately *not* resolved here — see *UI Surface*.
 
 ---
 
-# Initial Laying Low Activities
+# Architecture
 
-These activities represent the initial gameplay loop.
+Laying Low introduces **one new context module and two small engine extensions**, and reuses
+everything else.
 
-## Rest
+```
+Player clicks an activity (Rest / Gather Rumors / …)
+        │
+        ▼
+Players.dispatch(player_id, &Shunt.LayingLow.rest/1)      # same path as every other action
+        │
+        ▼
+Shunt.LayingLow.rest(player) -> {:ok, effects, meta}      # pure resolver, returns effects
+        │
+        ▼
+Shunt.Effects.apply/2  ->  Players.Server persists  ->  LiveView re-renders
+```
 
-Purpose:
+### New: `Shunt.LayingLow` (context module)
 
-Passive recovery.
+Follows the `Shunt.Movement` / `Shunt.Fencing` convention — `can_x?/1` + `x/1` pairs taking a
+`%Player{}`, returning `{:ok, effects}` / `{:ok, effects, meta}` / `{:error, reason}`. Owns:
 
-Suggested behavior:
+- **Enter / leave** — `enter/1` (gated on excessive heat) sets `{:set, :mode, "laying_low"}`;
+  `leave/1` sets `{:set, :mode, nil}`. Absorbs the existing `Players.lay_low/1` seed.
+- **Activity resolvers** — `rest/1`, `gather_rumors/1`, `visit_contact/2`, `train/1`,
+  `burn_evidence/1` (see *Activities*).
+- **Event draw** — `roll_event/1`, mirroring `Heat.resolve` + `Heat.Catalog.events_for_band/1`:
+  draw a random event from the interruption pool with some probability on each activity.
 
-* Advance time.
-* Reduce Heat.
-* Trigger narrative flavor.
+### Extension 1: `Shunt.Effects` — one clause
 
----
+Add `{:advance_time, hours}` (Resolved Decision #1). Nothing else in Effects changes.
 
-## Gather Rumors
+### Extension 2: `Shunt.Requirements` — one clause
 
-Purpose:
+Add `{:mode, m}` (Resolved Decision #2). This is the whole mode-awareness hook.
 
-Continue progressing through the social and information systems while remaining hidden.
+### Entry / exit
 
-Potential outcomes:
+- **Entry gate** — `can_enter?/1`: heat at or above a band (the brief's "excessive Heat" — start
+  at `:medium`/60, treat as tuning). Replaces the current `cred >= 10` gate on the hub button.
+- **Exit** — player-driven `leave/1`, plus optional auto-resurface when heat reaches band
+  `:none` (tuning). Left as content/balancing, not hardcoded.
 
-* New rumors.
-* Future jobs.
-* New contacts.
-* World state information.
+### On *restricting* high-risk activity
 
-Suggested behavior:
-
-* Advance time.
-* Small Heat reduction.
-
----
-
-## Visit Contact
-
-Purpose:
-
-Maintain or expand relationships while remaining out of public view.
-
-Potential outcomes:
-
-* Relationship progression.
-* Information.
-* Favors.
-* Services.
-
-Suggested behavior:
-
-* Advance time.
-* Moderate Heat reduction.
+The brief says high-risk activities should be restricted while hiding. Restricting *existing*
+actions is the invasive inverse of gating — it would mean annotating every risky content file
+with `{:mode_not, ...}`. For v1, keep this **minimal**: present the mode's own activity loop as
+the primary surface rather than annotating the whole game. Full per-action restriction is a
+stretch goal (a `{:mode_not, m}` predicate + selective tagging), not v1 scope.
 
 ---
 
-## Train
+# Activities
 
-Purpose:
+A key architecture constraint: rewards like rumors, contacts, and skills are granted by **event
+`on_complete`**, not by ad-hoc random rolls inside a resolver (content-integrity tests enforce
+this, and it keeps content data-driven). So each activity is:
 
-Allow downtime to contribute toward long-term progression.
+> **a deterministic baseline** (`{:advance_time, h}` + `{:heat, -n}` + narrative) **plus, for the
+> richer activities, a draw from a themed event pool** whose `on_complete` grants the payoff.
 
-Potential outcomes:
+| Activity | Baseline effects | Themed event pool |
+|---|---|---|
+| **Rest** | `{:advance_time, 6}`, `{:heat, -5}` | none — narrative flavor only |
+| **Gather Rumors** | `{:advance_time, 4}`, `{:heat, -3}` | rumor / contact / world-info events (`{:rumor,k}`, `{:contact,k}`, `{:knowledge,k}` via `on_complete`) |
+| **Visit Contact** | `{:advance_time, 6}`, `{:heat, -5}` | NPC relationship events (`{:npc_loyalty,k,n}`, favors, services) |
+| **Train** | `{:advance_time, 8}`, `{:heat, -2}` | practice / skill events |
+| **Burn Evidence** | `{:advance_time, 4}`, `{:heat, -15}` + a resource cost (`{:scrip,-n}` or item) | consequence hooks (future narrative fallout) |
+| ~~Relocate Safehouse~~ | — | **cut from v1** (Resolved Decision #3) |
 
-* Skill progression.
-* Practice events.
-* Narrative development.
+Values are starting tuning parameters, not fixed requirements.
 
-Suggested behavior:
+**Skill progression (Train):** skill tiers are integers set via `{:set, :ghostwork_tier, n}` —
+there is no increment effect today. For v1, keep Train thin (time + heat + a practice event, or
+narrative-only) and defer a proper `{:skill_tier, family, +1}` effect unless a themed event needs
+it. Flag, don't silently invent.
 
-* Advance time.
-* Small Heat reduction.
+### Interruption pool (global draw)
 
----
+Independent of the themed pools, any activity can be interrupted by a random draw from a
+Laying-Low interruption pool — mirroring exactly how `Heat.resolve` draws from a band pool:
 
-## Burn Evidence
+- Witness Recognizes You
+- Police Inquiry
+- Old Associate Arrives
+- Rival Tracks Safehouse
 
-Purpose:
-
-Actively reduce Heat through player investment.
-
-Potential outcomes:
-
-* Significant Heat reduction.
-* Resource costs.
-* Possible future narrative consequences.
-
-Suggested behavior:
-
-* Advance time.
-* Large Heat reduction.
-
----
-
-## Relocate Safehouse
-
-Purpose:
-
-Reduce attention through relocation.
-
-Potential outcomes:
-
-* Large Heat reduction.
-* Financial cost.
-* Future location-based consequences.
-
-Suggested behavior:
-
-* Advance time.
-* Significant Heat reduction.
+These are ordinary `%Shunt.Events.Event{}` files, tagged for the pool (either a dedicated
+`priv/content/events/laying_low/` dir, or a `pool: :laying_low` field + `{:mode, :laying_low}`
+requirement). `Shunt.LayingLow.roll_event/1` selects from them; the LiveView surfaces the drawn
+event through the normal `Shunt.Events` step/choice flow. Making future modes contribute their own
+pool is then a content-only change.
 
 ---
 
-# Heat Reduction / Time Progression
+# UI Surface (open question)
 
-Rather than relying on passive timers, Laying Low should encourage active decision-making.
+Where the activity loop renders is unresolved. Two viable options:
 
-Each activity should generally:
+**A. Dedicated mode panel (recommended, not decided).** A distinct Laying Low view/panel showing
+the activity list while `mode == "laying_low"`, available regardless of location (truly
+character-centric per the brief). Absorbs the current hub Lay Low button. Cost: a new LiveView
+surface.
 
-* Advance world time.
-* Apply Heat reduction.
-* Resolve an event.
-* Apply any additional rewards or consequences.
+**B. Extra action group in the current location view.** Activities appear as an additional button
+group in `movement_live` alongside Infrastructure / Points of Interest / People Here. Less new UI,
+but ties a character-centric loop to a location screen, slightly against the brief's framing.
 
-Suggested starting values for balancing:
-
-| Activity           | Heat Reduction | Time Advancement |
-| ------------------ | -------------: | ---------------: |
-| Rest               |             -5 |          6 hours |
-| Gather Rumors      |             -3 |          4 hours |
-| Visit Contact      |             -5 |          6 hours |
-| Train              |             -2 |          8 hours |
-| Burn Evidence      |            -15 |          4 hours |
-| Relocate Safehouse |            -20 |         12 hours |
-
-These values should be treated as tuning parameters rather than fixed implementation requirements.
+Either way, the LiveView stays presentation-only: it dispatches `&Shunt.LayingLow.<activity>/1`
+and renders the returned `%Player{}` + `meta` (narrative, deltas). No game logic in the view.
 
 ---
 
-# Laying Low Event Pool
+# Phased Deliverables
 
-While in this mode, consider introducing a dedicated event pool containing narrative interruptions unique to hiding from attention.
+## Phase 1 — Mode framework + engine extensions (no new UI)
 
-Initial examples include:
+- Migration: `mode` (string, nullable) on `players` (precedent: `add_npc_loyalty_to_players`).
+- `Shunt.Effects`: `{:advance_time, hours}` clause (guard `nil` `last_collected`).
+- `Shunt.Requirements`: `{:mode, m}` clause.
+- `Shunt.LayingLow`: `can_enter?/1`, `enter/1`, `leave/1`. Absorb `Players.lay_low/1`.
+- Tests: effect moves `last_collected` correctly (incl. cap + nil), `{:mode, m}` gating,
+  enter/leave round-trip, enter gate on heat band.
+- **Verify:** dispatch `enter/1` at high heat → `mode == "laying_low"`; a `{:advance_time, 6}`
+  effect increases the reservoir read at a fixed `now`.
 
-* Witness Recognizes You
-* Police Inquiry
-* Old Associate Arrives
-* Rival Tracks Safehouse
+## Phase 2 — Activity loop + LiveView surface
 
-The implementation should ideally make it straightforward for future modes to provide their own event collections.
+- `Shunt.LayingLow`: `rest/1`, `gather_rumors/1`, `visit_contact/2`, `train/1`, `burn_evidence/1`
+  (baseline effects; themed-event draw stubbed).
+- LiveView surface (Option A or B once decided) dispatching the activities; render narrative +
+  heat/time feedback.
+- Tests: each resolver returns the expected baseline effects; LiveView renders the activity
+  buttons by their DOM ids while in the mode and hides them otherwise.
 
----
+## Phase 3 — Event pools
 
-# Deliverables
+- Interruption pool content (`priv/content/events/laying_low/`) + `Shunt.LayingLow.roll_event/1`
+  (random draw, `Heat.Catalog`-style), surfaced through `Shunt.Events`.
+- Themed event pools for Gather Rumors / Visit Contact / Train, rewards via `on_complete`.
+- Register any new content type in `Shunt.Content.Store.@sources`. Content-integrity: every
+  `{:knows}`/`{:has_item}`/`{:contact_known}` in an event's `requirements` has a matching grant.
 
-By the end of the sprint, the project should ideally support:
+## Phase 4 — Polish / stretch
 
-* A generalized Character Mode framework.
-* Laying Low as the first implemented mode.
-* Mode-aware action availability.
-* Mode-aware event selection.
-* Action-driven time progression.
-* Action-driven Heat reduction.
-* A complete gameplay loop that allows players to meaningfully engage while reducing Heat.
+- Auto-resurface at heat band `:none`; heat/time UI feedback and mode indicator.
+- **Stretch (explicitly deferred):** `{:mode_not, m}` restriction of existing high-risk actions;
+  a `{:skill_tier, family, +1}` effect for Train; the cut Relocate-Safehouse verb.
 
----
-
-# Stretch Goals
-
-If the implementation naturally supports additional flexibility without significantly increasing complexity, consider designing the framework so future modes can customize:
-
-* Available actions.
-* Event pools.
-* UI presentation.
-* Restrictions.
-* Passive effects.
-* Progression rules.
-
-The objective is to make future modes primarily a content problem rather than an architectural problem.
+Content voice for all activity/event text follows the five content docs + `SHUNT_STORY_CANON.md`.
+Run `mix precommit` green (Credo + format + tests) before finishing (AGENTS.md).
 
 ---
 
-# Final Notes
+# Success Criteria
 
-Do not treat this document as a rigid implementation specification.
-
-Use it as a design target while allowing the existing codebase to dictate the final architecture.
-
-If the current systems provide cleaner extension points than those suggested here, prefer solutions that align with the existing project structure and preserve the project's data-driven philosophy.
+A player at high Heat can enter Laying Low, run a loop of low-profile activities that advance time
+(banking reservoir income), steadily reduce Heat, and occasionally hit narrative interruptions —
+all flowing through the same `Players.dispatch → Effects.apply` path every other action uses. The
+framework is reusable: a second mode is a new `Shunt.<Mode>` context + content, with no changes to
+`Effects`, `Requirements`, `World`, or the content loader beyond what Laying Low already added.

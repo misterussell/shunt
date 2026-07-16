@@ -3,6 +3,7 @@ defmodule ShuntWeb.HubLive do
 
   alias Shunt.Fencing
   alias Shunt.Fencing.Catalog
+  alias Shunt.LayingLow
   alias Shunt.Npcs
   alias Shunt.Npcs.Loyalty
   alias Shunt.Npcs.Signals
@@ -33,13 +34,38 @@ defmodule ShuntWeb.HubLive do
     {:noreply, put_flash(socket, :info, message)}
   end
 
-  def handle_event("lay_low", _params, socket) do
-    case Players.dispatch(socket.assigns.player_id, &Players.lay_low/1) do
+  def handle_event("enter", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &LayingLow.enter/1) do
+      {:ok, player, _meta} ->
+        {:noreply,
+         socket |> assign(:status, "LAYING LOW // going to ground") |> assign_player(player)}
+
+      {:error, :heat_too_low} ->
+        {:noreply, assign(socket, :status, "Heat's not high enough to disappear.")}
+    end
+  end
+
+  def handle_event("leave", _params, socket) do
+    case Players.dispatch(socket.assigns.player_id, &LayingLow.leave/1) do
+      {:ok, player, _meta} ->
+        {:noreply,
+         socket |> assign(:status, "RESURFACED // back in the open") |> assign_player(player)}
+
+      {:error, :not_laying_low} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("laying_low_activity", %{"activity" => activity}, socket) do
+    case Players.dispatch(socket.assigns.player_id, activity_resolver(activity)) do
       {:ok, player, meta} ->
-        status = "LAY LOW // #{meta.deltas.cred} CRED // HEAT #{meta.deltas.heat}"
+        status = "#{meta.narrative} // HEAT #{meta.deltas.heat}"
         {:noreply, socket |> assign(:status, status) |> assign_player(player)}
 
-      {:error, :insufficient_cred} ->
+      {:error, :insufficient_scrip} ->
+        {:noreply, assign(socket, :status, "Not enough scrip to burn the trail.")}
+
+      {:error, :not_laying_low} ->
         {:noreply, socket}
     end
   end
@@ -253,14 +279,63 @@ defmodule ShuntWeb.HubLive do
             </div>
           <% end %>
 
-          <p class="held-flavor">Lay Low — 10 Cred, -20 Heat</p>
-          <Chrome.btn
-            id="lay-low-button"
-            variant={if(Players.can_lay_low?(@player), do: :ghost, else: :dead)}
-            phx-click="lay_low"
-          >
-            [ LAY LOW ]
-          </Chrome.btn>
+          <%= if @player.mode == "laying_low" do %>
+            <div id="laying-low-panel">
+              <p class="held-flavor">Laying Low — keep your head down, bleed the Heat off.</p>
+              <Chrome.btn
+                id="rest-button"
+                variant={:ghost}
+                phx-click="laying_low_activity"
+                phx-value-activity="rest"
+              >
+                [ REST ]
+              </Chrome.btn>
+              <Chrome.btn
+                id="gather-rumors-button"
+                variant={:ghost}
+                phx-click="laying_low_activity"
+                phx-value-activity="gather_rumors"
+              >
+                [ GATHER RUMORS ]
+              </Chrome.btn>
+              <Chrome.btn
+                id="visit-contact-button"
+                variant={:ghost}
+                phx-click="laying_low_activity"
+                phx-value-activity="visit_contact"
+              >
+                [ VISIT CONTACT ]
+              </Chrome.btn>
+              <Chrome.btn
+                id="train-button"
+                variant={:ghost}
+                phx-click="laying_low_activity"
+                phx-value-activity="train"
+              >
+                [ TRAIN ]
+              </Chrome.btn>
+              <Chrome.btn
+                id="burn-evidence-button"
+                variant={if(@player.scrip >= 25, do: :ghost, else: :dead)}
+                phx-click="laying_low_activity"
+                phx-value-activity="burn_evidence"
+              >
+                [ BURN EVIDENCE — 25 SCRIP ]
+              </Chrome.btn>
+              <Chrome.btn id="resurface-button" variant={:primary} phx-click="leave">
+                [ RESURFACE ]
+              </Chrome.btn>
+            </div>
+          <% else %>
+            <p class="held-flavor">Go To Ground — vanish while the Heat is high.</p>
+            <Chrome.btn
+              id="enter-laying-low-button"
+              variant={if(LayingLow.can_enter?(@player), do: :ghost, else: :dead)}
+              phx-click="enter"
+            >
+              [ GO TO GROUND ]
+            </Chrome.btn>
+          <% end %>
         </Chrome.panel>
       </div>
 
@@ -351,6 +426,12 @@ defmodule ShuntWeb.HubLive do
 
   defp catalog_item(nil), do: nil
   defp catalog_item(key), do: Catalog.fetch!(key)
+
+  defp activity_resolver("rest"), do: &LayingLow.rest/1
+  defp activity_resolver("gather_rumors"), do: &LayingLow.gather_rumors/1
+  defp activity_resolver("visit_contact"), do: &LayingLow.visit_contact/1
+  defp activity_resolver("train"), do: &LayingLow.train/1
+  defp activity_resolver("burn_evidence"), do: &LayingLow.burn_evidence/1
 
   defp flash_heat_event(socket, nil), do: socket
 

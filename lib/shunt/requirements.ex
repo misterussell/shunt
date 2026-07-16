@@ -70,4 +70,6 @@ defmodule Shunt.Requirements do
   defp check(player, {:chrome_load_at_least, n}), do: player.chrome_load >= n
 
   defp check(player, {:chrome_load_below, n}), do: player.chrome_load < n
+
+  defp check(player, {:mode, m}), do: player.mode == to_string(m)
 end
