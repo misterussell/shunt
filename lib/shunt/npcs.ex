@@ -1,5 +1,10 @@
 defmodule Shunt.Npcs do
   @moduledoc false
+  # TODO: retire this module once the fold-in lands. Its five deal resolvers move (param-driven,
+  # keyed by contact_key) into Shunt.Contacts; list/0 and get!/1 are dropped along with the :npcs
+  # content source (see lib/shunt/content/store.ex). Shunt.Npcs.Loyalty and Shunt.Npcs.Signals are
+  # NOT retired — they are the general loyalty/trust system and stay as-is. Delete this file when
+  # the last reference (currently only lib/shunt_web/live/hub_live.ex) is gone.
   alias Shunt.Content
   alias Shunt.Npcs.Loyalty
   alias Shunt.Players.Player

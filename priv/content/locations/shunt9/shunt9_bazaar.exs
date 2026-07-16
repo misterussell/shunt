@@ -95,6 +95,8 @@ alias Shunt.World.Exit
   },
 
   npcs: [
+    # TODO (Tally fold-in): add "shunt9_tally" so she is encounterable here.
+    # See priv/content/world_npcs/shunt9/shunt9_tally.exs.
     "shunt9_bazaar_juno",
     "shunt9_bazaar_wrench",
     "shunt9_bazaar_nickel",

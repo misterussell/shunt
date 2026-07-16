@@ -18,6 +18,8 @@ alias Shunt.World.Exit
   graph_position: {750, 380},
 
   npcs: [
+    # TODO (Mother Graft fold-in): add "crossgate_mother_graft" so she is encounterable here.
+    # See priv/content/world_npcs/crossgate/crossgate_mother_graft.exs.
     "crossgate_graft_den_stitch"
   ],
 

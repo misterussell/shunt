@@ -21,6 +21,9 @@ alias Shunt.World.Exit
     {:knows, "rook"}
   ],
 
+  # TODO (Rook fold-in): surface the Rook world NPC here so the player can talk to him in person.
+  # Add: npcs: ["shunt9_rook"]  (see priv/content/world_npcs/shunt9/shunt9_rook.exs).
+
   exits: [
     %Exit{
       id: "rooks_desk_to_bazaar",

@@ -1,6 +1,16 @@
 defmodule ShuntWeb.HubLiveTest do
   use ShuntWeb.ConnCase
 
+  # TODO (Contacts fold-in): add COMMS NETWORK tests:
+  #   - a contact the player hasn't met does NOT render (no #service-<key>-<key> button, no card)
+  #   - after granting the intro flag, the contact card + its basic service button render;
+  #     clicking phx-click="invoke_service" (phx-value-contact / phx-value-service) applies the deal
+  #     and updates resources
+  #   - the TRUST bar renders for a known contact
+  #   - empty state copy shows when the player has zero known contacts
+  # Update/replace the existing per-deal contact tests (flesh_tithe etc.) that assume the old
+  # always-visible grid. Reference element IDs, not raw HTML (per AGENTS.md).
+
   import Phoenix.LiveViewTest
 
   setup do

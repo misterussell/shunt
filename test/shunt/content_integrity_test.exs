@@ -1,6 +1,12 @@
 defmodule Shunt.ContentIntegrityTest do
   use ExUnit.Case, async: true
 
+  # TODO (Contacts fold-in): add a test "every contact service unlock flag has a granting event".
+  # Collect every {:knows, k} from all world_npcs' services[].requirements and assert each k is in
+  # granted_knowledge (event on_complete {:knowledge, k} ++ ice rewards), reusing the collection
+  # below. This keeps every tiered service reachable (no service the player can never unlock).
+  # Follow the no-count-assertion rule — assert subset membership, not counts/id-sets.
+
   alias Shunt.Content
   alias Shunt.Events
 

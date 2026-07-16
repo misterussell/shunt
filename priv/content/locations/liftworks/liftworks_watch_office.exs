@@ -19,6 +19,8 @@ alias Shunt.World.Exit
   graph_position: {1500, -90},
 
   npcs: [
+    # TODO (Nine-Iron fold-in): add "liftworks_nine_iron" so he is encounterable here.
+    # See priv/content/world_npcs/liftworks/liftworks_nine_iron.exs.
     "liftworks_writ"
   ],
 
