@@ -103,6 +103,40 @@ alias Shunt.World.Exit
 **Exits are one-directional.** For two-way travel, author the return exit on the destination
 too. (We shipped a bug where the Grayline→Windlass entry had no return — don't repeat it.)
 
+### World NPC map — the fields that matter (incl. Hub contacts)
+
+```elixir
+%Shunt.World.NPC{
+  id: "district_npc",              # required, ETS key; district-prefixed
+  name: "Display Name",            # required
+  location_id: "district_place",   # where they stand (must also appear in that location's :npcs)
+  story_arcs: ["event_a", ...],    # ORDERED; active = Enum.at(arcs, npc_progression[id]); an event's
+                                   #   on_complete advances it via {:npc_progression, id, 1}
+  conditional_events: [...],       # requirement-gated side events (see §5)
+  repeatable_events: [...],        # random filler
+  # --- contact-only fields (a world NPC with a non-empty `services` list IS a Hub "comms network"
+  #     contact; see lib/shunt/contacts.ex) ---
+  contact_key: "npc",              # bare loyalty/identity key, decoupled from the prefixed id, so
+                                   #   existing loyalty survives; Loyalty + service grants key on this
+  faction: :syndicate_of_closed_hands,   # drives the Hub faction pill
+  services: [
+    %{key: :move_goods,            # maps to a resolver in Shunt.Contacts; tiers of one deal SHARE a key
+      name: "Move Goods",          # Hub button label
+      description: "...",          # Hub flavor line
+      requirements: [{:knows, "npc_intro"}],   # gates Hub visibility (must be granted by an event!)
+      params: %{sell_fraction: 0.5}},          # tuning consumed by the resolver
+    # Higher tiers: same key, deeper requirements, better params. AUTHOR TIERS ASCENDING
+    # (basic -> best) — the Hub shows one button per deal at the best-unlocked tier (last met wins).
+  ]
+}
+```
+
+A contact is met/built in the world via `story_arcs`; the deal is invoked remotely from the Hub.
+The unlock convention: each service tier gates on `{:knows, "<contact_key>_intro|_task1|_task2"}`,
+granted by that arc-milestone event's `on_complete` (`{:knowledge, ...}`). Every service `{:knows}`
+flag MUST be granted by some event, or the tier is unreachable (enforced by
+`content_integrity_test.exs`).
+
 ---
 
 ## 3. The requirements DSL (gating)

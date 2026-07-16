@@ -3,7 +3,6 @@ defmodule Shunt.Content.Store do
   use GenServer
 
   @sources [
-    {:npcs, "priv/content/npcs"},
     {:world_npcs, "priv/content/world_npcs"},
     {:fencing_items, "priv/content/fencing"},
     {:raws, "priv/content/raws"},

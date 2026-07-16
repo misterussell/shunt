@@ -19,6 +19,7 @@ alias Shunt.World.Exit
   graph_position: {1500, -90},
 
   npcs: [
+    "liftworks_nine_iron",
     "liftworks_writ"
   ],
 

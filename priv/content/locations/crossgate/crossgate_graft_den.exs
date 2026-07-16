@@ -18,7 +18,8 @@ alias Shunt.World.Exit
   graph_position: {750, 380},
 
   npcs: [
-    "crossgate_graft_den_stitch"
+    "crossgate_graft_den_stitch",
+    "crossgate_mother_graft"
   ],
 
   exits: [

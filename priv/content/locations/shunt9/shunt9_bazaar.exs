@@ -95,6 +95,7 @@ alias Shunt.World.Exit
   },
 
   npcs: [
+    "shunt9_tally",
     "shunt9_bazaar_juno",
     "shunt9_bazaar_wrench",
     "shunt9_bazaar_nickel",

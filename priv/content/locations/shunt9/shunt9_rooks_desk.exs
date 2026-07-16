@@ -21,6 +21,8 @@ alias Shunt.World.Exit
     {:knows, "rook"}
   ],
 
+  npcs: ["shunt9_rook"],
+
   exits: [
     %Exit{
       id: "rooks_desk_to_bazaar",
