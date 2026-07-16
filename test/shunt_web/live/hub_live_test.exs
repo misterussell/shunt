@@ -23,29 +23,78 @@ defmodule ShuntWeb.HubLiveTest do
     assert render(view) =~ "5 DOSSIERS · USE WISELY"
   end
 
-  # TODO: This "clicking Lay Low" test and the "Lay Low stays available in the stash panel"
-  #   test below (~line 203) both drive #lay-low-button, which is being replaced by the
-  #   Laying Low mode block. Rework them: assert the not-in-mode button is #enter-laying-low-button
-  #   and that #stash-panel #enter-laying-low-button is present regardless of held-item state.
-  # TODO: Add mode-loop coverage (DOM-id assertions only, no counts / no raw-HTML matches):
-  #   (1) at Heat >= medium band, clicking #enter-laying-low-button reveals #laying-low-panel and
-  #       hides #enter-laying-low-button; (2) inside the mode, clicking #rest-button lowers the
-  #       displayed HEAT and sets the status line; (3) #burn-evidence-button is :dead when
-  #       scrip < 25 and dispatches when scrip >= 25; (4) clicking #resurface-button returns the
-  #       Hub to showing #enter-laying-low-button. Set Heat via
-  #       Shunt.Repo.update!(Ecto.Changeset.change(player, heat: 70)) in setup, mirroring the
-  #       existing tests. Assert the Heat gate: at Heat 0, #enter-laying-low-button is :dead.
-  test "clicking Lay Low decreases displayed resources and sets the status line", %{conn: conn} do
-    player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, cred: 30, heat: 40))
+  defp put_heat(heat) do
+    Shunt.Players.get_player!()
+    |> Ecto.Changeset.change(heat: heat)
+    |> Shunt.Repo.update!()
+  end
 
+  test "the Hub offers a Go To Ground control when not laying low", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
-    view |> element("#lay-low-button") |> render_click()
+    assert has_element?(view, "#enter-laying-low-button")
+    refute has_element?(view, "#laying-low-panel")
+  end
 
-    assert has_element?(view, "#resource-cred", "CRED 20")
-    assert has_element?(view, "#resource-heat", "HEAT 20/100")
-    assert render(view) =~ "LAY LOW"
+  test "the Go To Ground control is disabled while Heat is below the entry band", %{conn: conn} do
+    put_heat(0)
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#enter-laying-low-button.btn-dead")
+  end
+
+  test "entering Laying Low at high Heat reveals the activity panel", %{conn: conn} do
+    put_heat(70)
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view |> element("#enter-laying-low-button") |> render_click()
+
+    assert has_element?(view, "#laying-low-panel")
+    refute has_element?(view, "#enter-laying-low-button")
+  end
+
+  test "resting while laid low lowers Heat and sets the status line", %{conn: conn} do
+    put_heat(70)
+    {:ok, view, _html} = live(conn, ~p"/")
+    view |> element("#enter-laying-low-button") |> render_click()
+
+    view |> element("#rest-button") |> render_click()
+
+    assert has_element?(view, "#resource-heat", "HEAT 65/100")
+    assert has_element?(view, ".footer-ticker-status", "HEAT -5")
+  end
+
+  test "Burn Evidence is disabled while laid low without enough scrip", %{conn: conn} do
+    put_heat(70)
+    {:ok, view, _html} = live(conn, ~p"/")
+    view |> element("#enter-laying-low-button") |> render_click()
+
+    assert has_element?(view, "#burn-evidence-button.btn-dead")
+  end
+
+  test "Burn Evidence with enough scrip drops Heat and spends scrip", %{conn: conn} do
+    Shunt.Players.get_player!()
+    |> Ecto.Changeset.change(heat: 70, scrip: 50)
+    |> Shunt.Repo.update!()
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    view |> element("#enter-laying-low-button") |> render_click()
+
+    view |> element("#burn-evidence-button") |> render_click()
+
+    assert has_element?(view, "#resource-heat", "HEAT 55/100")
+    assert has_element?(view, "#resource-scrip", "SCRIP 25")
+  end
+
+  test "resurfacing returns the Hub to the open", %{conn: conn} do
+    put_heat(70)
+    {:ok, view, _html} = live(conn, ~p"/")
+    view |> element("#enter-laying-low-button") |> render_click()
+
+    view |> element("#resurface-button") |> render_click()
+
+    assert has_element?(view, "#enter-laying-low-button")
+    refute has_element?(view, "#laying-low-panel")
   end
 
   test "clicking Find a Lead reveals an offer", %{conn: conn} do
@@ -212,20 +261,20 @@ defmodule ShuntWeb.HubLiveTest do
     assert has_element?(view, "#stash-panel #held-item")
   end
 
-  test "Lay Low stays available in the stash panel regardless of held-item state", %{
+  test "the Go To Ground control stays in the stash panel regardless of held-item state", %{
     conn: conn
   } do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 100, cred: 30))
 
     {:ok, view, _html} = live(conn, ~p"/")
-    assert has_element?(view, "#stash-panel #lay-low-button")
+    assert has_element?(view, "#stash-panel #enter-laying-low-button")
 
     view |> element("#find-lead-button") |> render_click()
     view |> element("#take-offer-button") |> render_click()
 
     assert has_element?(view, "#stash-panel #held-item")
-    assert has_element?(view, "#stash-panel #lay-low-button")
+    assert has_element?(view, "#stash-panel #enter-laying-low-button")
   end
 
   test "passing an offer returns to idle", %{conn: conn} do
