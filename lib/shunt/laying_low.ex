@@ -81,8 +81,7 @@ defmodule Shunt.LayingLow do
   def burn_evidence(%Player{}) do
     {heat, hours} = @burn_evidence
 
-    {:ok,
-     [{:advance_time, hours}, {:heat, -heat}, {:scrip, -@burn_evidence_scrip_cost}],
+    {:ok, [{:advance_time, hours}, {:heat, -heat}, {:scrip, -@burn_evidence_scrip_cost}],
      %{narrative: "You feed the paper trail to the incinerator, one file at a time."}}
   end
 

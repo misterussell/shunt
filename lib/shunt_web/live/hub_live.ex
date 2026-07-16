@@ -33,6 +33,23 @@ defmodule ShuntWeb.HubLive do
     {:noreply, put_flash(socket, :info, message)}
   end
 
+  # TODO: Replace this legacy one-shot handler with Laying Low *mode* entry/exit. Add
+  #   handle_event("enter", ...) dispatching &Shunt.LayingLow.enter/1 and
+  #   handle_event("leave", ...) dispatching &Shunt.LayingLow.leave/1, following the
+  #   dispatch -> {:ok, player, meta} -> assign(:status, ...) |> assign_player(player) idiom
+  #   below. On enter success set status "LAYING LOW // going to ground"; on {:error,
+  #   :heat_too_low} set status "Heat's not high enough to disappear." (no-op assign_player).
+  #   On leave success set status "RESURFACED // back in the open". Delete this "lay_low"
+  #   handler (Players.lay_low/1 + can_lay_low?/1 stay — they keep their own tests in
+  #   players_test.exs and are only being unwired from the Hub).
+  # TODO: Add one handle_event per Laying Low activity — "rest", "gather_rumors",
+  #   "visit_contact", "train", "burn_evidence" — each dispatching the matching
+  #   &Shunt.LayingLow.<activity>/1 resolver. On {:ok, player, meta}: build status from the
+  #   resolver's narrative + heat delta, e.g. status = "#{meta.narrative} // HEAT
+  #   #{meta.deltas.heat}", then assign(:status, status) |> assign_player(player). Read meta
+  #   only — do NOT compute hours or any domain outcome in the view (LiveView boundary). For
+  #   "burn_evidence" {:error, :insufficient_scrip} set status "Not enough scrip to burn the
+  #   trail."; for any activity {:error, :not_laying_low} leave state unchanged.
   def handle_event("lay_low", _params, socket) do
     case Players.dispatch(socket.assigns.player_id, &Players.lay_low/1) do
       {:ok, player, meta} ->
@@ -253,6 +270,17 @@ defmodule ShuntWeb.HubLive do
             </div>
           <% end %>
 
+          <%!-- TODO: Replace this legacy Lay Low button with a mode-aware block driven by
+                @player.mode (== "laying_low"). When NOT in the mode: render an
+                #enter-laying-low-button (phx-click="enter"), variant :ghost when
+                Shunt.LayingLow.can_enter?(@player) else :dead, label "[ GO TO GROUND ]", with a
+                flavor line naming the Heat gate. When IN the mode: render an #laying-low-panel
+                holding the activity loop — buttons #rest-button ("[ REST ]"), #gather-rumors-button
+                ("[ GATHER RUMORS ]"), #visit-contact-button ("[ VISIT CONTACT ]"), #train-button
+                ("[ TRAIN ]"), #burn-evidence-button ("[ BURN EVIDENCE — 25 SCRIP ]", variant :dead
+                when @player.scrip < 25) each with the matching phx-click, plus a #resurface-button
+                ("[ RESURFACE ]", phx-click="leave"). Use <%%= if @player.mode == "laying_low" do %%>
+                / <%% else %%> / <%% end %%> and alias Shunt.LayingLow at the top of the module. --%>
           <p class="held-flavor">Lay Low — 10 Cred, -20 Heat</p>
           <Chrome.btn
             id="lay-low-button"

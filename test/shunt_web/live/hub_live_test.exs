@@ -23,6 +23,18 @@ defmodule ShuntWeb.HubLiveTest do
     assert render(view) =~ "5 DOSSIERS · USE WISELY"
   end
 
+  # TODO: This "clicking Lay Low" test and the "Lay Low stays available in the stash panel"
+  #   test below (~line 203) both drive #lay-low-button, which is being replaced by the
+  #   Laying Low mode block. Rework them: assert the not-in-mode button is #enter-laying-low-button
+  #   and that #stash-panel #enter-laying-low-button is present regardless of held-item state.
+  # TODO: Add mode-loop coverage (DOM-id assertions only, no counts / no raw-HTML matches):
+  #   (1) at Heat >= medium band, clicking #enter-laying-low-button reveals #laying-low-panel and
+  #       hides #enter-laying-low-button; (2) inside the mode, clicking #rest-button lowers the
+  #       displayed HEAT and sets the status line; (3) #burn-evidence-button is :dead when
+  #       scrip < 25 and dispatches when scrip >= 25; (4) clicking #resurface-button returns the
+  #       Hub to showing #enter-laying-low-button. Set Heat via
+  #       Shunt.Repo.update!(Ecto.Changeset.change(player, heat: 70)) in setup, mirroring the
+  #       existing tests. Assert the Heat gate: at Heat 0, #enter-laying-low-button is :dead.
   test "clicking Lay Low decreases displayed resources and sets the status line", %{conn: conn} do
     player = Shunt.Players.get_player!()
     Shunt.Repo.update!(Ecto.Changeset.change(player, cred: 30, heat: 40))
