@@ -6,12 +6,11 @@ defmodule ShuntWeb.WebLive do
   alias Shunt.Web
   alias Shunt.Web.Rumor
   alias ShuntWeb.Chrome
-  alias ShuntWeb.Components.SignalWeb
 
   @dev_routes Application.compile_env(:shunt, :dev_routes)
 
-  # Dev-only: the shunt9 rumor set seeded by [ SEED RUMORS ] so the network — and its entity web —
-  # can be exercised without replaying the events that normally award these rumors.
+  # Dev-only: the shunt9 rumor set seeded by [ SEED RUMORS ] so the network can be exercised
+  # without replaying the events that normally award these rumors.
   @dev_seed_rumors ~w(juno_supplier missing_shipments vex_debts authority_involvement freight_tunnel_shipments vendor_squeeze protection_chits cook_supply_short)
 
   def mount(_params, _session, socket) do
@@ -23,21 +22,7 @@ defmodule ShuntWeb.WebLive do
      |> assign(:player_id, player_id)
      |> assign(:player, player)
      |> assign(:active_event_id, nil)
-     |> assign(:view, :cases)
-     |> assign(:selected_entity, nil)
      |> assign(:dev?, @dev_routes)
-     |> view_assigns()}
-  end
-
-  def handle_event("set_view", %{"view" => view}, socket) do
-    {:noreply, assign(socket, :view, parse_view(view))}
-  end
-
-  def handle_event("select_entity", %{"entity" => tag}, socket) do
-    {:noreply,
-     socket
-     |> assign(:selected_entity, tag)
-     |> assign(:view, :entities)
      |> view_assigns()}
   end
 
@@ -124,70 +109,20 @@ defmodule ShuntWeb.WebLive do
         </Chrome.panel>
       <% end %>
 
-      <%= cond do %>
-        <% @network == [] and @entities == [] -> %>
-          <Chrome.panel id="web-empty">
-            <p class="web-empty-text">
-              NO SIGNAL YET · gather intel out in the world and the network surfaces its cases
-            </p>
-          </Chrome.panel>
-        <% true -> %>
-          <div id="web-views" class="web-views">
-            <button
-              id="view-cases"
-              type="button"
-              class={["web-view-tab", @view == :cases && "web-view-tab--on"]}
-              phx-click="set_view"
-              phx-value-view="cases"
-            >
-              [ CASES ]
-            </button>
-            <button
-              id="view-entities"
-              type="button"
-              class={["web-view-tab", @view == :entities && "web-view-tab--on"]}
-              phx-click="set_view"
-              phx-value-view="entities"
-            >
-              [ ENTITIES ]
-            </button>
-          </div>
-
-          <%= if @view == :entities do %>
-            <div id="entities-view" class="entities-view">
-              <SignalWeb.signal_web graph={@entity_graph} focus={@entity_focus} />
-              <div id="entity-rail" class="entity-rail">
-                <button
-                  :for={entity <- @entities}
-                  id={"entity-#{entity.key}"}
-                  type="button"
-                  class={["entity-chip", @entity_focus == entity.key && "entity-chip--on"]}
-                  phx-click="select_entity"
-                  phx-value-entity={entity.key}
-                >
-                  {entity.name}
-                </button>
-              </div>
-              <div id="entity-detail" class="entity-detail">
-                <ul :if={@entity_rumors != []} class="entity-rumors">
-                  <li :for={rumor <- @entity_rumors} class="entity-rumor">{rumor.title}</li>
-                </ul>
-                <.case_card
-                  :for={entry <- @entity_cases}
-                  entry={entry}
-                  event_open?={not is_nil(@active_event_id)}
-                />
-              </div>
-            </div>
-          <% else %>
-            <div id="signal-network" class="signal-network">
-              <.case_card
-                :for={entry <- @network}
-                entry={entry}
-                event_open?={not is_nil(@active_event_id)}
-              />
-            </div>
-          <% end %>
+      <%= if @network == [] do %>
+        <Chrome.panel id="web-empty">
+          <p class="web-empty-text">
+            NO SIGNAL YET · gather intel out in the world and the network surfaces its cases
+          </p>
+        </Chrome.panel>
+      <% else %>
+        <div id="signal-network" class="signal-network">
+          <.case_card
+            :for={entry <- @network}
+            entry={entry}
+            event_open?={not is_nil(@active_event_id)}
+          />
+        </div>
       <% end %>
     </Layouts.app>
     """
@@ -244,38 +179,10 @@ defmodule ShuntWeb.WebLive do
     """
   end
 
-  # Rebuilds every view-derived assign from the current player: the cases list, the entity facets,
-  # and (when an entity is selected) that entity's held rumors and the cases it touches.
+  # Rebuilds the cases list from the current player.
   defp view_assigns(socket) do
     player = socket.assigns.player
-    graph = Web.entity_graph(player)
-    focus = resolve_focus(graph, socket.assigns.selected_entity)
-
-    {entity_rumors, entity_cases} =
-      case focus do
-        nil ->
-          {[], []}
-
-        tag ->
-          view = Web.entity_view(player, tag)
-          {view.rumors, Enum.map(view.cases, &enrich/1)}
-      end
-
-    socket
-    |> assign(:network, player |> Web.network() |> Enum.map(&enrich/1))
-    |> assign(:entities, Web.entities(player))
-    |> assign(:entity_graph, graph)
-    |> assign(:entity_focus, focus)
-    |> assign(:entity_rumors, entity_rumors)
-    |> assign(:entity_cases, entity_cases)
-  end
-
-  # Center the web on the player's selection while it's still a live entity, otherwise on the
-  # highest-signal one so the view is never empty-handed.
-  defp resolve_focus(graph, selected) do
-    if selected && Enum.any?(graph.nodes, &(&1.key == selected)),
-      do: selected,
-      else: Web.default_focus(graph)
+    assign(socket, :network, player |> Web.network() |> Enum.map(&enrich/1))
   end
 
   # Decorates a network entry with the display data the case card needs: the held rumors as structs
@@ -314,7 +221,4 @@ defmodule ShuntWeb.WebLive do
   defp parse_mode("crack"), do: {:ok, :crack}
   defp parse_mode("lead"), do: {:ok, :lead}
   defp parse_mode(_), do: :error
-
-  defp parse_view("entities"), do: :entities
-  defp parse_view(_), do: :cases
 end

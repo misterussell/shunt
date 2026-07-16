@@ -17,8 +17,7 @@ defmodule ShuntWeb.WebLiveTest do
         title: "Intel A",
         description: "First.",
         source: "npc",
-        origin: "Overheard in the back-rows",
-        entities: [{:npc, "tw_juno"}]
+        origin: "Overheard in the back-rows"
       },
       %Rumor{
         id: "test_rumor_b",
@@ -78,16 +77,11 @@ defmodule ShuntWeb.WebLiveTest do
       on_complete: []
     }
 
-    # test_rumor_a names this NPC, so the entities view/web has a real entity to render.
-    juno = %{id: "tw_juno", name: "Juno"}
-
-    :ets.insert(:world_npcs, {juno.id, juno})
     :ets.insert(:rumors, Enum.map(rumors, &{&1.id, &1}))
     :ets.insert(:rumor_connections, {conn_data.id, conn_data})
     :ets.insert(:events, [{success_event.id, success_event}, {partial_event.id, partial_event}])
 
     on_exit(fn ->
-      :ets.delete(:world_npcs, juno.id)
       Enum.each(rumors, &:ets.delete(:rumors, &1.id))
       :ets.delete(:rumor_connections, conn_data.id)
       :ets.delete(:events, success_event.id)
@@ -267,160 +261,6 @@ defmodule ShuntWeb.WebLiveTest do
       {:ok, view, _html} = live(conn, ~p"/skills/the-web")
 
       refute has_element?(view, "#wipe-board-button")
-    end
-  end
-
-  describe "cases / entities toggle" do
-    test "defaults to the cases view with both toggle controls present", %{
-      conn: conn,
-      player: player
-    } do
-      give_player_rumors(player, ["test_rumor_a"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-      assert has_element?(view, "#view-cases")
-      assert has_element?(view, "#view-entities")
-      assert has_element?(view, "#signal-network")
-      refute has_element?(view, "#entities-view")
-    end
-
-    test "switching to entities shows the facet rail and hides the cases list", %{
-      conn: conn,
-      player: player
-    } do
-      give_player_rumors(player, ["test_rumor_a"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-      view |> element("#view-entities") |> render_click()
-
-      assert has_element?(view, "#entities-view")
-      assert has_element?(view, "#entity-npc-tw_juno")
-      refute has_element?(view, "#signal-network")
-    end
-  end
-
-  describe "entities view" do
-    test "selecting an entity shows its held rumors and the cases it touches", %{
-      conn: conn,
-      player: player
-    } do
-      give_player_rumors(player, ["test_rumor_a"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-      view |> element("#view-entities") |> render_click()
-      view |> element("#entity-npc-tw_juno") |> render_click()
-
-      assert has_element?(view, "#entity-detail", "Intel A")
-      assert has_element?(view, "#entity-detail #case-test_conn")
-    end
-
-    test "the entity detail defaults to the top-signal entity before any click", %{
-      conn: conn,
-      player: player
-    } do
-      give_player_rumors(player, ["test_rumor_a"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-
-      view |> element("#view-entities") |> render_click()
-
-      # juno is the only entity, so the web auto-focuses it and the detail shows its intel.
-      assert has_element?(view, "#entity-detail", "Intel A")
-      assert has_element?(view, "#entity-detail #case-test_conn")
-    end
-  end
-
-  describe "signal web (entities view)" do
-    setup do
-      # A two-hop chain of real entities: Pax–Dock (web_ab) and Dock–Grid (web_bc). Pax and Grid
-      # share no rumor, so the focal neighborhood is provably local — the web never draws it all.
-      npc = %{id: "tw_pax", name: "Pax"}
-      loc = %{id: "tw_dock", name: "The Dock"}
-      ice = %{id: "tw_grid", name: "The Grid"}
-
-      rumors = [
-        %Rumor{
-          id: "web_ab",
-          title: "AB",
-          description: "…",
-          source: "npc",
-          entities: [{:npc, "tw_pax"}, {:location, "tw_dock"}]
-        },
-        %Rumor{
-          id: "web_bc",
-          title: "BC",
-          description: "…",
-          source: "npc",
-          entities: [{:location, "tw_dock"}, {:ice, "tw_grid"}]
-        }
-      ]
-
-      :ets.insert(:world_npcs, {npc.id, npc})
-      :ets.insert(:locations, {loc.id, loc})
-      :ets.insert(:ice_nodes, {ice.id, ice})
-      :ets.insert(:rumors, Enum.map(rumors, &{&1.id, &1}))
-
-      on_exit(fn ->
-        :ets.delete(:world_npcs, npc.id)
-        :ets.delete(:locations, loc.id)
-        :ets.delete(:ice_nodes, ice.id)
-        Enum.each(rumors, &:ets.delete(:rumors, &1.id))
-      end)
-
-      :ok
-    end
-
-    test "centers on the top-signal entity and shows its neighbors, tagged by kind", %{
-      conn: conn,
-      player: player
-    } do
-      give_player_rumors(player, ["web_ab", "web_bc"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-      view |> element("#view-entities") |> render_click()
-
-      # The Dock is the hub (named by both rumors) -> default focus; Pax and Grid are neighbors.
-      assert has_element?(view, "#entity-web")
-      assert has_element?(view, "#web-node-location-tw_dock[data-kind='location']")
-      assert has_element?(view, "#web-node-npc-tw_pax[data-kind='npc']")
-      assert has_element?(view, "#web-node-ice-tw_grid[data-kind='ice']")
-      assert has_element?(view, "#entity-rail #entity-location-tw_dock")
-    end
-
-    test "draws only the focal entity's neighborhood", %{conn: conn, player: player} do
-      give_player_rumors(player, ["web_ab", "web_bc"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-      view |> element("#view-entities") |> render_click()
-      view |> element("#web-node-npc-tw_pax") |> render_click()
-
-      # Focused on Pax: the Dock is a neighbor; the Grid (two hops away) is not drawn.
-      assert has_element?(view, "#web-node-location-tw_dock")
-      refute has_element?(view, "#web-node-ice-tw_grid")
-    end
-
-    test "clicking a node re-centers the web on it", %{conn: conn, player: player} do
-      give_player_rumors(player, ["web_ab", "web_bc"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-      view |> element("#view-entities") |> render_click()
-      view |> element("#web-node-npc-tw_pax") |> render_click()
-      refute has_element?(view, "#web-node-ice-tw_grid")
-
-      view |> element("#web-node-location-tw_dock") |> render_click()
-      assert has_element?(view, "#web-node-ice-tw_grid")
-    end
-
-    test "threads carry a data-status attribute", %{conn: conn, player: player} do
-      give_player_rumors(player, ["web_ab"])
-
-      {:ok, view, _html} = live(conn, ~p"/skills/the-web")
-      view |> element("#view-entities") |> render_click()
-
-      assert has_element?(view, "#entity-web [data-status]")
     end
   end
 
