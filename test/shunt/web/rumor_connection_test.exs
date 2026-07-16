@@ -11,7 +11,9 @@ defmodule Shunt.Web.RumorConnectionTest do
       partial_threshold: 2,
       success_event_id: "success_evt",
       partial_event_id: "partial_evt",
-      failure_event_id: "failure_evt"
+      failure_event_id: "failure_evt",
+      lead_heat: 2,
+      crack_heat: 5
     }
 
     :ets.insert(:rumor_connections, {conn.id, conn})
@@ -32,6 +34,22 @@ defmodule Shunt.Web.RumorConnectionTest do
   describe "all/0" do
     test "includes loaded connections", %{conn: conn} do
       assert conn in RumorConnection.all()
+    end
+  end
+
+  describe "heat costs" do
+    test "every authored connection has integer lead_heat and crack_heat" do
+      for conn <- RumorConnection.all() do
+        assert is_integer(conn.lead_heat), "#{conn.id} is missing an integer lead_heat"
+        assert is_integer(conn.crack_heat), "#{conn.id} is missing an integer crack_heat"
+      end
+    end
+
+    test "cracking a case costs more heat than following its lead" do
+      for conn <- RumorConnection.all() do
+        assert conn.crack_heat > conn.lead_heat,
+               "#{conn.id}: crack_heat (#{conn.crack_heat}) should exceed lead_heat (#{conn.lead_heat})"
+      end
     end
   end
 end

@@ -148,10 +148,6 @@ defmodule Shunt.Effects do
     append_distinct(rest, player, acc, meta, :rumors, key)
   end
 
-  defp do_apply([{:web_board, board} | rest], player, acc, meta) do
-    do_apply(rest, player, Map.put(acc, :web_board, board), meta)
-  end
-
   defp do_apply([{:install_module, key} | rest], player, acc, meta) do
     append_distinct(rest, player, acc, meta, :modules, key)
   end

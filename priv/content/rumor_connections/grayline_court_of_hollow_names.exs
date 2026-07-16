@@ -10,5 +10,7 @@
   partial_threshold: 3,
   success_event_id: "grayline_court_success",
   partial_event_id: "grayline_court_partial",
-  failure_event_id: "grayline_court_failure"
+  failure_event_id: "grayline_court_failure",
+  lead_heat: 4,
+  crack_heat: 8
 }

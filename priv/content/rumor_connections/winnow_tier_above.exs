@@ -16,5 +16,7 @@
   partial_threshold: 4,
   success_event_id: "winnow_case_success",
   partial_event_id: "winnow_case_partial",
-  failure_event_id: "winnow_case_failure"
+  failure_event_id: "winnow_case_failure",
+  lead_heat: 5,
+  crack_heat: 10
 }

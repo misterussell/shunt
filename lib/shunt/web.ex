@@ -1,292 +1,227 @@
 defmodule Shunt.Web do
   @moduledoc false
 
+  alias Shunt.Events
+  alias Shunt.Web.Entity
+  alias Shunt.Web.Rumor
   alias Shunt.Web.RumorConnection
 
-  @empty_board %{"positions" => %{}, "wires" => []}
-
-  @doc "Clears all positions and wires. Leaves player.rumors untouched (cards return to intake)."
-  def wipe_board(_player), do: {:ok, [{:web_board, @empty_board}]}
+  @status_order %{crackable: 0, lead: 1, forming: 2, solved: 3}
 
   @doc """
-  Places (or repositions) a rumor on the board at fractional coords. Used for both the
-  intake -> board drop and subsequent moves — both just set positions[id].
+  The player's signal network: every RumorConnection they hold at least one rumor of, decorated
+  with what they hold, what they're missing, the total, and the case's status. Cases the player
+  holds no rumor of are omitted (hidden). `held`/`missing` preserve the connection's authored rumor
+  order. Sorted by status (crackable, then lead, then forming, then solved) and then connection id.
+
+    status ordering (first match wins):
+      solved?/2                            -> :solved
+      holds every rumor in the set         -> :crackable
+      holds >= conn.partial_threshold      -> :lead
+      holds >= 1                           -> :forming
   """
-  def place_rumor(player, id, x, y) do
+  def network(player) do
+    held_set = MapSet.new(player.rumors)
+
+    RumorConnection.all()
+    |> Enum.flat_map(fn conn ->
+      case Enum.filter(conn.rumors, &MapSet.member?(held_set, &1)) do
+        [] ->
+          []
+
+        held ->
+          [
+            %{
+              connection: conn,
+              held: held,
+              missing: Enum.reject(conn.rumors, &MapSet.member?(held_set, &1)),
+              total: length(conn.rumors),
+              status: status(player, conn, length(held))
+            }
+          ]
+      end
+    end)
+    |> Enum.sort_by(fn %{connection: conn, status: status} ->
+      {Map.fetch!(@status_order, status), conn.id}
+    end)
+  end
+
+  defp status(player, conn, held_count) do
     cond do
-      # Only rumors the player actually holds may go on the board — otherwise a client could place
-      # (and resonate) a connection's rumors it never collected, since clusters read board state.
-      id not in player.rumors ->
-        {:ok, []}
-
-      locked?(player, id) ->
-        {:ok, []}
-
-      true ->
-        board = board(player)
-        new_positions = Map.put(board["positions"], id, %{"x" => x, "y" => y})
-        {:ok, [{:web_board, %{board | "positions" => new_positions}}]}
+      solved?(player, conn) -> :solved
+      held_count == length(conn.rumors) -> :crackable
+      held_count >= conn.partial_threshold -> :lead
+      true -> :forming
     end
   end
-
-  @doc "Wires two rumors together. Stored as a sorted pair; idempotent and order-independent."
-  def connect(player, a, b) do
-    if locked_either?(player, a, b) do
-      {:ok, []}
-    else
-      board = board(player)
-      pair = Enum.sort([a, b])
-      new_wires = if pair in board["wires"], do: board["wires"], else: board["wires"] ++ [pair]
-      {:ok, [{:web_board, %{board | "wires" => new_wires}}]}
-    end
-  end
-
-  @doc "Removes the wire between two rumors, if present. Order-independent."
-  def disconnect(player, a, b) do
-    if locked_either?(player, a, b) do
-      {:ok, []}
-    else
-      board = board(player)
-      new_wires = List.delete(board["wires"], Enum.sort([a, b]))
-      {:ok, [{:web_board, %{board | "wires" => new_wires}}]}
-    end
-  end
-
-  @doc "Pulls a rumor off the board: drops its position and every wire that touches it."
-  def return_to_intake(player, id) do
-    if locked?(player, id) do
-      {:ok, []}
-    else
-      board = board(player)
-      new_positions = Map.delete(board["positions"], id)
-      new_wires = Enum.reject(board["wires"], fn [a, b] -> a == id or b == id end)
-      {:ok, [{:web_board, %{"positions" => new_positions, "wires" => new_wires}}]}
-    end
-  end
-
-  @doc "Rumors the player holds that are not yet placed on the board (the intake tray)."
-  def intake(player) do
-    player.rumors -- Map.keys(board(player)["positions"])
-  end
-
-  @doc "Placed rumors as {id, x, y} tuples (fractional coords), sorted by id."
-  def placed(player) do
-    board(player)["positions"]
-    |> Enum.map(fn {id, %{"x" => x, "y" => y}} -> {id, x, y} end)
-    |> Enum.sort()
-  end
-
-  @doc "The board's wire pairs."
-  def wires(player), do: board(player)["wires"]
 
   @doc """
-  Connected components of the board, as a list of MapSets of rumor ids. Only placed rumors are
-  considered; a wire with an unplaced endpoint is ignored. A placed rumor with no wires is its
-  own single-element cluster.
-  """
-  def clusters(player) do
-    board = board(player)
-    placed = MapSet.new(Map.keys(board["positions"]))
+  Acts on a case. `:crack` plays its success event; `:lead` plays its partial event. This is
+  server-authoritative — the player must actually hold the required intel, since the client can't
+  be trusted to have earned it. Probing the network is a commitment: the case's authored heat cost
+  (`crack_heat`/`lead_heat`) rides along with the started event.
 
-    adjacency =
-      board["wires"]
-      |> Enum.filter(fn [a, b] -> MapSet.member?(placed, a) and MapSet.member?(placed, b) end)
-      |> Enum.reduce(%{}, fn [a, b], acc ->
-        acc |> Map.update(a, [b], &[b | &1]) |> Map.update(b, [a], &[a | &1])
+  Returns `{:ok, [{:heat, cost} | event_effects], %{event_id: event_id}}` so the caller can dispatch
+  it in one shot and read the started event id from the meta, or `{:error, reason}` when the player
+  doesn't qualify (`:not_found`, `:solved`, `:insufficient_intel`, or `:lead_spent`).
+  """
+  def pursue(player, connection_id, mode) do
+    with {:ok, conn} <- RumorConnection.fetch(connection_id),
+         :ok <- validate_pursuit(player, conn, mode) do
+      {event_id, heat} = pursuit_target(conn, mode)
+      {:ok, event_effects, _meta} = Events.start(player, event_id)
+      {:ok, [{:heat, heat} | event_effects], %{event_id: event_id}}
+    else
+      :error -> {:error, :not_found}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp pursuit_target(conn, :crack), do: {conn.success_event_id, conn.crack_heat}
+  defp pursuit_target(conn, :lead), do: {conn.partial_event_id, conn.lead_heat}
+
+  defp validate_pursuit(player, conn, mode) do
+    held_count =
+      MapSet.intersection(MapSet.new(player.rumors), MapSet.new(conn.rumors)) |> MapSet.size()
+
+    cond do
+      solved?(player, conn) -> {:error, :solved}
+      mode == :crack and held_count < length(conn.rumors) -> {:error, :insufficient_intel}
+      mode == :lead and held_count < conn.partial_threshold -> {:error, :insufficient_intel}
+      mode == :lead and conn.partial_event_id in player.completed_events -> {:error, :lead_spent}
+      true -> :ok
+    end
+  end
+
+  @doc """
+  The browse-by-entity axis: the distinct real entities (NPCs, locations, ICE) named across the
+  rumors the player holds, as `%{key, kind, id, name}` descriptors sorted by name. Grounds the
+  network in intel collected, not in cases they haven't touched.
+  """
+  def entities(player) do
+    player
+    |> held_rumors()
+    |> Enum.flat_map(&rumor_entities/1)
+    |> Enum.uniq_by(& &1.key)
+    |> Enum.sort_by(&{&1.name, &1.key})
+  end
+
+  @doc """
+  Everything the network shows for one entity (by `key`): the held rumors that name it (in held
+  order), and the `network/1` cases those rumors touch. `%{rumors: [...], cases: [...]}`.
+  """
+  def entity_view(player, key) do
+    named =
+      player
+      |> held_rumors()
+      |> Enum.filter(&(key in Enum.map(rumor_entities(&1), fn e -> e.key end)))
+
+    named_ids = MapSet.new(named, & &1.id)
+
+    cases =
+      player
+      |> network()
+      |> Enum.filter(fn %{connection: conn} ->
+        Enum.any?(conn.rumors, &MapSet.member?(named_ids, &1))
       end)
 
-    {components, _seen} =
-      Enum.reduce(placed, {[], MapSet.new()}, fn node, {components, seen} ->
-        if MapSet.member?(seen, node) do
-          {components, seen}
-        else
-          component = reachable(MapSet.new([node]), [node], adjacency)
-          {[component | components], MapSet.union(seen, component)}
-        end
+    %{rumors: named, cases: cases}
+  end
+
+  @doc """
+  The entity-to-entity "signal web": `%{nodes: [...], edges: [...]}` of the real game objects the
+  player's held rumors name — the hidden social/political web weaves itself as intel is gathered.
+  The view renders one focal entity's neighborhood at a time (see `default_focus/1`), so this stays
+  a plain structure with no layout baked in.
+
+    node  %{key, kind, id, name, weight}  weight = number of held rumors naming the entity
+    edge  %{a, b, weight, status}  a/b are node keys, a < b; weight = held rumors naming both;
+          status = the best status among cases whose held rumors produce the pair
+          (crackable > lead > forming > solved), or `:unaffiliated`
+  """
+  def entity_graph(player) do
+    case held_rumors(player) do
+      [] -> %{nodes: [], edges: []}
+      held -> %{nodes: nodes(held), edges: edges(held, rumor_status(network(player)))}
+    end
+  end
+
+  @doc """
+  The default focal entity for the web: the highest-signal entity (named by the most held rumors),
+  ties broken by key. Returns the entity `key`, or `nil` when the graph is empty.
+  """
+  def default_focus(%{nodes: []}), do: nil
+
+  def default_focus(%{nodes: nodes}),
+    do: nodes |> Enum.min_by(&{-&1.weight, &1.key}) |> Map.fetch!(:key)
+
+  # The real entities a rumor names, resolved to descriptors (dangling refs dropped), unique per
+  # rumor so naming an entity twice doesn't double-count.
+  defp rumor_entities(rumor) do
+    rumor.entities
+    |> Enum.map(&Entity.resolve/1)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq_by(& &1.key)
+  end
+
+  # One node per distinct named entity, weighted by how many held rumors name it.
+  defp nodes(held) do
+    held
+    |> Enum.flat_map(&rumor_entities/1)
+    |> Enum.group_by(& &1.key)
+    |> Enum.map(fn {_key, [descriptor | _] = named} ->
+      Map.put(descriptor, :weight, length(named))
+    end)
+    |> Enum.sort_by(& &1.key)
+  end
+
+  # rumor id -> the best status among held cases containing it.
+  defp rumor_status(net) do
+    Enum.reduce(net, %{}, fn %{connection: conn, status: status}, acc ->
+      Enum.reduce(conn.rumors, acc, fn rid, acc ->
+        Map.update(acc, rid, status, &best_status(&1, status))
       end)
-
-    components
+    end)
   end
 
-  @doc """
-  Clusters that exactly match an unsolved connection, as {cluster_set, connection} pairs. Only
-  exact set matches resonate — partial/threshold overlaps return nothing (the board stays dark on
-  near-misses).
-  """
-  def resonant_clusters(player) do
-    player
-    |> matched_clusters()
-    |> Enum.reject(fn {_cluster, conn} -> solved?(player, conn) end)
+  # One edge per co-named entity pair: weight = how many held rumors name both, status = the best
+  # status among the rumors that produce it. Pairs are de-duped by sorted [a, b] (entity keys).
+  defp edges(held, rumor_statuses) do
+    held
+    |> Enum.flat_map(fn rumor ->
+      status = Map.get(rumor_statuses, rumor.id, :unaffiliated)
+      keys = Enum.map(rumor_entities(rumor), & &1.key)
+      Enum.map(key_pairs(keys), fn {a, b} -> {a, b, status} end)
+    end)
+    |> Enum.group_by(fn {a, b, _} -> {a, b} end)
+    |> Enum.map(fn {{a, b}, occurrences} ->
+      statuses = Enum.map(occurrences, fn {_, _, status} -> status end)
+      %{a: a, b: b, weight: length(occurrences), status: Enum.min_by(statuses, &status_rank/1)}
+    end)
+    |> Enum.sort_by(&{&1.a, &1.b})
   end
 
-  @doc """
-  Clusters that exactly match an already-cracked connection, as a list of MapSets. These are the
-  solved cases — stamped and locked on the board.
-  """
-  def solved_clusters(player) do
-    player
-    |> matched_clusters()
-    |> Enum.filter(fn {_cluster, conn} -> solved?(player, conn) end)
-    |> Enum.map(fn {cluster, _conn} -> cluster end)
+  defp key_pairs(keys) do
+    sorted = keys |> Enum.uniq() |> Enum.sort()
+
+    for {a, i} <- Enum.with_index(sorted), b <- Enum.drop(sorted, i + 1), do: {a, b}
   end
 
-  @doc """
-  Clusters that exactly match an authored connection, as {cluster_set, connection} pairs (solved
-  and unsolved alike). Only exact set matches qualify — partial/threshold overlaps are excluded.
-  Callers that need both the resonant and solved partitions should compute this once and split on
-  `solved?/2` rather than calling `resonant_clusters/1` and `solved_clusters/1` separately.
-  """
-  def matched_clusters(player) do
-    connections = RumorConnection.all()
+  defp best_status(a, b), do: if(status_rank(a) <= status_rank(b), do: a, else: b)
+  defp status_rank(:unaffiliated), do: map_size(@status_order)
+  defp status_rank(status), do: Map.fetch!(@status_order, status)
 
-    player
-    |> clusters()
-    |> Enum.flat_map(fn cluster ->
-      case Enum.find(connections, &(MapSet.new(&1.rumors) == cluster)) do
-        nil -> []
-        conn -> [{cluster, conn}]
+  defp held_rumors(player) do
+    Enum.flat_map(player.rumors, fn id ->
+      case Rumor.fetch(id) do
+        {:ok, rumor} -> [rumor]
+        :error -> []
       end
     end)
   end
 
-  @doc "Whether a connection has already been cracked (its success event is completed)."
-  def solved?(player, connection) do
+  # Whether a connection has already been cracked (its success event is completed).
+  defp solved?(player, connection) do
     connection.success_event_id in player.completed_events
-  end
-
-  @doc """
-  Rumor ids that belong to a solved (locked) cluster. Mutating board ops refuse to touch these,
-  so a cracked case stays stamped and intact even if a stale or out-of-band board event arrives
-  (the JS hook also blocks the gesture, but the server is the source of truth).
-  """
-  def locked_rumor_ids(player) do
-    player
-    |> solved_clusters()
-    |> Enum.reduce(MapSet.new(), &MapSet.union(&2, &1))
-  end
-
-  @doc """
-  Warm (near-miss) clusters, as a list of maps. A cluster is warm toward a connection when its
-  rumor set is a *proper* subset of that connection's rumors and holds at least two — so a lone
-  placed card and an exact (resonant) match are both excluded. Already-solved connections are
-  skipped. Each entry is `%{cluster, connection, matched, total, short, lead_ready?}` where
-  `short` is how many rumors the cluster is still shy of the full set, and `lead_ready?` is
-  whether the cluster has reached the connection's `partial_threshold` *and* its
-  `partial_event_id` has not already been followed — a non-repeatable partial drops out of
-  lead-ready once completed, so the lead can't be re-followed into an already-finished event.
-
-  This is the shared partial-match primitive: the dossier's "in play" status and the leads strip
-  both read it.
-  """
-  def warm_clusters(player) do
-    connections = RumorConnection.all()
-
-    player
-    |> clusters()
-    |> Enum.flat_map(fn cluster ->
-      with true <- MapSet.size(cluster) >= 2,
-           conn when not is_nil(conn) <- best_partial_connection(player, cluster, connections) do
-        matched = MapSet.size(cluster)
-        total = length(conn.rumors)
-
-        [
-          %{
-            cluster: cluster,
-            connection: conn,
-            matched: matched,
-            total: total,
-            short: total - matched,
-            lead_ready?:
-              matched >= conn.partial_threshold and
-                conn.partial_event_id not in player.completed_events
-          }
-        ]
-      else
-        _ -> []
-      end
-    end)
-  end
-
-  @doc """
-  A placed rumor's board state for the dossier "in play" line:
-
-    * `:not_placed` — held but not on the board
-    * `:on_board` — placed, in no warm/resonant/solved cluster
-    * `{:forming, matched, total}` — in a warm cluster
-    * `:resonant` — in an exact, unsolved cluster
-    * `:solved` — in a solved cluster
-  """
-  def rumor_status(player, id) do
-    rumor_status(
-      player,
-      id,
-      locked_rumor_ids(player),
-      resonant_rumor_ids(player),
-      warm_clusters(player)
-    )
-  end
-
-  @doc """
-  `rumor_status/2` against an already-computed board breakdown — the locked (solved) and
-  resonant id sets and the warm-cluster list. Callers that just built those (the board LiveView)
-  pass them in so the status line doesn't re-walk the graph and reload connections for each open
-  dossier.
-  """
-  def rumor_status(player, id, solved_ids, resonant_ids, warm) do
-    cond do
-      not Map.has_key?(board(player)["positions"], id) ->
-        :not_placed
-
-      MapSet.member?(solved_ids, id) ->
-        :solved
-
-      MapSet.member?(resonant_ids, id) ->
-        :resonant
-
-      true ->
-        case Enum.find(warm, &MapSet.member?(&1.cluster, id)) do
-          nil -> :on_board
-          warm_cluster -> {:forming, warm_cluster.matched, warm_cluster.total}
-        end
-    end
-  end
-
-  # The closest connection a cluster is a proper subset of (smallest total = highest match ratio,
-  # since the matched count is fixed at the cluster size), excluding solved connections. nil when
-  # the cluster is not a partial of any unsolved connection.
-  defp best_partial_connection(player, cluster, connections) do
-    connections
-    |> Enum.filter(fn conn ->
-      conn_set = MapSet.new(conn.rumors)
-
-      MapSet.subset?(cluster, conn_set) and MapSet.size(cluster) < MapSet.size(conn_set) and
-        not solved?(player, conn)
-    end)
-    |> Enum.min_by(&length(&1.rumors), fn -> nil end)
-  end
-
-  defp resonant_rumor_ids(player) do
-    player
-    |> resonant_clusters()
-    |> Enum.reduce(MapSet.new(), fn {cluster, _conn}, acc -> MapSet.union(acc, cluster) end)
-  end
-
-  defp locked?(player, id), do: MapSet.member?(locked_rumor_ids(player), id)
-
-  defp locked_either?(player, a, b) do
-    locked = locked_rumor_ids(player)
-    MapSet.member?(locked, a) or MapSet.member?(locked, b)
-  end
-
-  defp board(player) do
-    raw = player.web_board || %{}
-    %{"positions" => Map.get(raw, "positions", %{}), "wires" => Map.get(raw, "wires", [])}
-  end
-
-  defp reachable(seen, [], _adjacency), do: seen
-
-  defp reachable(seen, [node | queue], adjacency) do
-    fresh = adjacency |> Map.get(node, []) |> Enum.reject(&MapSet.member?(seen, &1))
-    reachable(MapSet.union(seen, MapSet.new(fresh)), queue ++ fresh, adjacency)
   end
 end

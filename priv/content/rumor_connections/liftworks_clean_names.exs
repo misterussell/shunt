@@ -4,5 +4,7 @@
   partial_threshold: 2,
   success_event_id: "liftworks_clean_names_success",
   partial_event_id: "liftworks_clean_names_partial",
-  failure_event_id: "liftworks_clean_names_failure"
+  failure_event_id: "liftworks_clean_names_failure",
+  lead_heat: 2,
+  crack_heat: 5
 }

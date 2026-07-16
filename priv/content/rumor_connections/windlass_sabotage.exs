@@ -11,5 +11,7 @@
   partial_threshold: 4,
   success_event_id: "windlass_sabotage_success",
   partial_event_id: "windlass_sabotage_partial",
-  failure_event_id: "windlass_sabotage_failure"
+  failure_event_id: "windlass_sabotage_failure",
+  lead_heat: 5,
+  crack_heat: 10
 }
