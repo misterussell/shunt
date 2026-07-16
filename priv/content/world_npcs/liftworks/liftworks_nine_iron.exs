@@ -8,6 +8,7 @@
   id: "liftworks_nine_iron",
   name: "Nine-Iron",
   contact_key: "nine_iron",
+  faction: :kaspav_authority,
   location_id: "liftworks_watch_office",
   story_arcs: [],
   services: [

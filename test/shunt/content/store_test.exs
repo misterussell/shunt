@@ -4,33 +4,6 @@ defmodule Shunt.Content.StoreTest do
   alias Shunt.Content
 
   describe "all sources load at boot" do
-    test "npcs: returns 5 npcs with the expected keys and shape" do
-      npcs = Content.all(:npcs)
-
-      assert length(npcs) == 5
-
-      for npc <- npcs do
-        assert Map.has_key?(npc, :id)
-        assert Map.has_key?(npc, :name)
-        assert Map.has_key?(npc, :faction)
-        assert Map.has_key?(npc, :trade_actions)
-      end
-
-      assert MapSet.new(Enum.map(npcs, & &1.id)) ==
-               MapSet.new(["rook", "splice", "nine_iron", "mother_graft", "tally"])
-    end
-
-    test "npcs: fetch!/2 returns the npc map for a known key" do
-      npc = Content.fetch!(:npcs, "rook")
-
-      assert npc.name == "Rook"
-      assert npc.faction == :syndicate_of_closed_hands
-    end
-
-    test "npcs: fetch!/2 raises for an unknown key" do
-      assert_raise RuntimeError, fn -> Content.fetch!(:npcs, "unknown") end
-    end
-
     test "fencing_items: spans clean, warm, and hot tiers" do
       items = Content.all(:fencing_items)
 
@@ -111,7 +84,7 @@ defmodule Shunt.Content.StoreTest do
     end
 
     test "repeated calls don't error" do
-      assert Content.all(:npcs) == Content.all(:npcs)
+      assert Content.all(:world_npcs) == Content.all(:world_npcs)
     end
 
     test "events: fetch!/2 returns the event for a known key" do

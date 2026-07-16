@@ -7,6 +7,7 @@
   id: "shunt9_tally",
   name: "Tally",
   contact_key: "tally",
+  faction: :syndicate_of_closed_hands,
   location_id: "shunt9_bazaar",
   story_arcs: [],
   services: [

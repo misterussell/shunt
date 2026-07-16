@@ -1,11 +1,10 @@
 defmodule ShuntWeb.HubLive do
   use ShuntWeb, :live_view
 
+  alias Shunt.Contacts
   alias Shunt.Fencing
   alias Shunt.Fencing.Catalog
   alias Shunt.LayingLow
-  # TODO: replace `alias Shunt.Npcs` with `alias Shunt.Contacts`. Loyalty/Signals aliases stay.
-  alias Shunt.Npcs
   alias Shunt.Npcs.Loyalty
   alias Shunt.Npcs.Signals
   alias Shunt.Players
@@ -18,16 +17,12 @@ defmodule ShuntWeb.HubLive do
     {:ok, socket |> assign(player_id: player_id) |> assign(:status, nil) |> assign_player(player)}
   end
 
-  # TODO: these two loyalty-signal handlers look up the display name via Npcs.get!(npc_key), but
-  # npc_key here is the contact_key (loyalty key). After the fold-in, resolve the name from the
-  # world NPC whose contact_key == npc_key (e.g. a Shunt.Contacts.name(contact_key) helper) instead
-  # of the retired Shunt.Npcs.get!/1.
   def handle_info({:npc_met, npc_key}, socket) do
-    {:noreply, put_flash(socket, :info, "You've met #{Npcs.get!(npc_key).name}.")}
+    {:noreply, put_flash(socket, :info, "You've met #{Contacts.name(npc_key)}.")}
   end
 
   def handle_info({:loyalty_band_changed, npc_key, _old_band, new_band}, socket) do
-    name = Npcs.get!(npc_key).name
+    name = Contacts.name(npc_key)
 
     message =
       case new_band do
@@ -126,70 +121,22 @@ defmodule ShuntWeb.HubLive do
     end
   end
 
-  # TODO: replace the five per-deal handlers below (flesh_tithe, move_goods, look_the_other_way,
-  # data_drop, settle_the_books) with ONE generic handler:
-  #   handle_event("invoke_service", %{"contact" => ck, "service" => sk}, socket)
-  # that calls Players.dispatch(player_id, &Contacts.resolve_service(&1, ck, sk)) and, on {:ok,
-  # player, meta}, sets a status line from meta.deltas + flash_heat_event(meta.heat_event). Keep it
-  # data-driven — no per-contact cond. Status copy can be a generic "<NAME> // deal done // ..."
-  # built from the contact name + non-zero meta.deltas (scrip/cred/heat), so new services need no
-  # new handler. Delete the five handlers once this lands.
-  def handle_event("flesh_tithe", _params, socket) do
-    case Players.dispatch(socket.assigns.player_id, &Npcs.flesh_tithe/1) do
+  def handle_event(
+        "invoke_service",
+        %{"contact" => contact_key, "service" => service_key},
+        socket
+      ) do
+    resolver = &Contacts.resolve_service(&1, contact_key, service_key)
+
+    case Players.dispatch(socket.assigns.player_id, resolver) do
       {:ok, player, meta} ->
-        status =
-          "MOTHER GRAFT // stitched a deal // +#{meta.deltas.scrip} SCRIP // HEAT +#{meta.deltas.heat}"
+        status = contact_status(Contacts.name(contact_key), meta.deltas)
 
         {:noreply,
          socket
          |> assign(:status, status)
          |> flash_heat_event(meta.heat_event)
          |> assign_player(player)}
-
-      {:error, _reason} ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("move_goods", _params, socket) do
-    case Players.dispatch(socket.assigns.player_id, &Npcs.move_goods/1) do
-      {:ok, player, meta} ->
-        name = Catalog.fetch!(socket.assigns.player.held_item_key).name
-        status = "ROOK // moved #{name} // +#{meta.deltas.scrip} SCRIP"
-        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
-
-      {:error, _reason} ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("look_the_other_way", _params, socket) do
-    case Players.dispatch(socket.assigns.player_id, &Npcs.look_the_other_way/1) do
-      {:ok, player, meta} ->
-        status = "NINE-IRON // sensor wiped // HEAT #{meta.deltas.heat}"
-        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
-
-      {:error, _reason} ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("data_drop", _params, socket) do
-    case Players.dispatch(socket.assigns.player_id, &Npcs.data_drop/1) do
-      {:ok, player, meta} ->
-        status = "SPLICE // data dropped // +#{meta.deltas.cred} CRED"
-        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
-
-      {:error, _reason} ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("settle_the_books", _params, socket) do
-    case Players.dispatch(socket.assigns.player_id, &Npcs.settle_the_books/1) do
-      {:ok, player, meta} ->
-        status = "TALLY // books settled // +#{meta.deltas.scrip} SCRIP"
-        {:noreply, socket |> assign(:status, status) |> assign_player(player)}
 
       {:error, _reason} ->
         {:noreply, socket}
@@ -352,92 +299,46 @@ defmodule ShuntWeb.HubLive do
         </Chrome.panel>
       </div>
 
-      <%!--
-        TODO: rework this CONTACTS block into the "COMMS NETWORK":
-        - Header copy: "COMMS NETWORK" (drop the fixed "5 DOSSIERS" secondary — the roster grows;
-          per project rule, no exact-count copy).
-        - Iterate @contacts (see assign_player TODO): each entry is %{npc, loyalty, services} for a
-          contact with >= 1 UNLOCKED service. Render the name, faction pill, and TRUST bar exactly
-          as today (drive band styling off entry.loyalty; the trust-bar/pill markup below is the
-          template to reuse).
-        - For each unlocked service, render a button (id={"service-#{npc.contact_key}-#{service.key}"})
-          labeled service.name, variant :primary/:dead from Contacts.can_afford?/3, phx-click
-          "invoke_service" with phx-value-contact={npc.contact_key} phx-value-service={service.key}.
-          No per-id cond, no locked/teaser tiers (hide locked).
-        - Empty state when @contacts == []: "No contacts yet — meet fixers out in the world."
-        Delete the hardcoded 5-way cond block below once this lands.
-      --%>
-      <Chrome.section_header secondary="5 DOSSIERS · USE WISELY">CONTACTS</Chrome.section_header>
+      <Chrome.section_header secondary="ENCRYPTED CHANNEL">COMMS NETWORK</Chrome.section_header>
       <div class="contacts-grid">
-        <Chrome.panel :for={npc <- @npcs} id={"npc-#{npc.id}"}>
-          <span class={["npc-accent-bar", "npc-accent-bar--#{loyalty_band(npc.loyalty)}"]}></span>
-          <p class="npc-name">{npc.name}</p>
-          <span class={["npc-faction-pill", "npc-faction-pill--#{faction_color(npc.faction)}"]}>
-            {humanize_faction(npc.faction)}
+        <div :if={@contacts == []} class="comms-empty">
+          No contacts yet — meet fixers out in the world.
+        </div>
+        <Chrome.panel :for={c <- @contacts} id={"npc-#{c.npc.contact_key}"}>
+          <span class={["npc-accent-bar", "npc-accent-bar--#{loyalty_band(c.loyalty)}"]}></span>
+          <p class="npc-name">{c.npc.name}</p>
+          <span class={["npc-faction-pill", "npc-faction-pill--#{faction_color(c.npc.faction)}"]}>
+            {humanize_faction(c.npc.faction)}
           </span>
           <div class="npc-trust-row">
             <span>TRUST</span>
-            <span class={"npc-trust-value--#{loyalty_band(npc.loyalty)}"}>
-              {npc.loyalty}/100 · {loyalty_word(npc.loyalty)}
+            <span class={"npc-trust-value--#{loyalty_band(c.loyalty)}"}>
+              {c.loyalty}/100 · {loyalty_word(c.loyalty)}
             </span>
           </div>
           <div class="npc-trust-bar">
             <div
-              class={["npc-trust-fill", "npc-trust-fill--#{loyalty_band(npc.loyalty)}"]}
-              style={"width: #{npc.loyalty}%"}
+              class={["npc-trust-fill", "npc-trust-fill--#{loyalty_band(c.loyalty)}"]}
+              style={"width: #{c.loyalty}%"}
             />
           </div>
-          <div :for={action <- npc.trade_actions}>
-            <p class="npc-action-text"><span>{action.name}</span> — {action.description}</p>
+          <div :for={service <- c.services}>
+            <p class="npc-action-text"><span>{service.name}</span> — {service.description}</p>
+            <Chrome.btn
+              id={"service-#{c.npc.contact_key}-#{service.key}"}
+              variant={
+                if(Contacts.can_afford?(@player, c.npc.contact_key, to_string(service.key)),
+                  do: :primary,
+                  else: :dead
+                )
+              }
+              phx-click="invoke_service"
+              phx-value-contact={c.npc.contact_key}
+              phx-value-service={service.key}
+            >
+              {service.name}
+            </Chrome.btn>
           </div>
-          <%= cond do %>
-            <% npc.id == "mother_graft" -> %>
-              <% can_do = Npcs.can_flesh_tithe?(@player) %>
-              <Chrome.btn
-                id="trade-flesh-tithe-button"
-                variant={if(can_do, do: :primary, else: :dead)}
-                phx-click="flesh_tithe"
-              >
-                {action_label(can_do, "FLESH TITHE", "CAN'T PAY")}
-              </Chrome.btn>
-            <% npc.id == "rook" -> %>
-              <% can_do = Npcs.can_move_goods?(@player) %>
-              <Chrome.btn
-                id="trade-move-goods-button"
-                variant={if(can_do, do: :primary, else: :dead)}
-                phx-click="move_goods"
-              >
-                {action_label(can_do, "MOVE GOODS", "CAN'T PAY")}
-              </Chrome.btn>
-            <% npc.id == "nine_iron" -> %>
-              <% can_do = Npcs.can_look_the_other_way?(@player) %>
-              <Chrome.btn
-                id="trade-look-the-other-way-button"
-                variant={if(can_do, do: :primary, else: :dead)}
-                phx-click="look_the_other_way"
-              >
-                {action_label(can_do, "LOOK THE OTHER WAY", "CAN'T PAY")}
-              </Chrome.btn>
-            <% npc.id == "splice" -> %>
-              <% can_do = Npcs.can_data_drop?(@player) %>
-              <Chrome.btn
-                id="trade-data-drop-button"
-                variant={if(can_do, do: :primary, else: :dead)}
-                phx-click="data_drop"
-              >
-                {action_label(can_do, "DATA DROP", "CAN'T PAY")}
-              </Chrome.btn>
-            <% npc.id == "tally" -> %>
-              <% can_do = Npcs.can_settle_the_books?(@player) %>
-              <Chrome.btn
-                id="trade-settle-the-books-button"
-                variant={if(can_do, do: :primary, else: :dead)}
-                phx-click="settle_the_books"
-              >
-                {action_label(can_do, "SETTLE THE BOOKS", "CAN'T PAY")}
-              </Chrome.btn>
-            <% true -> %>
-          <% end %>
         </Chrome.panel>
       </div>
     </Layouts.app>
@@ -449,15 +350,26 @@ defmodule ShuntWeb.HubLive do
     |> assign(:player, player)
     |> assign(:offer, catalog_item(player.current_offer_key))
     |> assign(:held, catalog_item(player.held_item_key))
-    # TODO: replace this :npcs assign with `assign(:contacts, Contacts.list_for_player(player))`
-    # (known-only, unlocked-services-only). The template TODO consumes @contacts. The old shape
-    # merged :loyalty onto every NPC via Npcs.list(); the new list_for_player already carries
-    # loyalty + the unlocked services per contact.
-    |> assign(:npcs, Enum.map(Npcs.list(), &Map.put(&1, :loyalty, Loyalty.value(player, &1.id))))
+    |> assign(:contacts, Contacts.list_for_player(player))
   end
 
   defp catalog_item(nil), do: nil
   defp catalog_item(key), do: Catalog.fetch!(key)
+
+  # Generic status line for any contact deal, built from the non-zero resource deltas the resolver
+  # reported — so new contacts/services need no bespoke copy.
+  defp contact_status(name, deltas) do
+    parts =
+      [{"SCRIP", :scrip}, {"CRED", :cred}, {"HEAT", :heat}]
+      |> Enum.map(fn {label, key} -> {label, Map.get(deltas, key, 0)} end)
+      |> Enum.reject(fn {_label, delta} -> delta == 0 end)
+      |> Enum.map_join(" // ", fn
+        {label, delta} when delta > 0 -> "+#{delta} #{label}"
+        {label, delta} -> "#{delta} #{label}"
+      end)
+
+    "#{String.upcase(name)} // #{parts}"
+  end
 
   defp activity_resolver("rest"), do: &LayingLow.rest/1
   defp activity_resolver("gather_rumors"), do: &LayingLow.gather_rumors/1

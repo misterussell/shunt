@@ -7,6 +7,7 @@
   id: "crossgate_mother_graft",
   name: "Mother Graft",
   contact_key: "mother_graft",
+  faction: :fleshless,
   location_id: "crossgate_graft_den",
   story_arcs: [],
   services: [

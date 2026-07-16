@@ -32,7 +32,11 @@ defmodule Shunt.Contacts do
     Content.all(:world_npcs)
     |> Enum.filter(&(&1.services != []))
     |> Enum.map(fn npc ->
-      %{npc: npc, loyalty: Loyalty.value(player, npc.contact_key), services: unlocked(player, npc)}
+      %{
+        npc: npc,
+        loyalty: Loyalty.value(player, npc.contact_key),
+        services: unlocked(player, npc)
+      }
     end)
     |> Enum.reject(&(&1.services == []))
     |> Enum.sort_by(& &1.npc.name)
@@ -80,7 +84,12 @@ defmodule Shunt.Contacts do
   end
 
   # Unlocked deals for a contact: keep services whose requirements are met, then for each distinct
-  # deal key (in first-appearance order) take the best (last-authored) unlocked tier.
+  # deal key (in first-appearance order) take the best unlocked tier.
+  #
+  # INVARIANT: tiers of one deal key MUST be authored in ascending order (basic -> best) in the
+  # content file, so the last met tier is the best unlocked one. `List.last` picks it. (This is
+  # deliberately more robust than Requirements.deepest_met_tier/2's take_while, which would stop at
+  # a gap if unlock flags were granted non-cumulatively.)
   defp unlocked(player, npc) do
     met = Enum.filter(npc.services, &Requirements.met?(player, &1.requirements))
 
@@ -137,9 +146,14 @@ defmodule Shunt.Contacts do
     cost = ceil(base_cost * Loyalty.cost_multiplier(player, ck))
 
     cond do
-      player.scrip < cost -> {:error, :insufficient_scrip}
-      not Loyalty.roll_reliable?(player, ck) -> {:error, :npc_unreliable}
-      true -> {:ok, [{:scrip, -cost}, {:heat, -heat_reduction}, {:npc_loyalty, ck, @loyalty_gain}]}
+      player.scrip < cost ->
+        {:error, :insufficient_scrip}
+
+      not Loyalty.roll_reliable?(player, ck) ->
+        {:error, :npc_unreliable}
+
+      true ->
+        {:ok, [{:scrip, -cost}, {:heat, -heat_reduction}, {:npc_loyalty, ck, @loyalty_gain}]}
     end
   end
 

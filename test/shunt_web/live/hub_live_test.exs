@@ -1,21 +1,18 @@
 defmodule ShuntWeb.HubLiveTest do
   use ShuntWeb.ConnCase
 
-  # TODO (Contacts fold-in): add COMMS NETWORK tests:
-  #   - a contact the player hasn't met does NOT render (no #service-<key>-<key> button, no card)
-  #   - after granting the intro flag, the contact card + its basic service button render;
-  #     clicking phx-click="invoke_service" (phx-value-contact / phx-value-service) applies the deal
-  #     and updates resources
-  #   - the TRUST bar renders for a known contact
-  #   - empty state copy shows when the player has zero known contacts
-  # Update/replace the existing per-deal contact tests (flesh_tithe etc.) that assume the old
-  # always-visible grid. Reference element IDs, not raw HTML (per AGENTS.md).
-
   import Phoenix.LiveViewTest
 
   setup do
     Shunt.Players.create_player!()
     :ok
+  end
+
+  # Grant fields on the singleton player (knowledge flags unlock a contact's services).
+  defp update_player(attrs) do
+    Shunt.Players.get_player!()
+    |> Ecto.Changeset.change(attrs)
+    |> Shunt.Repo.update!()
   end
 
   test "renders initial resource values", %{conn: conn} do
@@ -30,7 +27,7 @@ defmodule ShuntWeb.HubLiveTest do
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert render(view) =~ "0x1A · FENCE_PROTOCOL"
-    assert render(view) =~ "5 DOSSIERS · USE WISELY"
+    assert render(view) =~ "COMMS NETWORK"
   end
 
   defp put_heat(heat) do
@@ -221,17 +218,26 @@ defmodule ShuntWeb.HubLiveTest do
     assert has_element?(view, "#held-item .held-value", "+#{item.sell_value}")
   end
 
-  test "NPC panels sit in a contacts-grid wrapper", %{conn: conn} do
+  test "an unmet contact does not render on the comms network", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    refute has_element?(view, "#npc-mother_graft")
+    refute has_element?(view, "#service-mother_graft-flesh_tithe")
+  end
+
+  test "the comms network shows an empty state when no contacts are known", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, ".comms-empty", "No contacts yet")
+  end
+
+  test "a known contact's panel shows a loyalty accent bar, a faction pill, and a trust bar", %{
+    conn: conn
+  } do
+    update_player(knowledge: ["mother_graft_intro"])
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(view, ".contacts-grid #npc-mother_graft")
-  end
-
-  test "each NPC panel shows a loyalty accent bar, a faction pill, and a trust bar", %{
-    conn: conn
-  } do
-    {:ok, view, _html} = live(conn, ~p"/")
-
     assert has_element?(view, "#npc-mother_graft .npc-accent-bar")
     assert has_element?(view, "#npc-mother_graft .npc-faction-pill")
     assert has_element?(view, "#npc-mother_graft .npc-trust-row", "TRUST")
@@ -324,54 +330,46 @@ defmodule ShuntWeb.HubLiveTest do
     assert player.heat > 0
   end
 
-  test "renders the NPC roster", %{conn: conn} do
+  test "renders a known contact and its service button", %{conn: conn} do
     item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
-    player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.id))
+    update_player(knowledge: ["rook", "tally_intro"], held_item_key: item.id)
 
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(view, "#npc-rook", "Rook")
-    assert has_element?(view, "#npc-rook", "MOVE GOODS")
+    assert has_element?(view, "#service-rook-move_goods", "Move Goods")
     assert has_element?(view, "#npc-tally", "Tally")
   end
 
-  test "an NPC trade action description has a styled action-text class", %{conn: conn} do
+  test "a service description has a styled action-text class", %{conn: conn} do
+    update_player(knowledge: ["rook"])
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(view, "#npc-rook .npc-action-text", "fences whatever")
   end
 
-  test "a disabled NPC trade button shows CAN'T PAY instead of its normal CTA label", %{
-    conn: conn
-  } do
+  test "an unaffordable service button is styled dead", %{conn: conn} do
+    update_player(knowledge: ["mother_graft_intro"])
     {:ok, view, _html} = live(conn, ~p"/")
 
-    assert has_element?(view, "#trade-flesh-tithe-button", "CAN'T PAY")
-    refute has_element?(view, "#trade-flesh-tithe-button", "FLESH TITHE")
+    assert has_element?(view, "#service-mother_graft-flesh_tithe.btn-dead")
   end
 
-  test "a hostile-loyalty player sees CAN'T PAY even though scrip covers the base cost", %{
+  test "a hostile-loyalty player's service is dead even when scrip covers the base cost", %{
     conn: conn
   } do
-    player = Shunt.Players.get_player!()
-
-    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 20, npc_loyalty: %{"nine_iron" => 0}))
-
+    update_player(knowledge: ["nine_iron_intro"], scrip: 20, npc_loyalty: %{"nine_iron" => 0})
     {:ok, view, _html} = live(conn, ~p"/")
 
-    assert has_element?(view, "#trade-look-the-other-way-button", "CAN'T PAY")
-    refute has_element?(view, "#trade-look-the-other-way-button", "LOOK THE OTHER WAY")
+    assert has_element?(view, "#service-nine_iron-look_the_other_way.btn-dead")
   end
 
-  test "an affordable NPC trade button keeps its normal CTA label", %{conn: conn} do
-    player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: %{"cracked_bone_plate" => 1}))
-
+  test "an affordable service button is styled primary", %{conn: conn} do
+    update_player(knowledge: ["mother_graft_intro"], inventory: %{"cracked_bone_plate" => 1})
     {:ok, view, _html} = live(conn, ~p"/")
 
-    assert has_element?(view, "#trade-flesh-tithe-button", "FLESH TITHE")
-    refute has_element?(view, "#trade-flesh-tithe-button", "CAN'T PAY")
+    assert has_element?(view, "#service-mother_graft-flesh_tithe.btn-primary")
+    refute has_element?(view, "#service-mother_graft-flesh_tithe.btn-dead")
   end
 
   test "a disabled take-offer button shows CRED SHORT instead of TAKE IT", %{conn: conn} do
@@ -386,15 +384,13 @@ defmodule ShuntWeb.HubLiveTest do
   end
 
   test "loyalty bar reflects Player.npc_loyalty, not a static NPC value", %{conn: conn} do
-    player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, npc_loyalty: %{"mother_graft" => 80}))
+    update_player(knowledge: ["mother_graft_intro"], npc_loyalty: %{"mother_graft" => 80})
     {:ok, view, _html} = live(conn, ~p"/")
     assert has_element?(view, "#npc-mother_graft", "80/100 · SOLID")
   end
 
-  test "a hostile-band (<=24) NPC shows BURNED and the red accent/fill classes", %{conn: conn} do
-    player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, npc_loyalty: %{"mother_graft" => 24}))
+  test "a hostile-band (<=24) contact shows BURNED and the red accent/fill classes", %{conn: conn} do
+    update_player(knowledge: ["mother_graft_intro"], npc_loyalty: %{"mother_graft" => 24})
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(view, "#npc-mother_graft .npc-trust-row", "24/100 · BURNED")
@@ -402,9 +398,8 @@ defmodule ShuntWeb.HubLiveTest do
     assert has_element?(view, "#npc-mother_graft .npc-trust-fill--red")
   end
 
-  test "a favored-band (>=75) NPC shows SOLID and the cyan accent/fill classes", %{conn: conn} do
-    player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, npc_loyalty: %{"mother_graft" => 75}))
+  test "a favored-band (>=75) contact shows SOLID and the cyan accent/fill classes", %{conn: conn} do
+    update_player(knowledge: ["mother_graft_intro"], npc_loyalty: %{"mother_graft" => 75})
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(view, "#npc-mother_graft .npc-trust-row", "75/100 · SOLID")
@@ -412,9 +407,8 @@ defmodule ShuntWeb.HubLiveTest do
     assert has_element?(view, "#npc-mother_graft .npc-trust-fill--cyan")
   end
 
-  test "a mid-band (25..74) NPC shows WARY and the amber accent/fill classes", %{conn: conn} do
-    player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, npc_loyalty: %{"mother_graft" => 25}))
+  test "a mid-band (25..74) contact shows WARY and the amber accent/fill classes", %{conn: conn} do
+    update_player(knowledge: ["mother_graft_intro"], npc_loyalty: %{"mother_graft" => 25})
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(view, "#npc-mother_graft .npc-trust-row", "25/100 · WARY")
@@ -422,92 +416,88 @@ defmodule ShuntWeb.HubLiveTest do
     assert has_element?(view, "#npc-mother_graft .npc-trust-fill--amber")
   end
 
-  test "Flesh Tithe consumes a cracked_bone_plate and grants scrip", %{conn: conn} do
-    player = Shunt.Players.get_player!()
-
-    Shunt.Repo.update!(
-      Ecto.Changeset.change(player, inventory: %{"cracked_bone_plate" => 1}, scrip: 0)
+  test "invoking Flesh Tithe consumes a cracked_bone_plate and grants scrip", %{conn: conn} do
+    update_player(
+      knowledge: ["mother_graft_intro"],
+      inventory: %{"cracked_bone_plate" => 1},
+      scrip: 0
     )
 
     {:ok, view, _html} = live(conn, ~p"/")
 
-    view |> element("#trade-flesh-tithe-button") |> render_click()
+    view |> element("#service-mother_graft-flesh_tithe") |> render_click()
 
     assert has_element?(view, "#resource-scrip", "SCRIP 15")
     assert render(view) =~ "MOTHER GRAFT"
   end
 
-  test "Move Goods pays out for the held item and clears it", %{conn: conn} do
+  test "invoking Move Goods pays out for the held item and clears it", %{conn: conn} do
     item = Shunt.Fencing.Catalog.fetch!("scrap_dermal_plating")
-    player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, held_item_key: item.id, scrip: 0))
-
+    update_player(knowledge: ["rook"], held_item_key: item.id, scrip: 0)
     {:ok, view, _html} = live(conn, ~p"/")
 
-    view |> element("#trade-move-goods-button") |> render_click()
+    view |> element("#service-rook-move_goods") |> render_click()
 
     assert has_element?(view, "#resource-scrip", "SCRIP #{floor(item.sell_value * 0.5)}")
     refute has_element?(view, "#held-item")
   end
 
-  test "Look the Other Way spends scrip and reduces heat", %{conn: conn} do
-    player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 20, heat: 20))
-
+  test "invoking Look the Other Way spends scrip and reduces heat", %{conn: conn} do
+    update_player(knowledge: ["nine_iron_intro"], scrip: 20, heat: 20)
     {:ok, view, _html} = live(conn, ~p"/")
 
-    view |> element("#trade-look-the-other-way-button") |> render_click()
+    view |> element("#service-nine_iron-look_the_other_way") |> render_click()
 
     assert has_element?(view, "#resource-scrip", "SCRIP 0")
     assert has_element?(view, "#resource-heat", "HEAT 5/100")
   end
 
-  test "Data Drop converts scrip into cred", %{conn: conn} do
-    player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, scrip: 20, cred: 0))
-
+  test "invoking Data Drop converts scrip into cred", %{conn: conn} do
+    update_player(knowledge: ["splice_intro"], scrip: 20, cred: 0)
     {:ok, view, _html} = live(conn, ~p"/")
 
-    view |> element("#trade-data-drop-button") |> render_click()
+    view |> element("#service-splice-data_drop") |> render_click()
 
     assert has_element?(view, "#resource-scrip", "SCRIP 0")
     assert has_element?(view, "#resource-cred", "CRED 1")
   end
 
-  test "Settle the Books converts cred into scrip", %{conn: conn} do
-    player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, cred: 1, scrip: 0))
-
+  test "invoking Settle the Books converts cred into scrip", %{conn: conn} do
+    update_player(knowledge: ["tally_intro"], cred: 1, scrip: 0)
     {:ok, view, _html} = live(conn, ~p"/")
 
-    view |> element("#trade-settle-the-books-button") |> render_click()
+    view |> element("#service-tally-settle_the_books") |> render_click()
 
     assert has_element?(view, "#resource-cred", "CRED 0")
     assert has_element?(view, "#resource-scrip", "SCRIP 10")
   end
 
-  test "meeting an NPC for the first time flashes a met message", %{conn: conn} do
-    player = Shunt.Players.get_player!()
-    Shunt.Repo.update!(Ecto.Changeset.change(player, inventory: %{"cracked_bone_plate" => 1}))
+  test "the best-unlocked tier's label and payout win once tasks are done", %{conn: conn} do
+    update_player(knowledge: ["tally_intro", "tally_task1", "tally_task2"], cred: 1, scrip: 0)
     {:ok, view, _html} = live(conn, ~p"/")
-    view |> element("#trade-flesh-tithe-button") |> render_click()
-    # render(view) again to let the LiveView's own self-broadcast (sent via Phoenix.PubSub
-    # in the same handle_event) land and get processed by handle_info before asserting:
+
+    assert has_element?(view, "#service-tally-settle_the_books", "Cook the Ledger")
+    view |> element("#service-tally-settle_the_books") |> render_click()
+
+    assert has_element?(view, "#resource-scrip", "SCRIP 24")
+  end
+
+  test "meeting a contact for the first time flashes a met message", %{conn: conn} do
+    update_player(knowledge: ["mother_graft_intro"], inventory: %{"cracked_bone_plate" => 1})
+    {:ok, view, _html} = live(conn, ~p"/")
+    view |> element("#service-mother_graft-flesh_tithe") |> render_click()
     assert render(view) =~ "met Mother Graft"
   end
 
   test "crossing a loyalty band flashes a band-changed message", %{conn: conn} do
-    player = Shunt.Players.get_player!()
-
-    Shunt.Repo.update!(
-      Ecto.Changeset.change(player,
-        inventory: %{"cracked_bone_plate" => 1},
-        npc_loyalty: %{"mother_graft" => 73}
-      )
+    update_player(
+      knowledge: ["mother_graft_intro"],
+      inventory: %{"cracked_bone_plate" => 1},
+      npc_loyalty: %{"mother_graft" => 73}
     )
 
     {:ok, view, _html} = live(conn, ~p"/")
-    view |> element("#trade-flesh-tithe-button") |> render_click()
+    view |> element("#service-mother_graft-flesh_tithe") |> render_click()
     assert render(view) =~ "trust you"
   end
 end

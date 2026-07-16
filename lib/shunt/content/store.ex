@@ -3,9 +3,6 @@ defmodule Shunt.Content.Store do
   use GenServer
 
   @sources [
-    # TODO: remove the :npcs source and delete priv/content/npcs/ once the five contacts are
-    # migrated into :world_npcs (each with a contact_key + services). Nothing else loads :npcs.
-    {:npcs, "priv/content/npcs"},
     {:world_npcs, "priv/content/world_npcs"},
     {:fencing_items, "priv/content/fencing"},
     {:raws, "priv/content/raws"},

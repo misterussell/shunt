@@ -8,6 +8,7 @@
   id: "shunt9_rook",
   name: "Rook",
   contact_key: "rook",
+  faction: :syndicate_of_closed_hands,
   location_id: "shunt9_rooks_desk",
   story_arcs: [],
   services: [

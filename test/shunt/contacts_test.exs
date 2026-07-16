@@ -49,7 +49,9 @@ defmodule Shunt.ContactsTest do
     test "a hostile-loyalty player can be unreliable" do
       player = %Player{scrip: 25, knowledge: ["splice_intro"], npc_loyalty: %{"splice" => 0}}
 
-      results = Enum.map(1..200, fn _ -> Contacts.resolve_service(player, "splice", "data_drop") end)
+      results =
+        Enum.map(1..200, fn _ -> Contacts.resolve_service(player, "splice", "data_drop") end)
+
       assert Enum.any?(results, &(&1 == {:error, :npc_unreliable}))
     end
   end
@@ -108,6 +110,13 @@ defmodule Shunt.ContactsTest do
                {:ok, [{:cred, -1}, {:scrip, 10}, {:npc_loyalty, "tally", 5}]}
     end
 
+    test "a favored-loyalty player gets a scaled (better) gain on the price side" do
+      player = %Player{cred: 1, knowledge: ["tally_intro"], npc_loyalty: %{"tally" => 80}}
+
+      assert {:ok, effects} = Contacts.resolve_service(player, "tally", "settle_the_books")
+      assert {:scrip, floor(10 * 1.2)} in effects
+    end
+
     test "settle_the_books returns {:error, :insufficient_cred} when cred is 0" do
       player = %Player{cred: 0, knowledge: ["tally_intro"]}
 
@@ -134,6 +143,7 @@ defmodule Shunt.ContactsTest do
       player = %Player{knowledge: ["splice_intro", "splice_task1"]}
 
       entry = Enum.find(Contacts.list_for_player(player), &(&1.npc.contact_key == "splice"))
+
       assert [%{key: :data_drop, name: "Deep Cache", params: %{cost: 15, gain_cred: 2}}] =
                entry.services
     end
@@ -170,6 +180,10 @@ defmodule Shunt.ContactsTest do
   describe "name/1" do
     test "returns the contact's display name for its contact_key" do
       assert Contacts.name("mother_graft") == "Mother Graft"
+    end
+
+    test "falls back to the raw key for an unknown contact" do
+      assert Contacts.name("nobody") == "nobody"
     end
   end
 end
